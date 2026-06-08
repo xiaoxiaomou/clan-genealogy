@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>族谱 - 家族传承管理</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        // 开发环境下重定向到前端开发服务器
+        if (window.location.hostname === 'localhost' && window.location.port === '8080') {
+            var match = window.location.pathname.match(/^\/(family\/\d+|profile|admin\/users|login|register)/);
+            if (match) {
+                window.location.href = 'http://localhost:3000/' + match[1];
+            }
+        }
+        // 生产环境下由 Flask 的 pages.py 直接服务静态文件
+    </script>
+</body>
+</html>
