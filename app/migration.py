@@ -33,6 +33,8 @@ def run_migrations(db: SQLAlchemy):
         ],
         'users': [
             ('linked_member_id', "INTEGER"),
+            ('reset_token', "VARCHAR(128)"),
+            ('reset_token_expires', "DATETIME"),
         ],
         'members': [
             ('birth_place', "VARCHAR(200)"),
@@ -41,6 +43,12 @@ def run_migrations(db: SQLAlchemy):
             ('death_place', "VARCHAR(200)"),
             ('death_place_lat', "REAL"),
             ('death_place_lng', "REAL"),
+            ('sort_order', "INTEGER DEFAULT 0"),
+            ('courtesy_name', "VARCHAR(50)"),
+            ('art_name', "VARCHAR(100)"),
+            ('posthumous_name', "VARCHAR(100)"),
+            ('privacy_level', "VARCHAR(20) DEFAULT 'public'"),
+            ('privacy_override', "BOOLEAN DEFAULT 0"),
         ],
     }
 

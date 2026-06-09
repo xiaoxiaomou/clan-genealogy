@@ -54,7 +54,16 @@ def create_app(config_name='default'):
     # 初始化扩展
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app, supports_credentials=True)
+
+    # CORS 白名单：从配置读取，不再使用 origins="*"
+    cors_origins_raw = app.config.get('CORS_ORIGINS', '')
+    cors_origins = [o.strip() for o in cors_origins_raw.split(',') if o.strip()]
+    if cors_origins:
+        CORS(app, supports_credentials=True, origins=cors_origins)
+    else:
+        # 未配置时降级为不允许任何源（严格模式）
+        app.logger.warning('CORS_ORIGINS is empty; CORS will block all cross-origin requests.')
+        CORS(app, supports_credentials=True, origins=[])
 
     # 确保上传目录存在
     import os

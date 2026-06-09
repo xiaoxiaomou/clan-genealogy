@@ -1,9 +1,15 @@
 from collections import deque
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from app import db
 from app.models.member import Member
 from app.models.relationship import Relationship
+from app.models.kinship import (
+    query_ancestors_cte, query_descendants_cte, find_lineage_chain_cte
+)
+from app.models.member_extension import (
+    MemberMigration, MemberBurial, MarriedOutDaughter
+)
 from app.utils.decorators import family_permission_required
 
 kinship_bp = Blueprint('kinship', __name__)
@@ -376,6 +382,25 @@ def determine_relationship(member1, member2, path, members):
     return '无亲属关系'
 
 
+@kinship_bp.route('/<int:family_id>/kinship/relation', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_relationship(family_id):
+    """一站式获取两人关系信息（称呼 + 共同祖先 + 血缘系数 + 路径）"""
+    m1_id = request.args.get('member1', type=int)
+    m2_id = request.args.get('member2', type=int)
+    if not m1_id or not m2_id:
+        return jsonify({'error': '需要两个成员ID'}), 400
+
+    from app.services.relationship import get_relationship_info
+    result = get_relationship_info(m1_id, m2_id, family_id)
+
+    if 'error' in result:
+        return jsonify(result), 404
+
+    return jsonify(result)
+
+
 @kinship_bp.route('/<int:family_id>/kinship', methods=['GET'])
 @jwt_required()
 @family_permission_required('viewer')
@@ -488,8 +513,27 @@ def get_lineage_highlight(family_id, member_id):
 
     adj, members = build_graph(family_id)
 
-    ancestor_ids, ancestor_edge_keys = collect_ancestors(adj, member_id, max_depth=max_depth)
-    descendant_ids, descendant_edge_keys = collect_descendants(adj, member_id, max_depth=max_depth)
+    use_cte = current_app.config.get('USE_CTE', True)
+
+    if use_cte:
+        try:
+            ancestor_ids, ancestor_edge_keys = query_ancestors_cte(member_id, max_depth)
+            ancestor_ids = set(ancestor_ids)
+        except Exception:
+            current_app.logger.warning('CTE ancestors failed, falling back to BFS')
+            ancestor_ids, ancestor_edge_keys = collect_ancestors(adj, member_id, max_depth=max_depth)
+    else:
+        ancestor_ids, ancestor_edge_keys = collect_ancestors(adj, member_id, max_depth=max_depth)
+
+    if use_cte:
+        try:
+            descendant_ids, descendant_edge_keys = query_descendants_cte(member_id, max_depth)
+            descendant_ids = set(descendant_ids)
+        except Exception:
+            current_app.logger.warning('CTE descendants failed, falling back to BFS')
+            descendant_ids, descendant_edge_keys = collect_descendants(adj, member_id, max_depth=max_depth)
+    else:
+        descendant_ids, descendant_edge_keys = collect_descendants(adj, member_id, max_depth=max_depth)
 
     sibling_ids = set()
     spouse_ids = set()
@@ -500,8 +544,23 @@ def get_lineage_highlight(family_id, member_id):
             elif rel_type == 'spouse' and dir_ == 'sideways':
                 spouse_ids.add(neighbor)
 
-    ancestor_chain = find_lineage_chain(adj, member_id, 'up', max_depth=max_depth * 2)
-    descendant_chain = find_lineage_chain(adj, member_id, 'down', max_depth=max_depth * 2)
+    if use_cte:
+        try:
+            ancestor_chain = find_lineage_chain_cte(member_id, 'up', max_depth=max_depth * 2)
+        except Exception:
+            current_app.logger.warning('CTE chain up failed, falling back to BFS')
+            ancestor_chain = find_lineage_chain(adj, member_id, 'up', max_depth=max_depth * 2)
+    else:
+        ancestor_chain = find_lineage_chain(adj, member_id, 'up', max_depth=max_depth * 2)
+
+    if use_cte:
+        try:
+            descendant_chain = find_lineage_chain_cte(member_id, 'down', max_depth=max_depth * 2)
+        except Exception:
+            current_app.logger.warning('CTE chain down failed, falling back to BFS')
+            descendant_chain = find_lineage_chain(adj, member_id, 'down', max_depth=max_depth * 2)
+    else:
+        descendant_chain = find_lineage_chain(adj, member_id, 'down', max_depth=max_depth * 2)
 
     def to_list(id_set):
         return [
@@ -528,6 +587,93 @@ def get_lineage_highlight(family_id, member_id):
         'descendant_edge_keys': sorted(descendant_edge_keys),
         'ancestor_chain': ancestor_chain,
         'descendant_chain': descendant_chain,
+    })
+
+
+@kinship_bp.route('/<int:family_id>/kinship/hourglass/<int:member_id>', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_hourglass_view(family_id, member_id):
+    """沙漏图视图：以某人为中心，返回上 N 代祖先 + 下 N 代子孙 + 同辈
+
+    Query params:
+        ancestor_depth: 向上最大代数，默认 4
+        descendant_depth: 向下最大代数，默认 4
+        include_siblings: 是否包含同辈（siblings, spouse），默认 true
+    Returns:
+        {
+            member, ancestors: [{id,name,generation}], descendants: [{id,name,generation}],
+            siblings, spouses,
+            ancestor_edge_keys, descendant_edge_keys,
+            all_ids: [全部相关成员 ID]
+        }
+    """
+    ancestor_depth = min(max(1, request.args.get('ancestor_depth', 4, type=int)), 10)
+    descendant_depth = min(max(1, request.args.get('descendant_depth', 4, type=int)), 10)
+    include_siblings = request.args.get('include_siblings', 'true').lower() == 'true'
+
+    member = Member.query.filter_by(id=member_id, family_id=family_id).first()
+    if not member:
+        return jsonify({'error': '成员不存在'}), 404
+
+    adj, members = build_graph(family_id)
+
+    use_cte = current_app.config.get('USE_CTE', True)
+
+    if use_cte:
+        try:
+            ancestor_ids, ancestor_edge_keys = query_ancestors_cte(member_id, ancestor_depth)
+            ancestor_ids = set(ancestor_ids)
+        except Exception:
+            ancestor_ids, ancestor_edge_keys = collect_ancestors(adj, member_id, max_depth=ancestor_depth)
+    else:
+        ancestor_ids, ancestor_edge_keys = collect_ancestors(adj, member_id, max_depth=ancestor_depth)
+
+    if use_cte:
+        try:
+            descendant_ids, descendant_edge_keys = query_descendants_cte(member_id, descendant_depth)
+            descendant_ids = set(descendant_ids)
+        except Exception:
+            descendant_ids, descendant_edge_keys = collect_descendants(adj, member_id, max_depth=descendant_depth)
+    else:
+        descendant_ids, descendant_edge_keys = collect_descendants(adj, member_id, max_depth=descendant_depth)
+
+    sibling_ids = set()
+    spouse_ids = set()
+    if include_siblings:
+        for neighbor, rel_type, dir_ in adj.get(member_id, []):
+            if rel_type == 'sibling' and dir_ == 'sideways':
+                sibling_ids.add(neighbor)
+            elif rel_type == 'spouse' and dir_ == 'sideways':
+                spouse_ids.add(neighbor)
+
+    def to_list(id_set):
+        return [
+            {
+                'id': mid,
+                'name': members[mid].name if mid in members else 'Unknown',
+                'generation': members[mid].generation if mid in members and members[mid].generation is not None else 0,
+            }
+            for mid in sorted(id_set)
+        ]
+
+    all_ids = sorted({member_id} | ancestor_ids | descendant_ids | sibling_ids | spouse_ids)
+
+    return jsonify({
+        'member': {'id': member.id, 'name': member.name, 'generation': member.generation or 0},
+        'ancestor_depth': ancestor_depth,
+        'descendant_depth': descendant_depth,
+        'ancestors': to_list(ancestor_ids),
+        'descendants': to_list(descendant_ids),
+        'siblings': to_list(sibling_ids),
+        'spouses': to_list(spouse_ids),
+        'ancestor_ids': sorted(ancestor_ids),
+        'descendant_ids': sorted(descendant_ids),
+        'sibling_ids': sorted(sibling_ids),
+        'spouse_ids': sorted(spouse_ids),
+        'ancestor_edge_keys': sorted(ancestor_edge_keys),
+        'descendant_edge_keys': sorted(descendant_edge_keys),
+        'all_ids': all_ids,
     })
 
 
@@ -669,3 +815,185 @@ def get_wufu_chart(family_id, member_id):
             wufu_data['sima'].append(member_data)
 
     return jsonify(wufu_data)
+
+
+# -------- 成员扩展信息 CRUD（迁徙/葬地/出嫁女）--------
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/extensions', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_member_extensions(family_id, member_id):
+    migrations = [m.to_dict() for m in MemberMigration.query.filter_by(member_id=member_id).order_by(MemberMigration.sort_order).all()]
+    burials = [b.to_dict() for b in MemberBurial.query.filter_by(member_id=member_id).all()]
+    married_out = [d.to_dict() for d in MarriedOutDaughter.query.filter_by(member_id=member_id).all()]
+    return jsonify({'migrations': migrations, 'burials': burials, 'married_out': married_out})
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/migrations', methods=['POST'])
+@jwt_required()
+@family_permission_required('editor')
+def add_migration(family_id, member_id):
+    data = request.get_json()
+    if not data or not data.get('to_place'):
+        return jsonify({'error': '迁入地不能为空'}), 400
+    m = MemberMigration(member_id=member_id, to_place=data['to_place'],
+                        from_place=data.get('from_place'), year=data.get('year'),
+                        reason=data.get('reason'), notes=data.get('notes'),
+                        sort_order=data.get('sort_order', 0))
+    db.session.add(m)
+    db.session.commit()
+    return jsonify({'message': '迁徙记录已添加', 'migration': m.to_dict()}), 201
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/migrations/<int:mig_id>', methods=['PUT'])
+@jwt_required()
+@family_permission_required('editor')
+def update_migration(family_id, member_id, mig_id):
+    mig = MemberMigration.query.filter_by(id=mig_id, member_id=member_id).first()
+    if not mig:
+        return jsonify({'error': '迁徙记录不存在'}), 404
+    data = request.get_json()
+    for f in ('to_place', 'from_place', 'year', 'reason', 'notes', 'sort_order'):
+        if f in data:
+            setattr(mig, f, data[f])
+    db.session.commit()
+    return jsonify({'message': '迁徙记录已更新', 'migration': mig.to_dict()})
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/migrations/<int:mig_id>', methods=['DELETE'])
+@jwt_required()
+@family_permission_required('editor')
+def delete_migration(family_id, member_id, mig_id):
+    mig = MemberMigration.query.filter_by(id=mig_id, member_id=member_id).first()
+    if not mig:
+        return jsonify({'error': '迁徙记录不存在'}), 404
+    db.session.delete(mig)
+    db.session.commit()
+    return jsonify({'message': '迁徙记录已删除'})
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/burials', methods=['POST'])
+@jwt_required()
+@family_permission_required('editor')
+def add_burial(family_id, member_id):
+    data = request.get_json()
+    if not data or not data.get('burial_place'):
+        return jsonify({'error': '葬地不能为空'}), 400
+    b = MemberBurial(member_id=member_id, burial_place=data['burial_place'],
+                     latitude=data.get('latitude'), longitude=data.get('longitude'),
+                     orientation=data.get('orientation'), notes=data.get('notes'))
+    db.session.add(b)
+    db.session.commit()
+    return jsonify({'message': '葬地信息已添加', 'burial': b.to_dict()}), 201
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/burials/<int:burial_id>', methods=['PUT'])
+@jwt_required()
+@family_permission_required('editor')
+def update_burial(family_id, member_id, burial_id):
+    b = MemberBurial.query.filter_by(id=burial_id, member_id=member_id).first()
+    if not b:
+        return jsonify({'error': '葬地记录不存在'}), 404
+    data = request.get_json()
+    for f in ('burial_place', 'latitude', 'longitude', 'orientation', 'notes'):
+        if f in data:
+            setattr(b, f, data[f])
+    db.session.commit()
+    return jsonify({'message': '葬地信息已更新', 'burial': b.to_dict()})
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/burials/<int:burial_id>', methods=['DELETE'])
+@jwt_required()
+@family_permission_required('editor')
+def delete_burial(family_id, member_id, burial_id):
+    b = MemberBurial.query.filter_by(id=burial_id, member_id=member_id).first()
+    if not b:
+        return jsonify({'error': '葬地记录不存在'}), 404
+    db.session.delete(b)
+    db.session.commit()
+    return jsonify({'message': '葬地信息已删除'})
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/married-out', methods=['POST'])
+@jwt_required()
+@family_permission_required('editor')
+def add_married_out(family_id, member_id):
+    data = request.get_json()
+    if not data or not data.get('married_to_name'):
+        return jsonify({'error': '夫家姓名不能为空'}), 400
+    d = MarriedOutDaughter(member_id=member_id, married_to_name=data['married_to_name'],
+                           married_to_place=data.get('married_to_place'),
+                           married_year=data.get('married_year'), notes=data.get('notes'))
+    db.session.add(d)
+    db.session.commit()
+    return jsonify({'message': '出嫁女信息已添加', 'married_out': d.to_dict()}), 201
+
+
+@kinship_bp.route('/<int:family_id>/members/<int:member_id>/married-out/<int:mo_id>', methods=['PUT'])
+@jwt_required()
+@family_permission_required('editor')
+def update_married_out(family_id, member_id, mo_id):
+    d = MarriedOutDaughter.query.filter_by(id=mo_id, member_id=member_id).first()
+    if not d:
+        return jsonify({'error': '出嫁女记录不存在'}), 404
+    data = request.get_json()
+    for f in ('married_to_name', 'married_to_place', 'married_year', 'notes'):
+        if f in data:
+            setattr(d, f, data[f])
+    db.session.commit()
+    return jsonify({'message': '出嫁女信息已更新', 'married_out': d.to_dict()})
+
+
+@kinship_bp.route('/<int:family_id>/members/statistics/generations', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def generation_statistics(family_id):
+    """字辈频次统计 + 世代人口分布"""
+    from sqlalchemy import func
+
+    # 字辈频次
+    gen_names = db.session.query(
+        Member.generation_name, func.count(Member.id).label('count')
+    ).filter(Member.family_id == family_id, Member.generation_name.isnot(None))\
+     .group_by(Member.generation_name).order_by(func.min(Member.generation).asc()).all()
+
+    # 世代人口分布（按 generation 汇总）
+    gen_dist = db.session.query(
+        Member.generation, func.count(Member.id).label('count')
+    ).filter(Member.family_id == family_id, Member.generation.isnot(None))\
+     .group_by(Member.generation).order_by(Member.generation.asc()).all()
+
+    # 性别分布按世代
+    gen_gender = db.session.query(
+        Member.generation, Member.gender, func.count(Member.id).label('count')
+    ).filter(Member.family_id == family_id, Member.generation.isnot(None))\
+     .group_by(Member.generation, Member.gender).order_by(Member.generation.asc()).all()
+
+    # 在世/已故统计
+    alive_count = Member.query.filter_by(family_id=family_id, is_alive=True).count()
+    dead_count = Member.query.filter_by(family_id=family_id, is_alive=False).count()
+
+    return jsonify({
+        'total': Member.query.filter_by(family_id=family_id).count(),
+        'alive_count': alive_count,
+        'dead_count': dead_count,
+        'generation_names': [
+            {'generation_name': g[0], 'count': g[1]} for g in gen_names
+        ],
+        'generation_distribution': [
+            {'generation': g[0], 'count': g[1]} for g in gen_dist
+        ],
+        'generation_gender': [
+            {'generation': g[0], 'gender': g[1], 'count': g[2]} for g in gen_gender
+        ],
+    })
+@jwt_required()
+@family_permission_required('editor')
+def delete_married_out(family_id, member_id, mo_id):
+    d = MarriedOutDaughter.query.filter_by(id=mo_id, member_id=member_id).first()
+    if not d:
+        return jsonify({'error': '出嫁女记录不存在'}), 404
+    db.session.delete(d)
+    db.session.commit()
+    return jsonify({'message': '出嫁女信息已删除'})

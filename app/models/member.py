@@ -24,6 +24,12 @@ class Member(db.Model):
     avatar = db.Column(db.String(256), nullable=True)  # 头像路径
     is_alive = db.Column(db.Boolean, default=True, nullable=False)
     branch_id = db.Column(db.Integer, db.ForeignKey('family_branches.id'), nullable=True, index=True)  # 所属房支
+    courtesy_name = db.Column(db.String(50), nullable=True)  # 字
+    art_name = db.Column(db.String(100), nullable=True)  # 号
+    posthumous_name = db.Column(db.String(100), nullable=True)  # 谥
+    privacy_level = db.Column(db.String(20), nullable=False, default='public')  # public, family, private
+    privacy_override = db.Column(db.Boolean, nullable=False, default=False)  # 手动覆盖活人保护
+    sort_order = db.Column(db.Integer, nullable=False, default=0)  # 兄弟节点排序（同一父节点下的顺序）
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -64,6 +70,10 @@ class Member(db.Model):
             'avatar': self.avatar,
             'is_alive': self.is_alive,
             'branch_id': self.branch_id,
+            'courtesy_name': self.courtesy_name,
+            'art_name': self.art_name,
+            'posthumous_name': self.posthumous_name,
+            'sort_order': self.sort_order,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

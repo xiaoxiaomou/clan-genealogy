@@ -127,6 +127,70 @@ def change_password():
 
 # ==================== 管理员审核用户 ====================
 
+
+# ==================== 密码重置 ====================
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """发送密码重置 token"""
+    data = request.get_json()
+    if not data or not data.get('email'):
+        return jsonify({'error': '请输入邮箱地址'}), 400
+
+    email = data['email'].strip()
+    user = User.query.filter_by(email=email).first()
+
+    # 无论邮箱是否存在都返回成功，避免泄露用户是否存在
+    if user:
+        token = user.generate_reset_token(expires_minutes=30)
+        db.session.commit()
+        # TODO: 发送邮件，暂时记录到日志
+        from flask import current_app
+        current_app.logger.info(
+            f'[PasswordReset] user={user.username} token={token}'
+        )
+
+    return jsonify({'message': '如果该邮箱已注册，重置链接已发送，请检查邮箱。'}), 200
+
+
+@auth_bp.route('/reset-password/verify', methods=['GET'])
+def verify_reset_token():
+    """验证重置 token 是否有效"""
+    token = request.args.get('token', '').strip()
+    if not token:
+        return jsonify({'valid': False, 'error': '缺少 token'}), 400
+
+    user = User.query.filter_by(reset_token=token).first()
+    if not user or not user.verify_reset_token(token):
+        return jsonify({'valid': False, 'error': '重置链接已失效'}), 400
+
+    return jsonify({'valid': True}), 200
+
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """用重置 token 设置新密码"""
+    data = request.get_json()
+    if not data or not data.get('token') or not data.get('new_password'):
+        return jsonify({'error': '缺少必要参数'}), 400
+
+    token = data['token'].strip()
+    new_password = data['new_password']
+
+    if len(new_password) < 6:
+        return jsonify({'error': '密码长度不能少于6位'}), 400
+
+    user = User.query.filter_by(reset_token=token).first()
+    if not user or not user.verify_reset_token(token):
+        return jsonify({'error': '重置链接已失效，请重新申请'}), 400
+
+    user.set_password(new_password)
+    user.clear_reset_token()
+    db.session.commit()
+
+    return jsonify({'message': '密码重置成功，请使用新密码登录'}), 200
+
+
 @auth_bp.route('/admin/users/pending', methods=['GET'])
 @admin_required
 def get_pending_users():

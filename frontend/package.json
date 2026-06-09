@@ -35,6 +35,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.15.0",
     "recharts": "^3.8.1",
+    "relationship.js": "^1.2.9",
     "tailwind-merge": "^3.6.0",
     "three": "^0.184.0"
   },

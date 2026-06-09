@@ -1,3 +1,5 @@
+from collections import deque
+
 from app import db
 from app.models.family import Family, FamilyMember
 from app.models.member import Member
@@ -183,6 +185,10 @@ class FamilyService:
     @staticmethod
     def add_relationship(member_id, related_member_id, relationship_type):
         """添加成员关系"""
+        # 自引用检查
+        if member_id == related_member_id:
+            return None, '不能建立自己与自己的关系'
+
         # 检查是否已存在
         existing = Relationship.query.filter_by(
             member_id=member_id,
@@ -199,6 +205,13 @@ class FamilyService:
             return None, '成员不存在'
         if member.family_id != related.family_id:
             return None, '成员不在同一个族谱中'
+
+        # BFS 环检测：仅对 parent 关系检查
+        # parent 语义：member_id 是子女，related_member_id 是父/母
+        # 若 related_member_id 已经是 member_id 的子孙，则加环
+        if relationship_type == 'parent':
+            if FamilyService._would_create_cycle(member_id, related_member_id):
+                return None, '该父子关系会产生环，请检查是否填反了'
 
         rel = Relationship(
             member_id=member_id,
@@ -218,6 +231,33 @@ class FamilyService:
 
         db.session.commit()
         return rel, None
+
+    @staticmethod
+    def _would_create_cycle(child_id, parent_id):
+        """
+        BFS 检测：若将 parent_id 设为 child_id 的父节点，
+        是否会形成环。
+        环的条件：parent_id 已经是 child_id 的子孙（沿 parent 边向下可达）。
+        即：从 parent_id 出发，沿着“我是 parent 的 parent”方向走，能到达 child_id。
+        """
+        # 从 parent_id 出发，沿着"parent 的 parent"向上查找
+        # 如果找到 child_id，说明 child_id 是 parent_id 的祖先，加边会产生环
+        visited = {parent_id}
+        queue = deque([parent_id])
+        while queue:
+            current = queue.popleft()
+            # 查找 current 的所有父节点
+            parent_rels = Relationship.query.filter_by(
+                member_id=current, relationship_type='parent'
+            ).all()
+            for rel in parent_rels:
+                pid = rel.related_member_id
+                if pid == child_id:
+                    return True  # 环！
+                if pid not in visited:
+                    visited.add(pid)
+                    queue.append(pid)
+        return False
 
     @staticmethod
     def remove_relationship(relationship_id):
@@ -308,11 +348,68 @@ class FamilyService:
 
         root_ids = [n['id'] for n in nodes if n['id'] not in child_ids]
 
+        # 计算夫妻对
+        couples = FamilyService._compute_couples(relationships, members, edges)
+
         return {
             'nodes': nodes,
             'edges': edges,
             'root_ids': root_ids,
+            'couples': couples,
         }
+
+    @staticmethod
+    def _compute_couples(relationships, members, edges):
+        """从配偶关系推导夫妻对"""
+        member_map = {m.id: m for m in members}
+        # 收集所有 spouse 关系，去重（A-B 与 B-A 视为同一对）
+        seen = set()
+        spouse_pairs = []
+        for r in relationships:
+            if r.relationship_type != 'spouse':
+                continue
+            key = tuple(sorted([r.member_id, r.related_member_id]))
+            if key in seen:
+                continue
+            seen.add(key)
+            spouse_pairs.append((r.member_id, r.related_member_id, r.created_at))
+
+        # 建立子女查找表：{parent_id: set(child_ids)}
+        children_of = {}
+        for e in edges:
+            if e['type'] == 'parent':
+                children_of.setdefault(e['source'], set()).add(e['target'])
+
+        couples = []
+        for a_id, b_id, created_at in spouse_pairs:
+            a = member_map.get(a_id)
+            b = member_map.get(b_id)
+            if not a or not b:
+                continue
+            # 确定夫/妻：男性=husband，女性=wife；同性别时按 id 排序
+            if a.gender == 'male' and b.gender == 'female':
+                husband_id, wife_id = a_id, b_id
+            elif a.gender == 'female' and b.gender == 'male':
+                husband_id, wife_id = b_id, a_id
+            else:
+                husband_id, wife_id = (a_id, b_id) if a_id < b_id else (b_id, a_id)
+
+            # 共同子女：同时以两人为 parent 的成员
+            common = (children_of.get(husband_id, set()) & children_of.get(wife_id, set())) if wife_id else set()
+            # 如果未找到共同子女，检查是否有任何子女以其中一人为父母（单亲子女也算）
+            if not common:
+                common = children_of.get(husband_id, set()) | children_of.get(wife_id, set()) if wife_id else children_of.get(husband_id, set())
+
+            couples.append({
+                'husband_id': husband_id,
+                'wife_id': wife_id,
+                'children': sorted(common),
+                'sort_order': 0,
+            })
+
+        # 按创建时间排序
+        couples.sort(key=lambda c: c.get('sort_order', 0))
+        return couples
 
     # ==================== 族谱用户权限管理 ====================
 

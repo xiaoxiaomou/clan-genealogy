@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  # ---- zupu 主应用（SQLite 模式，开箱即用）----
+  zupu:
+    build: .
+    container_name: zupu
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      # 生产环境必须设置这两个密钥
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-change-me-in-production}"
+      SECRET_KEY: "${SECRET_KEY:-change-me-in-production}"
+      # CORS 白名单，按需修改
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:5000,http://localhost:5173}"
+      # 默认 SQLite，如需 PostgreSQL 取消注释下方 DATABASE_URI
+      DATABASE_URI: "sqlite:////app/zupu.db"
+      # 活人隐私保护（出生距今不超过 N 年的成员视为活人）
+      LIVING_PROTECTION_YEARS: "${LIVING_PROTECTION_YEARS:-100}"
+    volumes:
+      # 持久化 SQLite 数据库和上传文件
+      - zupu-data:/app
+      - zupu-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/config/public')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ---- 可选：PostgreSQL 模式（取消注释启用）----
+  # db:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: zupu
+  #     POSTGRES_PASSWORD: "${DB_PASSWORD:-zupu_secret}"
+  #     POSTGRES_DB: zupu
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U zupu"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  zupu-data:
+  zupu-logs:
+  # pgdata:

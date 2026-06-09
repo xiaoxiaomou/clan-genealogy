@@ -1,4 +1,5 @@
 from datetime import datetime
+import secrets
 from app import db
 
 
@@ -18,6 +19,10 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # 密码重置
+    reset_token = db.Column(db.String(128), nullable=True, index=True)
+    reset_token_expires = db.Column(db.DateTime, nullable=True)
+
     # 增强字段
     relationship_to_creator = db.Column(db.String(50), nullable=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('family_branches.id'), nullable=True)
@@ -35,6 +40,26 @@ class User(db.Model):
     def check_password(self, password):
         from werkzeug.security import check_password_hash
         return check_password_hash(self.password_hash, password)
+
+    def generate_reset_token(self, expires_minutes=30):
+        """生成密码重置 token"""
+        from datetime import timedelta
+        self.reset_token = secrets.token_urlsafe(48)
+        self.reset_token_expires = datetime.utcnow() + timedelta(minutes=expires_minutes)
+        return self.reset_token
+
+    def verify_reset_token(self, token):
+        """验证重置 token 是否有效"""
+        if not self.reset_token or self.reset_token != token:
+            return False
+        if not self.reset_token_expires or self.reset_token_expires < datetime.utcnow():
+            return False
+        return True
+
+    def clear_reset_token(self):
+        """清除重置 token"""
+        self.reset_token = None
+        self.reset_token_expires = None
 
     def to_dict(self):
         return {

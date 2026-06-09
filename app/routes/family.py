@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.services.family_service import FamilyService
@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.member import Member
 from app.models.member_edit_history import MemberEditHistory
 from app.routes.member_history import record_member_changes
+from app.services.privacy_service import filter_member_list, filter_member_dict
 
 family_bp = Blueprint('family', __name__)
 
@@ -129,14 +130,33 @@ def delete_family(family_id):
 
 # ==================== 成员管理 ====================
 
+def _get_role(family_id):
+    """获取当前用户在族谱中的角色"""
+    from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+    try:
+        verify_jwt_in_request(optional=True)
+        user_id = int(get_jwt_identity())
+    except:
+        return 'viewer'
+    user = db.session.get(User, user_id)
+    if user and user.is_admin:
+        return 'admin'
+    from app.models.family import FamilyMember
+    fm = FamilyMember.query.filter_by(family_id=family_id, user_id=user_id).first()
+    return fm.role if fm else 'viewer'
+
+
 @family_bp.route('/<int:family_id>/members', methods=['GET'])
 @jwt_required()
 @family_permission_required('viewer')
 def list_members(family_id):
     """获取族谱所有成员"""
     members = FamilyService.get_family_members(family_id)
+    role = _get_role(family_id)
+    data = [m.to_dict() for m in members]
+    data = filter_member_list(members, data, role)
     return jsonify({
-        'members': [m.to_dict() for m in members]
+        'members': data
     })
 
 
@@ -165,6 +185,11 @@ def add_member(family_id):
         avatar=data.get('avatar'),
         is_alive=data.get('is_alive', True)
     )
+    # 活人保护自动标记
+    from app.services.privacy_service import is_living_protected
+    if is_living_protected(member):
+        member.privacy_level = 'private'
+        db.session.commit()
     return jsonify({
         'message': '成员添加成功',
         'member': member.to_dict()
@@ -179,7 +204,10 @@ def get_member(family_id, member_id):
     member = FamilyService.get_member(member_id)
     if not member or member.family_id != family_id:
         return jsonify({'error': '成员不存在'}), 404
-    return jsonify({'member': member.to_dict(include_relations=True)})
+    role = _get_role(family_id)
+    data = member.to_dict(include_relations=True)
+    data = filter_member_dict(data, role)
+    return jsonify({'member': data})
 
 
 @family_bp.route('/<int:family_id>/members/<int:member_id>', methods=['PUT'])
@@ -204,11 +232,22 @@ def update_member(family_id, member_id):
         for f in ('name', 'gender', 'generation', 'birth_date', 'death_date',
                    'is_alive', 'birth_place', 'death_place', 'generation_name',
                    'father_id', 'mother_id', 'spouse_id', 'branch_id', 'bio',
-                   'occupation', 'avatar')
+                   'occupation', 'avatar', 'courtesy_name', 'art_name', 'posthumous_name')
         if hasattr(old_member, f)
     }
 
-    member = FamilyService.update_member(member_id, **data)
+    # 活人保护同步 & privacy_level 支持
+    if 'privacy_level' in data:
+        member.privacy_level = data['privacy_level']
+        member.privacy_override = True
+    from app.services.privacy_service import is_living_protected
+    if 'is_alive' in data or 'birth_date' in data:
+        if is_living_protected(member) and not member.privacy_override:
+            member.privacy_level = 'private'
+        elif not is_living_protected(member) and not member.privacy_override:
+            member.privacy_level = 'public'
+    
+    member = FamilyService.update_member(member_id, **{k: v for k, v in data.items() if k not in ('privacy_level', 'privacy_override')})
     if not member:
         return jsonify({'error': '成员不存在'}), 404
 
@@ -380,6 +419,49 @@ def batch_delete_members(family_id):
     })
 
 
+@family_bp.route('/<int:family_id>/members/batch-sort', methods=['POST'])
+@jwt_required()
+@family_permission_required('editor')
+def batch_sort_members(family_id):
+    """批量设置兄弟节点排序
+
+    请求体: {
+      orders: [ { id: 1, sort_order: 0 }, { id: 2, sort_order: 1 }, ... ]
+    }
+    """
+    data = request.get_json(silent=True) or {}
+    orders = data.get('orders') or []
+    if not isinstance(orders, list) or not orders:
+        return jsonify({'error': 'orders 必须是非空数组'}), 400
+
+    updated = 0
+    for item in orders:
+        mid = item.get('id')
+        sort_val = item.get('sort_order')
+        if mid is None or sort_val is None:
+            continue
+        try:
+            mid_int = int(mid)
+            sort_int = int(sort_val)
+        except (TypeError, ValueError):
+            continue
+        m = Member.query.filter_by(id=mid_int, family_id=family_id).first()
+        if m:
+            m.sort_order = sort_int
+            updated += 1
+
+    db.session.commit()
+    from app.utils.audit import log_action
+    log_action(
+        family_id=family_id,
+        user_id=int(get_jwt_identity()),
+        action='batch_sort',
+        entity_type='member',
+        description=f'批量排序 {updated} 个成员',
+    )
+    return jsonify({'message': f'成功排序 {updated} 个成员', 'updated': updated})
+
+
 @family_bp.route('/<int:family_id>/members/import-csv', methods=['POST'])
 @jwt_required()
 @family_permission_required('editor')
@@ -480,6 +562,188 @@ def import_members_csv(family_id):
         return jsonify({'error': f'CSV 导入失败: {str(e)}'}), 500
 
 
+@family_bp.route('/<int:family_id>/import/excel', methods=['POST'])
+@jwt_required()
+@family_permission_required('editor')
+def import_members_excel(family_id):
+    """从 Excel (.xlsx) 文件导入成员，支持行级错误报告"""
+    dry_run = request.form.get('dry_run', 'true').lower() == 'true'
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'error': '请上传 .xlsx 文件'}), 400
+    if not file.filename.endswith('.xlsx') and not file.filename.endswith('.xls'):
+        return jsonify({'error': '仅支持 .xlsx 格式'}), 400
+
+    import openpyxl
+    try:
+        wb = openpyxl.load_workbook(file, read_only=True, data_only=True)
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+    except Exception as e:
+        return jsonify({'error': f'文件解析失败: {str(e)}'}), 400
+
+    if len(rows) < 2:
+        return jsonify({'error': '文件为空或只有表头'}), 400
+
+    headers = [str(h or '').strip().lower().replace(' ', '_') for h in rows[0]]
+    required_field = 'name'
+
+    COLUMN_MAP = {
+        'name': 'name', '姓名': 'name', '名字': 'name',
+        'gender': 'gender', '性别': 'gender',
+        'birth_date': 'birth_date', '出生日期': 'birth_date', '出生': 'birth_date',
+        'death_date': 'death_date', '逝世日期': 'death_date', '逝世': 'death_date',
+        'generation': 'generation', '辈分': 'generation', '第几代': 'generation', '世代': 'generation',
+        'generation_name': 'generation_name', '辈分名称': 'generation_name', '字辈': 'generation_name',
+        'birth_place': 'birth_place', '出生地': 'birth_place',
+        'death_place': 'death_place', '逝世地': 'death_place',
+        'is_alive': 'is_alive', '是否在世': 'is_alive', '在世': 'is_alive',
+        'bio': 'bio', '简介': 'bio', '生平': 'bio',
+        'courtesy_name': 'courtesy_name', '字': 'courtesy_name',
+        'art_name': 'art_name', '号': 'art_name',
+        'posthumous_name': 'posthumous_name', '谥': 'posthumous_name', '谥号': 'posthumous_name',
+    }
+
+    field_map = {}
+    for i, h in enumerate(headers):
+        mapped = COLUMN_MAP.get(h)
+        if mapped:
+            field_map[i] = mapped
+
+    valid = []
+    errors = []
+    for row_idx, row in enumerate(rows[1:], start=2):
+        if all(v is None for v in row):
+            continue
+        name = str(row[0]).strip() if len(row) > 0 and row[0] else ''
+        if not name:
+            errors.append({'row': row_idx, 'name': '', 'reason': '缺少姓名', 'field': 'name'})
+            continue
+
+        member_data = {'name': name, 'family_id': family_id}
+        col_errors = []
+        for col_idx, value in enumerate(row[1:], start=1):
+            field = field_map.get(col_idx)
+            if not field:
+                continue
+            if value is None:
+                continue
+            val_str = str(value).strip()
+
+            if field == 'gender':
+                mapped = {'男': 'male', '女': 'female', '未知': 'unknown', 'male': 'male', 'female': 'female', 'unknown': 'unknown'}
+                val_str = mapped.get(val_str.lower(), 'unknown')
+            elif field == 'is_alive':
+                val_str = str(val_str).lower() in ('true', '1', 'yes', '是', '1', '活着')
+            elif field == 'generation':
+                try:
+                    val_str = int(float(val_str))
+                except (ValueError, TypeError):
+                    col_errors.append(f'第 {col_idx+1} 列「{field}」无法解析为数字')
+                    continue
+
+            member_data[field] = val_str
+
+        if col_errors:
+            errors.append({'row': row_idx, 'name': name, 'reason': '; '.join(col_errors), 'field': 'multiple'})
+            continue
+
+        valid.append(member_data)
+
+    if dry_run:
+        return jsonify({
+            'dry_run': True,
+            'total': len(rows) - 1,
+            'valid': len(valid),
+            'invalid': len(errors),
+            'errors': errors[:50],
+            'preview': valid[:5],
+        })
+
+    try:
+        added = 0
+        for m_data in valid:
+            m = Member(**m_data)
+            db.session.add(m)
+            added += 1
+        db.session.commit()
+        from app.utils.audit import log_action
+        log_action(family_id=family_id, user_id=int(get_jwt_identity()),
+                   action='excel_import', entity_type='member',
+                   description=f'Excel 导入 {added} 个成员')
+        return jsonify({
+            'dry_run': False,
+            'added': added,
+            'invalid': len(errors),
+            'errors': errors[:50],
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Excel 导入失败: {str(e)}'}), 500
+
+
+@family_bp.route('/<int:family_id>/import/template', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def download_import_template(family_id):
+    """下载导入模板 (.xlsx)"""
+    import xlsxwriter
+    from io import BytesIO
+
+    output = BytesIO()
+    wb = xlsxwriter.Workbook(output, {'in_memory': True})
+    ws = wb.add_worksheet('成员导入模板')
+
+    header_format = wb.add_format({'bold': True, 'bg_color': '#b08d57', 'font_color': 'white',
+                                    'border': 1, 'text_wrap': True, 'valign': 'vcenter', 'align': 'center'})
+    example_format = wb.add_format({'border': 1, 'text_wrap': True, 'valign': 'vcenter'})
+
+    headers = ['姓名', '性别', '出生日期', '逝世日期', '辈分', '字辈', '出生地', '逝世地',
+               '是否在世', '字', '号', '谥', '简介']
+    widths = [12, 8, 12, 12, 8, 10, 16, 16, 10, 10, 14, 10, 30]
+    example = ['张三', '男', '1900-01-01', '1980-12-31', 1, '德', '山东济南', '北京',
+               '否', '子明', '浩然居士', '文正', '家族第十二代传人，德高望重']
+
+    for col, (h, w) in enumerate(zip(headers, widths)):
+        ws.set_column(col, col, w)
+        ws.write(0, col, h, header_format)
+
+    for col, val in enumerate(example):
+        ws.write(1, col, val, example_format)
+
+    ws2 = wb.add_worksheet('字段说明')
+    ws2.write(0, 0, '字段', header_format)
+    ws2.write(0, 1, '说明', header_format)
+    ws2.set_column(0, 0, 12)
+    ws2.set_column(1, 1, 50)
+    field_descs = [
+        ('姓名', '必填，成员姓名'),
+        ('性别', '可选：男 / 女 / 未知，默认未知'),
+        ('出生日期', '可选，格式 YYYY-MM-DD 或 YYYY年MM月DD日'),
+        ('逝世日期', '可选，格式同出生日期'),
+        ('辈分', '可选，数字（第几代）'),
+        ('字辈', '可选，该辈分名称（如：德、建、伟）'),
+        ('出生地', '可选，出生地点'),
+        ('逝世地', '可选，逝世地点'),
+        ('是否在世', '可选，是/否/true/false，默认是'),
+        ('字', '可选，古人的表字（如：子瞻）'),
+        ('号', '可选，别号（如：东坡居士）'),
+        ('谥', '可选，谥号（如：文忠）'),
+        ('简介', '可选，生平简介文字'),
+    ]
+    for r, (f, d) in enumerate(field_descs):
+        ws2.write(r + 1, 0, f, example_format)
+        ws2.write(r + 1, 1, d, example_format)
+
+    wb.close()
+    output.seek(0)
+
+    return output.getvalue(), 200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename=zupu_members_template.xlsx',
+    }
+
+
 # ==================== 关系管理 ====================
 
 @family_bp.route('/<int:family_id>/relationships', methods=['GET'])
@@ -542,6 +806,24 @@ def delete_relationship(family_id, relationship_id):
 def get_family_tree(family_id):
     """获取族谱树形数据（用于可视化）"""
     tree_data = FamilyService.get_family_tree(family_id)
+    role = _get_role(family_id)
+    member_map = {}
+    members = FamilyService.get_family_members(family_id)
+    for m in members:
+        member_map[m.id] = m
+    from app.services.privacy_service import get_effective_privacy_level
+    for node in tree_data.get('nodes', []):
+        m = member_map.get(node['id'])
+        if m:
+            effective = get_effective_privacy_level(m)
+            node['privacy_level'] = effective
+            if effective == 'private' and role != 'admin':
+                node['name'] = '***'
+                node['gender'] = 'unknown'
+                node.pop('birth_date', None)
+                node.pop('death_date', None)
+                node.pop('avatar', None)
+                node['is_alive'] = None
     return jsonify(tree_data)
 
 
@@ -931,3 +1213,43 @@ def bind_self_to_member(family_id):
         'message': '已将自己关联到此成员',
         'member': target_member.to_dict(),
     })
+
+
+# ==================== 示例数据集 ====================
+
+@family_bp.route('/sample-datasets', methods=['GET'])
+@jwt_required()
+def list_sample_datasets():
+    """列出所有可用的内置示例数据集"""
+    from app.seed_data import get_sample_dataset_list
+    return jsonify({'datasets': get_sample_dataset_list()})
+
+
+@family_bp.route('/<int:family_id>/load-sample', methods=['POST'])
+@jwt_required()
+@family_permission_required('editor')
+def load_sample_data(family_id):
+    """将示例数据加载到指定家族"""
+    data = request.get_json(silent=True) or {}
+    dataset_key = data.get('dataset_key')
+    if not dataset_key:
+        return jsonify({'error': '缺少 dataset_key 参数'}), 400
+
+    from app.seed_data import load_sample_data as _load
+    try:
+        result = _load(family_id, dataset_key)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'加载失败: {str(e)}'}), 500
+
+    from app.utils.audit import log_action
+    log_action(
+        family_id=family_id,
+        user_id=int(get_jwt_identity()),
+        action='load_sample',
+        entity_type='family',
+        description=f'加载示例数据集: {result["dataset_name"]}',
+    )
+    return jsonify(result)

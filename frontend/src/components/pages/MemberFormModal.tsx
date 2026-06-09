@@ -13,6 +13,9 @@ export interface MemberFormData {
   bio: string
   avatar: string
   is_alive: boolean
+  courtesy_name: string
+  art_name: string
+  posthumous_name: string
 }
 
 interface MemberFormModalProps {
@@ -173,6 +176,24 @@ export default function MemberFormModal({
           placeholder="如：德、建、伟"
         />
       </div>
+      <div className="space-y-2 border-t pt-3 mt-2">
+        <Label className="text-xs text-muted-foreground font-medium">传统信息</Label>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs">字</Label>
+            <Input value={formData.courtesy_name} onChange={(e) => onChange('courtesy_name', e.target.value)} placeholder="如：子瞻" />
+          </div>
+          <div>
+            <Label className="text-xs">号</Label>
+            <Input value={formData.art_name} onChange={(e) => onChange('art_name', e.target.value)} placeholder="如：东坡居士" />
+          </div>
+          <div>
+            <Label className="text-xs">谥</Label>
+            <Input value={formData.posthumous_name} onChange={(e) => onChange('posthumous_name', e.target.value)} placeholder="如：文忠" />
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>出生日期</Label>
@@ -210,6 +231,33 @@ export default function MemberFormModal({
         />
         <Label htmlFor="m-alive">在世</Label>
       </div>
+
+      {/* 隐私设置 */}
+      <div className="space-y-2 rounded border bg-muted/20 p-3">
+        <Label className="text-xs font-medium text-muted-foreground">隐私设置</Label>
+        <div className="flex items-center gap-2">
+          <select
+            value={formData.privacy_level || 'public'}
+            onChange={(e) => onChange('privacy_level', e.target.value)}
+            className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors"
+          >
+            <option value="public">公开</option>
+            <option value="family">仅家族成员可见</option>
+            <option value="private">仅管理员可见</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            id="m-privacy-override"
+            checked={formData.privacy_override || false}
+            onChange={(e) => onChange('privacy_override', e.target.checked)}
+            className="h-3.5 w-3.5 rounded"
+          />
+          <Label htmlFor="m-privacy-override">手动覆盖（关闭活人自动保护）</Label>
+        </div>
+      </div>
+
       <div className="flex gap-3 pt-2">
         <p className="mr-2 self-center text-xs text-muted-foreground">
           {saveShortcutHint}

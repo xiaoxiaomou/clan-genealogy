@@ -20,17 +20,62 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: any;
   headers?: Record<string, string>;
+  /** 期望的响应类型：'json'（默认）/ 'blob' / 'text' */
+  responseType?: 'json' | 'blob' | 'text';
 }
 
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, headers = {} } = options;
+// ---- 401 自动刷新 token 逻辑 ----
+let isRefreshing = false;
+let refreshSubscribers: Array<(token: string | null) => void> = [];
+
+function onTokenRefreshed(token: string | null) {
+  refreshSubscribers.forEach(cb => cb(token));
+  refreshSubscribers = [];
+}
+
+function addRefreshSubscriber(cb: (token: string | null) => void) {
+  refreshSubscribers.push(cb);
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const newToken: string = data.access_token;
+    localStorage.setItem('access_token', newToken);
+    return newToken;
+  } catch {
+    return null;
+  }
+}
+
+function redirectToLogin() {
+  localStorage.removeItem('access_token');
+  // 避免重复跳转
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+}
+
+async function request<T>(
+  endpoint: string,
+  options: RequestOptions = {},
+  _isRetry = false,
+): Promise<T> {
+  const { method = 'GET', body, headers = {}, responseType = 'json' } = options;
 
   const token = localStorage.getItem('access_token');
 
   const config: RequestInit = {
     method,
     headers: {
-      'Content-Type': 'application/json',
+      ...(body && responseType === 'json' ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
@@ -42,12 +87,61 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
+  // ---- 401 自动刷新 + 重试 ----
+  if (response.status === 401 && !_isRetry && endpoint !== '/auth/refresh') {
+    if (isRefreshing) {
+      // 已有刷新请求在飞行中，等待它完成
+      return new Promise<T>((resolve, reject) => {
+        addRefreshSubscriber(async (newToken) => {
+          if (!newToken) { reject(new Error('刷新 token 失败')); return; }
+          try {
+            const result = await request<T>(endpoint, options, true);
+            resolve(result);
+          } catch (e) { reject(e); }
+        });
+      });
+    }
+    isRefreshing = true;
+    const newToken = await refreshAccessToken();
+    isRefreshing = false;
+    if (newToken) {
+      onTokenRefreshed(newToken);
+      return request<T>(endpoint, options, true);
+    } else {
+      onTokenRefreshed(null);
+      redirectToLogin();
+      throw new Error('登录已过期，请重新登录');
+    }
+  }
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.error || `请求失败: ${response.status}`;
+    // 错误响应尽量解析 JSON 错误体，blob 错误体直接转文本
+    let errorMessage = `请求失败: ${response.status}`;
+    try {
+      if (responseType === 'blob') {
+        const text = await response.text();
+        try {
+          const data = JSON.parse(text);
+          errorMessage = data?.error || data?.msg || errorMessage;
+        } catch {
+          errorMessage = text || errorMessage;
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        errorMessage = errorData?.error || errorData?.msg || errorMessage;
+      }
+    } catch {
+      // 解析错误信息失败，保留默认 status 错误
+    }
     throw new Error(errorMessage);
   }
 
+  if (responseType === 'blob') {
+    return (await response.blob()) as unknown as T;
+  }
+  if (responseType === 'text') {
+    return (await response.text()) as unknown as T;
+  }
   return response.json();
 }
 
@@ -246,8 +340,44 @@ export const api = {
   getAlbums: (familyId: number) =>
     request<any>(`/family/${familyId}/albums`),
 
+  getAlbum: (familyId: number, albumId: number) =>
+    request<any>(`/family/${familyId}/albums/${albumId}`),
+
   createAlbum: (familyId: number, data: any) =>
     request<any>(`/family/${familyId}/albums`, { method: 'POST', body: data }),
+
+  updateAlbum: (familyId: number, albumId: number, data: any) =>
+    request<any>(`/family/${familyId}/albums/${albumId}`, { method: 'PUT', body: data }),
+
+  deleteAlbum: (familyId: number, albumId: number) =>
+    request<any>(`/family/${familyId}/albums/${albumId}`, { method: 'DELETE' }),
+
+  getAlbumPhotos: (familyId: number, albumId: number) =>
+    request<any>(`/family/${familyId}/albums/${albumId}/photos`),
+
+  deleteAlbumPhoto: (familyId: number, albumId: number, photoId: number) =>
+    request<any>(`/family/${familyId}/albums/${albumId}/photos/${photoId}`, { method: 'DELETE' }),
+
+  uploadPhoto: async (familyId: number, albumId: number, file: File, title?: string, description?: string): Promise<any> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (title) formData.append('title', title)
+    if (description) formData.append('description', description)
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/family/${familyId}/albums/${albumId}/photos`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    })
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || '上传照片失败')
+    }
+    return response.json()
+  },
+
+  deletePhoto: (familyId: number, albumId: number, photoId: number) =>
+    request<any>(`/family/${familyId}/albums/${albumId}/photos/${photoId}`, { method: 'DELETE' }),
 
   // Invitations
   getInvitations: (familyId: number) =>
@@ -271,6 +401,54 @@ export const api = {
 
   getKinshipPath: (familyId: number, member1Id: number, member2Id: number) =>
     request<any>(`/family/${familyId}/kinship/path?member1=${member1Id}&member2=${member2Id}`),
+
+  // #4 关系计算引擎 - 一站式：称呼 + 共同祖先 + 血缘系数 + 路径
+  getRelationship: (familyId: number, member1Id: number, member2Id: number) =>
+    request<{
+      member1: { id: number; name: string; gender?: string };
+      member2: { id: number; name: string; gender?: string };
+      path: Array<{
+        from: { id: number; name: string };
+        to: { id: number; name: string };
+        relationship_type: string;
+        direction: string;
+      }>;
+      path_node_ids: number[];
+      path_edge_keys: string[];
+      relationship: string;
+      common_ancestors: Array<{ id: number; name: string; gender?: string }>;
+      consanguinity: number;
+      connected: boolean;
+    }>(`/family/${familyId}/kinship/relation?member1=${member1Id}&member2=${member2Id}`),
+
+  // #1 沙漏图 - 以某人为中心返回上N代祖先+下N代子孙
+  getHourglassView: (
+    familyId: number,
+    memberId: number,
+    options?: { ancestorDepth?: number; descendantDepth?: number; includeSiblings?: boolean }
+  ) => {
+    const params = new URLSearchParams();
+    if (options?.ancestorDepth) params.set('ancestor_depth', String(options.ancestorDepth));
+    if (options?.descendantDepth) params.set('descendant_depth', String(options.descendantDepth));
+    if (options?.includeSiblings === false) params.set('include_siblings', 'false');
+    const qs = params.toString();
+    return request<{
+      member: { id: number; name: string; generation: number };
+      ancestor_depth: number;
+      descendant_depth: number;
+      ancestors: Array<{ id: number; name: string; generation: number }>;
+      descendants: Array<{ id: number; name: string; generation: number }>;
+      siblings: Array<{ id: number; name: string; generation: number }>;
+      spouses: Array<{ id: number; name: string; generation: number }>;
+      ancestor_ids: number[];
+      descendant_ids: number[];
+      sibling_ids: number[];
+      spouse_ids: number[];
+      ancestor_edge_keys: string[];
+      descendant_edge_keys: string[];
+      all_ids: number[];
+    }>(`/family/${familyId}/kinship/hourglass/${memberId}${qs ? `?${qs}` : ''}`)
+  },
 
   // A1 金线溯源/金扇繁衍 - 一次返回高亮所需的所有 ID 集合
   getLineageHighlight: (
@@ -387,16 +565,28 @@ export const api = {
     request<any>(`/family/${familyId}/search?q=${encodeURIComponent(query)}`),
 
   // Export
-  exportGedcom: (familyId: number) =>
-    request<any>(`/export/${familyId}/export/gedcom`),
+  exportGedcom: async (familyId: number): Promise<void> => {
+    try {
+      const blob = await request<Blob>(
+        `/export/${familyId}/export/gedcom`,
+        { responseType: 'blob' },
+      )
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `family_${familyId}.ged`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '网络异常，导出失败')
+    }
+  },
 
   exportGuzhiPdf: async (familyId: number): Promise<void> => {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/export/${familyId}/export/pdf/guzhi`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!response.ok) throw new Error('导出失败')
-    const blob = await response.blob()
+    const blob = await request<Blob>(
+      `/export/${familyId}/export/pdf/guzhi`,
+      { responseType: 'blob' },
+    )
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -711,11 +901,51 @@ export const api = {
   }) => request<any>(`/family/${familyId}/members/batch-edit`, { method: 'POST', body: data }),
   batchDeleteMembers: (familyId: number, memberIds: (number | string)[]) =>
     request<any>(`/family/${familyId}/members/batch-delete`, { method: 'POST', body: { member_ids: memberIds } }),
+  batchSortMembers: (familyId: number, orders: Array<{ id: number; sort_order: number }>) =>
+    request<any>(`/family/${familyId}/members/batch-sort`, { method: 'POST', body: { orders } }),
   importMembersCsv: (familyId: number, data: {
     csv_text: string
     dry_run?: boolean
     skip_header?: boolean
   }) => request<any>(`/family/${familyId}/members/import-csv`, { method: 'POST', body: data }),
+
+  importMembersExcel: (familyId: number, file: File, dryRun: boolean = true) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('dry_run', String(dryRun))
+    return request<any>(`/family/${familyId}/import/excel`, {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    })
+  },
+
+  getGenerationStatistics: (familyId: number) =>
+    request<{
+      total: number
+      alive_count: number
+      dead_count: number
+      generation_names: Array<{ generation_name: string; count: number }>
+      generation_distribution: Array<{ generation: number; count: number }>
+      generation_gender: Array<{ generation: number; gender: string; count: number }>
+    }>(`/family/${familyId}/members/statistics/generations`),
+
+  downloadBackup: async (familyId: number): Promise<void> => {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(`${API_BASE_URL}/family/${familyId}/export/backup`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+    if (!response.ok) throw new Error('备份下载失败')
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `zupu_backup_${familyId}.zip`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  },
 
   // 公开分享链接（管理）
   createShareLink: (familyId: number, data: { label?: string; password?: string; expires_in_days?: number }) =>
@@ -734,5 +964,14 @@ export const api = {
     request<{ answer: string; mode: string; model: string }>(
       `/family/${familyId}/ai/ask`,
       { method: 'POST', body: { question } }
+    ),
+
+  // 示例数据集
+  listSampleDatasets: () =>
+    request<{ datasets: Array<{ key: string; name: string; description: string; surname: string; origin: string; member_count: number; generation_count: number }> }>('/family/sample-datasets'),
+  loadSampleData: (familyId: number, datasetKey: string) =>
+    request<{ message: string; member_count: number; relationship_count: number; dataset_name: string }>(
+      `/family/${familyId}/load-sample`,
+      { method: 'POST', body: { dataset_key: datasetKey } }
     ),
 };

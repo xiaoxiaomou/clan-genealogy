@@ -245,3 +245,66 @@ def import_gedcom(family_id):
         'members_count': result['imported'],
         'relations_count': result['relations'],
     })
+
+
+@export_bp.route('/<int:family_id>/export/backup', methods=['GET'])
+@jwt_required()
+@family_permission_required('editor')
+def export_backup(family_id):
+    """一键备份：ZIP 包含 JSON + GEDCOM + 媒体文件索引"""
+    import zipfile
+    import json
+    from datetime import datetime
+
+    from app.models.family import Family
+    from app.models.member import Member
+    from app.models.relationship import Relationship
+    from app.services.gedcom_service import export_family
+
+    family = Family.query.get(family_id)
+    if not family:
+        return jsonify({'error': '族谱不存在'}), 404
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # 1. Members JSON
+        members = Member.query.filter_by(family_id=family_id).all()
+        members_data = [m.to_dict(include_relations=True) for m in members]
+        zf.writestr('members.json', json.dumps(members_data, ensure_ascii=False, indent=2, default=str))
+
+        # 2. Relationships JSON
+        rels = Relationship.query.filter(
+            Relationship.member_id.in_([m.id for m in members])
+        ).all()
+        rels_data = [r.to_dict() for r in rels]
+        zf.writestr('relationships.json', json.dumps(rels_data, ensure_ascii=False, indent=2, default=str))
+
+        # 3. GEDCOM export
+        try:
+            gedcom = export_family(family_id)
+            zf.writestr(f'family_{family_id}.ged', gedcom.encode('utf-8'))
+        except Exception:
+            zf.writestr('family.ged', '')
+
+        # 4. Family info
+        zf.writestr('family_info.json', json.dumps({
+            'id': family.id,
+            'name': family.name,
+            'description': family.description,
+            'member_count': len(members),
+            'exported_at': datetime.utcnow().isoformat(),
+        }, ensure_ascii=False, indent=2))
+
+        # 5. Media file list
+        media_files = []
+        for m in members:
+            if m.avatar:
+                media_files.append({'member_id': m.id, 'member_name': m.name, 'avatar': m.avatar})
+        zf.writestr('media_index.json', json.dumps(media_files, ensure_ascii=False, indent=2))
+
+    buf.seek(0)
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    return buf.read(), 200, {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': f'attachment; filename=zupu_backup_{family_id}_{timestamp}.zip',
+    }

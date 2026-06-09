@@ -43,6 +43,12 @@ export interface Member {
   updated_at: string;
   parents?: Member[];
   spouses?: Member[];
+  courtesy_name?: string | null;
+  art_name?: string | null;
+  posthumous_name?: string | null;
+  privacy_level?: string;
+  privacy_override?: boolean;
+  visibility?: string;
 }
 
 export interface Relationship {
@@ -59,6 +65,15 @@ export interface FamilyTree {
   nodes: TreeNode[];
   edges: TreeEdge[];
   root_ids: number[];
+  couples: CoupleEntry[];
+}
+
+export interface CoupleEntry {
+  husband_id: number;
+  wife_id: number | null;
+  children: number[];
+  sort_order: number;
+  marriage_label?: string;
 }
 
 export interface TreeNode {
