@@ -165,6 +165,148 @@ LI_SPOUSE_EDGES = [
 ]
 
 
+# ============================================================
+# 王氏家族（5 代，22 人）
+# 场景：五代同堂、多配偶、隔代年龄差大
+# ============================================================
+WANG_MEMBERS = [
+    {'key': 'wangtai', 'name': '王太公', 'gender': 'male', 'generation': 1,
+     'generation_name': '元', 'birth_date': '1850', 'death_date': '1920',
+     'bio': '王氏始祖，晚清商人。', 'is_alive': False, 'courtesy_name': '元昌'},
+    {'key': 'wangtaipe', 'name': '王太婆', 'gender': 'female', 'generation': 1,
+     'generation_name': '元', 'birth_date': '1852', 'death_date': '1918',
+     'bio': '王太公原配。', 'is_alive': False},
+    {'key': 'wangce', 'name': '王侧室', 'gender': 'female', 'generation': 1,
+     'generation_name': '元', 'birth_date': '1870', 'death_date': '1935',
+     'bio': '王太公侧室。', 'is_alive': False},
+
+    {'key': 'wangda', 'name': '王大', 'gender': 'male', 'generation': 2,
+     'generation_name': '亨', 'birth_date': '1875', 'death_date': '1940',
+     'bio': '王太公长子（原配出）。', 'is_alive': False, 'courtesy_name': '亨通'},
+    {'key': 'wanger', 'name': '王二', 'gender': 'male', 'generation': 2,
+     'generation_name': '亨', 'birth_date': '1890', 'death_date': '1955',
+     'bio': '王太公次子（侧室出）。', 'is_alive': False},
+    {'key': 'wangsan', 'name': '王三', 'gender': 'male', 'generation': 2,
+     'generation_name': '亨', 'birth_date': '1895', 'death_date': '1960',
+     'bio': '王太公三子（侧室出）。', 'is_alive': False},
+    {'key': 'wangdape', 'name': '王大妻', 'gender': 'female', 'generation': 2,
+     'generation_name': '亨', 'birth_date': '1877', 'death_date': '1945',
+     'bio': '王大之妻。', 'is_alive': False},
+
+    {'key': 'wangchang', 'name': '王长', 'gender': 'male', 'generation': 3,
+     'generation_name': '利', 'birth_date': '1900', 'death_date': '1975',
+     'bio': '王大之子。', 'is_alive': False},
+    {'key': 'wangchangpe', 'name': '王长妻', 'gender': 'female', 'generation': 3,
+     'generation_name': '利', 'birth_date': '1902', 'death_date': '1980',
+     'bio': '王长之妻。', 'is_alive': False},
+    {'key': 'wangfu', 'name': '王富', 'gender': 'male', 'generation': 3,
+     'generation_name': '利', 'birth_date': '1920', 'death_date': '2000',
+     'bio': '王二之子。', 'is_alive': False, 'courtesy_name': '利民'},
+
+    {'key': 'wangdaa', 'name': '王大安', 'gender': 'male', 'generation': 4,
+     'generation_name': '贞', 'birth_date': '1925', 'death_date': '2010',
+     'bio': '王长之子，退休干部。', 'is_alive': False},
+    {'key': 'wangdaape', 'name': '王大安妻', 'gender': 'female', 'generation': 4,
+     'generation_name': '贞', 'birth_date': '1928', 'death_date': '2015',
+     'bio': '王大安之妻。', 'is_alive': False},
+    {'key': 'wangeran', 'name': '王二安', 'gender': 'male', 'generation': 4,
+     'generation_name': '贞', 'birth_date': '1930', 'death_date': '2005',
+     'bio': '王长次子。', 'is_alive': False},
+    {'key': 'wangxiao', 'name': '王小', 'gender': 'female', 'generation': 4,
+     'generation_name': '贞', 'birth_date': '1935', 'death_date': None,
+     'bio': '王长之女。', 'is_alive': True},
+    {'key': 'wangfuzi', 'name': '王富子', 'gender': 'male', 'generation': 4,
+     'generation_name': '贞', 'birth_date': '1950', 'death_date': None,
+     'bio': '王富之子，中年得子。', 'is_alive': True},
+
+    {'key': 'wangsun', 'name': '王孙', 'gender': 'male', 'generation': 5,
+     'generation_name': '祥', 'birth_date': '1955', 'death_date': None,
+     'bio': '王大安之子。', 'is_alive': True, 'courtesy_name': '祥瑞'},
+    {'key': 'wangsunv', 'name': '王孙女', 'gender': 'female', 'generation': 5,
+     'generation_name': '祥', 'birth_date': '1960', 'death_date': None,
+     'bio': '王大安之女。', 'is_alive': True},
+    {'key': 'wangchong', 'name': '王重孙', 'gender': 'male', 'generation': 5,
+     'generation_name': '祥', 'birth_date': '1975', 'death_date': None,
+     'bio': '王二安之子。', 'is_alive': True},
+    {'key': 'wangchongnv', 'name': '王重孙女', 'gender': 'female', 'generation': 5,
+     'generation_name': '祥', 'birth_date': '1980', 'death_date': None,
+     'bio': '王富子之女，王富50岁得女。', 'is_alive': True},
+    {'key': 'wangxiaozi', 'name': '王小曾', 'gender': 'male', 'generation': 5,
+     'generation_name': '祥', 'birth_date': '2005', 'death_date': None,
+     'bio': '王之之后。', 'is_alive': True},
+]
+
+WANG_PARENT_EDGES = [
+    ('wangtai', 'wangda'), ('wangtai', 'wanger'), ('wangtai', 'wangsan'),
+    ('wangda', 'wangchang'), ('wanger', 'wangfu'),
+    ('wangchang', 'wangdaa'), ('wangchang', 'wangeran'), ('wangchang', 'wangxiao'),
+    ('wangfu', 'wangfuzi'),
+    ('wangdaa', 'wangsun'), ('wangdaa', 'wangsunv'),
+    ('wangeran', 'wangchong'),
+    ('wangfuzi', 'wangchongnv'),
+]
+
+WANG_SPOUSE_EDGES = [
+    ('wangtai', 'wangtaipe'), ('wangtai', 'wangce'),
+    ('wangda', 'wangdape'),
+    ('wangchang', 'wangchangpe'),
+    ('wangdaa', 'wangdaape'),
+]
+
+
+# ============================================================
+# 赵氏家族（3 代，8 人）
+# 场景：三代小家庭、独生子女、单亲
+# ============================================================
+ZHAO_MEMBERS = [
+    {'key': 'zhaoyeye', 'name': '赵爷爷', 'gender': 'male', 'generation': 1,
+     'generation_name': '福', 'birth_date': '1940', 'death_date': '2020',
+     'bio': '退休工人。', 'is_alive': False},
+    {'key': 'zhaonainai', 'name': '赵奶奶', 'gender': 'female', 'generation': 1,
+     'generation_name': '福', 'birth_date': '1942', 'death_date': None,
+     'bio': '赵爷爷之妻。', 'is_alive': True},
+
+    {'key': 'zhaoba', 'name': '赵爸', 'gender': 'male', 'generation': 2,
+     'generation_name': '禄', 'birth_date': '1965', 'death_date': None,
+     'bio': '赵爷爷独子。', 'is_alive': True, 'courtesy_name': '禄安'},
+    {'key': 'zhaoma', 'name': '赵妈', 'gender': 'female', 'generation': 2,
+     'generation_name': '禄', 'birth_date': '1967', 'death_date': None,
+     'bio': '赵爸之妻。', 'is_alive': True},
+
+    {'key': 'zhaoming', 'name': '赵明', 'gender': 'male', 'generation': 3,
+     'generation_name': '寿', 'birth_date': '1995', 'death_date': None,
+     'bio': '独生子，大学毕业。', 'is_alive': True, 'courtesy_name': '寿康'},
+    {'key': 'zhaomingqi', 'name': '赵明妻', 'gender': 'female', 'generation': 3,
+     'generation_name': '寿', 'birth_date': '1997', 'death_date': None,
+     'bio': '赵明之妻。', 'is_alive': True},
+
+    {'key': 'zhaotong', 'name': '赵彤', 'gender': 'female', 'generation': 3,
+     'generation_name': '寿', 'birth_date': '2022', 'death_date': None,
+     'bio': '赵明之女，独生女。', 'is_alive': True},
+
+    # 单亲场景：赵姑（赵爸之妹，独自抚养孩子）
+    {'key': 'zhaogu', 'name': '赵姑', 'gender': 'female', 'generation': 2,
+     'generation_name': '禄', 'birth_date': '1970', 'death_date': None,
+     'bio': '赵爷爷之女，单亲母亲。', 'is_alive': True},
+    {'key': 'zhaobiaodi', 'name': '赵表弟', 'gender': 'male', 'generation': 3,
+     'generation_name': '寿', 'birth_date': '2000', 'death_date': None,
+     'bio': '赵姑之子，单亲家庭。', 'is_alive': True},
+]
+
+ZHAO_PARENT_EDGES = [
+    ('zhaoyeye', 'zhaoba'), ('zhaoyeye', 'zhaogu'),
+    ('zhaoba', 'zhaoming'),
+    ('zhaoming', 'zhaotong'),
+    ('zhaogu', 'zhaobiaodi'),
+]
+
+ZHAO_SPOUSE_EDGES = [
+    ('zhaoyeye', 'zhaonainai'),
+    ('zhaoba', 'zhaoma'),
+    ('zhaoming', 'zhaomingqi'),
+]
+
+
 SAMPLE_DATASETS = {
     'li': {
         'name': '李氏家族',
@@ -174,6 +316,24 @@ SAMPLE_DATASETS = {
         'members': LI_MEMBERS,
         'parent_edges': LI_PARENT_EDGES,
         'spouse_edges': LI_SPOUSE_EDGES,
+    },
+    'wang': {
+        'name': '王氏家族',
+        'description': '王氏五代同堂，含多配偶、隔代年龄差大等场景，共22人。',
+        'surname': '王',
+        'origin': '山西太原',
+        'members': WANG_MEMBERS,
+        'parent_edges': WANG_PARENT_EDGES,
+        'spouse_edges': WANG_SPOUSE_EDGES,
+    },
+    'zhao': {
+        'name': '赵氏家族',
+        'description': '赵氏三代小家庭，含独生子女、单亲家庭场景，共8人。',
+        'surname': '赵',
+        'origin': '河北石家庄',
+        'members': ZHAO_MEMBERS,
+        'parent_edges': ZHAO_PARENT_EDGES,
+        'spouse_edges': ZHAO_SPOUSE_EDGES,
     },
 }
 
