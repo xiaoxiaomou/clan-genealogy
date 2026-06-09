@@ -29,7 +29,6 @@ def runner(app):
 
 @pytest.fixture
 def _db(app):
-    """提供数据库会话给其他 fixture 用"""
     return db
 
 
@@ -102,8 +101,8 @@ def user_headers(client, normal_user):
 def sample_family(app, _db, admin_user):
     family = Family(
         name='测试族谱',
-        surname='张',
-        origin='山东济南',
+        surname='李',
+        origin='河南洛阳',
         description='测试用族谱',
         creator_id=admin_user.id,
     )
@@ -126,7 +125,7 @@ def sample_family(app, _db, admin_user):
 def sample_members(app, _db, sample_family):
     m1 = Member(
         family_id=sample_family.id,
-        name='张三',
+        name='李祖',
         gender='male',
         generation=1,
         generation_name='祖',
@@ -134,7 +133,7 @@ def sample_members(app, _db, sample_family):
     )
     m2 = Member(
         family_id=sample_family.id,
-        name='张小四',
+        name='李父',
         gender='male',
         generation=2,
         generation_name='父',
