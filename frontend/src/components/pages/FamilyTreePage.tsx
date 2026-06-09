@@ -42,6 +42,7 @@ import type { QuickFamilyFormData } from './QuickAddFamily'
 import { createDefaultLayer, createDefaultMember } from './QuickAddFamily'
 
 const TreeVisualization = lazy(() => import('./TreeVisualization'))
+const FamilyTreeGraph = lazy(() => import('./FamilyTreeGraph'))
 import { FamilyTreeEngine } from '@/components/tree-engine'
 const Tree3DView = lazy(() => import('./Tree3DView'))
 const TimelineView = lazy(() => import('./TimelineView'))
@@ -710,24 +711,17 @@ export default function FamilyTreePage() {
             </div>
 
             {treeViewType === 'tree' && (
-              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
-                <TreeVisualization
+              <ReactFlowProvider>
+                <FamilyTreeEngine
                   treeData={treeData}
-                  members={members}
                   canEdit={canEdit}
-                  familyId={familyId}
-                  isLoading={isLoading}
-                  branches={branches}
-                  onEditMember={openEditMember}
-                  onDeleteMember={handleDeleteMember}
-                  onOpenAddMember={() => setShowAddMember(true)}
-                  onOpenQuickFamily={() => {
-                    setShowQuickFamily(true)
-                    setQuickFamilyForm({ ...defaultQuickFamilyForm })
+                  onMemberClick={(member) => {
+                    setHighlightedMemberId(member.id)
                   }}
-                  onOpenImport={() => setShowImport(true)}
+                  highlightedMemberId={highlightedMemberId}
+                  familyId={familyId}
                 />
-              </Suspense>
+              </ReactFlowProvider>
             )}
 
             {treeViewType === 'fan' && (
@@ -761,7 +755,7 @@ export default function FamilyTreePage() {
             {treeViewType === 'graph' && (
               <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
                 <ReactFlowProvider>
-                <FamilyTreeEngine
+                <FamilyTreeGraph
                   treeData={treeData}
                   canEdit={canEdit}
                   onMemberClick={(member) => {
