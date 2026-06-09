@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Family, FamilyTree, Member, GenerationRule, FamilyBranch } from '@/types'
 import { Button, Modal, Input, Label, useToast, ScrollReveal, TimeMachinePanel } from '@/components/ui'
+import { ReactFlowProvider } from '@xyflow/react'
+import GenerationStats from '@/components/tree/GenerationStats'
 import { Layout } from '@/components/layout/Layout'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import {
@@ -40,11 +42,12 @@ import type { QuickFamilyFormData } from './QuickAddFamily'
 import { createDefaultLayer, createDefaultMember } from './QuickAddFamily'
 
 const TreeVisualization = lazy(() => import('./TreeVisualization'))
-const FamilyTreeGraph = lazy(() => import('./FamilyTreeGraph'))
+import { FamilyTreeEngine } from '@/components/tree-engine'
 const Tree3DView = lazy(() => import('./Tree3DView'))
 const TimelineView = lazy(() => import('./TimelineView'))
 const FanChart = lazy(() => import('./FanChart'))
 const HangingChart = lazy(() => import('./HangingChart'))
+const HourglassTree = lazy(() => import('../tree/HourglassTree'))
 const MemberFormModal = lazy(() => import('./MemberFormModal'))
 const QuickAddFamily = lazy(() => import('./QuickAddFamily'))
 
@@ -63,6 +66,11 @@ const defaultMemberForm: MemberFormData = {
   bio: '',
   avatar: '',
   is_alive: true,
+  courtesy_name: '',
+  art_name: '',
+  posthumous_name: '',
+  privacy_level: 'public',
+  privacy_override: false,
 }
 
 const defaultQuickFamilyForm: QuickFamilyFormData = {
@@ -88,7 +96,7 @@ export default function FamilyTreePage() {
     relationships: { parent: number; spouse: number; sibling: number };
   } | null>(null)
   const [activeTab, setActiveTab] = useState<'tree' | 'members' | 'relations' | 'stats'>('tree')
-  const [treeViewType, setTreeViewType] = useState<'tree' | 'fan' | 'hanging' | 'graph' | 'timeline' | '3d'>('tree')
+  const [treeViewType, setTreeViewType] = useState<'tree' | 'fan' | 'hanging' | 'graph' | 'timeline' | '3d' | 'hourglass'>('graph')
 
   // 权限状态
   const [canEdit, setCanEdit] = useState(false)
@@ -146,6 +154,11 @@ export default function FamilyTreePage() {
   const [generations, setGenerations] = useState<GenerationRule[]>([])
   const [relationships, setRelationships] = useState<Array<{ member_id: number; related_member_id: number; relationship_type: string }>>([])
   const [generationSuggestion, setGenerationSuggestion] = useState<string | null>(null)
+
+  // 示例数据集
+  const [showSampleModal, setShowSampleModal] = useState(false)
+  const [sampleDatasets, setSampleDatasets] = useState<Array<{ key: string; name: string; description: string; member_count: number; generation_count: number }>>([])
+  const [loadingSample, setLoadingSample] = useState(false)
 
   // ============ 弹窗操作 ============
   const closeAddMemberModal = useCallback(() => {
@@ -337,6 +350,32 @@ export default function FamilyTreePage() {
     }
   }
 
+  // ============ 示例数据集 ============
+  const openSampleModal = useCallback(async () => {
+    setShowSampleModal(true)
+    try {
+      const res = await api.listSampleDatasets()
+      setSampleDatasets(res.datasets)
+    } catch {
+      showToast('获取示例数据集失败', 'error')
+    }
+  }, [])
+
+  const handleLoadSample = useCallback(async (datasetKey: string) => {
+    if (!confirm('加载示例数据会将成员和关系添加到当前家族，确定继续？')) return
+    setLoadingSample(true)
+    try {
+      const res = await api.loadSampleData(familyId, datasetKey)
+      showToast(`${res.dataset_name}：已添加 ${res.member_count} 人`, 'success')
+      setShowSampleModal(false)
+      loadData()
+    } catch (e: any) {
+      showToast(e.message || '加载示例数据失败', 'error')
+    } finally {
+      setLoadingSample(false)
+    }
+  }, [familyId])
+
   // ============ 成员操作 ============
   const handleMemberFormChange = useCallback(async (field: string, value: any) => {
     setMemberForm((prev) => ({ ...prev, [field]: value }))
@@ -486,6 +525,11 @@ export default function FamilyTreePage() {
       bio: member.bio || '',
       avatar: member.avatar || '',
       is_alive: member.is_alive,
+      courtesy_name: member.courtesy_name || '',
+      art_name: member.art_name || '',
+      posthumous_name: member.posthumous_name || '',
+      privacy_level: member.privacy_level || 'public',
+      privacy_override: member.privacy_override || false,
     })
     setShowEditMember(true)
   }
@@ -636,7 +680,8 @@ export default function FamilyTreePage() {
                   { key: 'tree', label: '树形图' },
                   { key: 'fan', label: '扇形图' },
                   { key: 'hanging', label: '吊线图' },
-                  {key: 'graph', label: '交互图' },
+                  { key: 'graph', label: '交互图' },
+                  { key: 'hourglass', label: '沙漏图' },
                   { key: 'timeline', label: '时间线' },
                   { key: '3d', label: '3D视图' },
                 ].map((view) => (
@@ -653,6 +698,15 @@ export default function FamilyTreePage() {
                   </button>
                 ))}
               </div>
+              {canEdit && (
+                <button
+                  onClick={openSampleModal}
+                  className="rounded-md border border-amber-700/30 bg-amber-900/20 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-800/30 transition-colors"
+                  title="加载内置示例族谱数据"
+                >
+                  📜 加载示例
+                </button>
+              )}
             </div>
 
             {treeViewType === 'tree' && (
@@ -706,7 +760,8 @@ export default function FamilyTreePage() {
 
             {treeViewType === 'graph' && (
               <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
-                <FamilyTreeGraph
+                <ReactFlowProvider>
+                <FamilyTreeEngine
                   treeData={treeData}
                   canEdit={canEdit}
                   onMemberClick={(member) => {
@@ -714,6 +769,17 @@ export default function FamilyTreePage() {
                   }}
                   highlightedMemberId={highlightedMemberId}
                   familyId={familyId}
+                />
+                </ReactFlowProvider>
+              </Suspense>
+            )}
+
+            {treeViewType === 'hourglass' && (
+              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
+                <HourglassTree
+                  familyId={familyId}
+                  initialMemberId={highlightedMemberId}
+                  onMemberClick={(member) => setHighlightedMemberId(member.id)}
                 />
               </Suspense>
             )}
@@ -1089,6 +1155,9 @@ export default function FamilyTreePage() {
               </div>
             </div>
 
+            {/* 字辈频次统计（新增） */}
+            {familyId && <GenerationStats familyId={familyId} />}
+
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="rounded border bg-card p-4">
                 <h3 className="mb-4 font-medium">性别分布</h3>
@@ -1452,6 +1521,22 @@ export default function FamilyTreePage() {
                 <Download className="h-3.5 w-3.5" />
                 导出 Excel
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await api.exportGedcom(familyId)
+                    showToast('GEDCOM 已导出', 'success')
+                  } catch (err: any) {
+                    showToast(err?.message || 'GEDCOM 导出失败', 'error')
+                  }
+                }}
+                className="gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" />
+                导出 GEDCOM
+              </Button>
             </div>
           </div>
 
@@ -1466,6 +1551,52 @@ export default function FamilyTreePage() {
           >
             关闭
           </Button>
+        </div>
+      </Modal>
+
+      {/* 示例数据集弹窗 */}
+      <Modal
+        isOpen={showSampleModal}
+        onClose={() => setShowSampleModal(false)}
+        title="加载示例族谱"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            选择一个内置示例数据集，将其成员和关系添加到当前家族。
+          </p>
+          {sampleDatasets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">加载中…</p>
+          ) : (
+            <div className="space-y-2">
+              {sampleDatasets.map((ds) => (
+                <div
+                  key={ds.key}
+                  className="rounded-lg border bg-muted/20 p-4 transition-colors hover:bg-muted/40"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="font-medium">{ds.name}</h4>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {ds.description}
+                      </p>
+                      <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
+                        <span>{ds.member_count} 人</span>
+                        <span>·</span>
+                        <span>{ds.generation_count} 代</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleLoadSample(ds.key)}
+                      disabled={loadingSample}
+                      className="shrink-0 rounded-md bg-amber-700 px-3 py-1.5 text-xs text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                    >
+                      {loadingSample ? '加载中…' : '加载'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Modal>
 
