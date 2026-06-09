@@ -128,16 +128,21 @@ def sample_members(app, _db, sample_family):
         name='李祖',
         gender='male',
         generation=1,
-        generation_name='祖',
+        generation_name='德',
         is_alive=False,
+        birth_date='1900',
+        death_date='1960',
+        courtesy_name='德厚',
     )
     m2 = Member(
         family_id=sample_family.id,
         name='李父',
         gender='male',
         generation=2,
-        generation_name='父',
+        generation_name='建',
         is_alive=True,
+        birth_date='1930',
+        courtesy_name='建文',
     )
     _db.session.add_all([m1, m2])
     _db.session.commit()
