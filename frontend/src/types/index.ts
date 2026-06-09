@@ -88,6 +88,9 @@ export interface TreeNode {
   bio: string | null;
   is_alive: boolean;
   branch_id?: number;
+  courtesy_name?: string | null;
+  art_name?: string | null;
+  posthumous_name?: string | null;
 }
 
 export interface TreeEdge {

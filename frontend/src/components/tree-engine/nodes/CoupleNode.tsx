@@ -1,13 +1,7 @@
 import { Handle, Position } from '@xyflow/react'
 import { AvatarDisplay } from '@/components/ui'
 import type { TreeNode } from '@/types'
-
-function getGenerationColor(generation: number | null): string {
-  const gen = generation || 1
-  const step = 6
-  const lightness = Math.min(30 + gen * step, 85)
-  return `hsl(145, 45%, ${lightness}%)`
-}
+import { getGenerationColor } from '../hooks/useTreeLayout'
 
 export interface CoupleNodeData {
   husband: TreeNode

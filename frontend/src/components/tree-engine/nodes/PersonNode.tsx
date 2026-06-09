@@ -2,6 +2,7 @@ import { Handle, Position } from '@xyflow/react'
 import { Card, CardContent } from '@/components/ui'
 import { AvatarDisplay } from '@/components/ui'
 import type { TreeNode } from '@/types'
+import { getGenerationColor } from '../hooks/useTreeLayout'
 
 const GENDER_COLORS: Record<string, string> = {
   male: '#2563eb',
@@ -17,13 +18,6 @@ function calcAge(birth: string, death?: string | null): number | null {
   const mDiff = to.getMonth() - from.getMonth()
   if (mDiff < 0 || (mDiff === 0 && to.getDate() < from.getDate())) age--
   return age
-}
-
-function getGenerationColor(generation: number | null): string {
-  const gen = generation || 1
-  const step = 6
-  const lightness = Math.min(30 + gen * step, 85)
-  return `hsl(145, 45%, ${lightness}%)`
 }
 
 export interface PersonNodeData {

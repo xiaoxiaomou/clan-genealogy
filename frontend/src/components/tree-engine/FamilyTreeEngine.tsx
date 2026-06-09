@@ -7,8 +7,6 @@ import {
   useViewport,
 } from '@xyflow/react'
 import type { TreeNode, FamilyTree } from '@/types'
-import { api } from '@/lib/api'
-import { useTreeFocus, useAutoFocusNode } from '@/hooks/useTreeFocus'
 import { useTreeSearch } from '@/hooks/useTreeSearch'
 import { GenerationRuler } from '@/components/tree/GenerationRuler'
 import { LineageToolbar } from '@/components/tree/LineageToolbar'
@@ -20,13 +18,6 @@ import { useTreeLayout, NODE_HEIGHT } from './hooks/useTreeLayout'
 import './FamilyTreeEngine.css'
 
 export type LayoutMode = 'tree'
-
-const HIGHLIGHT_COLORS = {
-  up: '#b08d57',
-  down: '#7ba17b',
-  path: '#c08494',
-  pulse: '#c9a84c',
-}
 
 const nodeTypes = { person: PersonNode, couple: CoupleNode }
 const edgeTypes = { family: FamilyEdge }
@@ -73,12 +64,9 @@ export function FamilyTreeEngine({
   const [hoveredMember, setHoveredMember] = useState<TreeNode | null>(null)
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<number>>(new Set())
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set())
-  const [batchLoading, setBatchLoading] = useState(false)
-
   const reactFlowInstance = useRef<ReturnType<typeof useReactFlow> | null>(null)
   const reactFlowViewport = useViewport()
   const { dagrePositions, dagreNodeWidthMap, coupleInfo } = useTreeLayout(treeData)
-  const { focusMemberId, generateFocusUrl } = useTreeFocus()
 
   const parentEdges = useMemo(
     () => (treeData?.edges ?? []).filter(e => e.type === 'parent'),
@@ -99,7 +87,6 @@ export function FamilyTreeEngine({
     if (!treeData || treeData.nodes.length === 0) return { nodes: [], edges: [] }
 
     const hiddenDescendants = new Set<number>()
-    const hiddenIds = new Set<number>([...collapsedIds, ...hiddenDescendants])
     const hiddenCountByRoot = new Map<number, number>()
     const hasChildren = new Set<number>()
 
@@ -120,6 +107,8 @@ export function FamilyTreeEngine({
         }
       }
     }
+
+    const hiddenIds = new Set<number>([...collapsedIds, ...hiddenDescendants])
 
     const flowNodes: FlowNode[] = []
     const seen = new Set<number>()
@@ -179,11 +168,19 @@ export function FamilyTreeEngine({
       })
     }
 
+    function findCoupleRep(memberId: number): number {
+      for (const [repId, c] of coupleInfo.byRep) {
+        if (c.husband.id === memberId) return repId
+        if (c.wife?.id === memberId) return repId
+      }
+      return memberId
+    }
+
     const flowEdges: FlowEdge[] = parentEdges
       .filter(e => !hiddenIds.has(e.source) && !hiddenIds.has(e.target))
       .map(e => ({
         id: `e-${e.source}-${e.target}`,
-        source: String(e.source),
+        source: String(coupleInfo.inCouple.has(e.source) ? findCoupleRep(e.source) : e.source),
         target: String(e.target),
         type: 'family',
         markerEnd: 'url(#edge-arrow)',
