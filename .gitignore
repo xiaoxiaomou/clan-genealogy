@@ -1,0 +1,67 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist-python/
+
+# Virtual environments
+venv/
+venv38/
+.venv/
+env/
+ENV/
+
+# ---------- Database / local data ----------
+*.db
+*.sqlite
+*.sqlite3
+zupu.db
+instance/
+
+# ---------- Logs ----------
+logs/
+*.log
+
+# ---------- Uploads (user-generated content) ----------
+app/static/images/avatars/*
+!app/static/images/avatars/.gitkeep
+app/static/images/albums/*
+!app/static/images/albums/.gitkeep
+
+# ---------- Secrets / env ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Node / frontend ----------
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/nul
+.npm/
+.pnpm-store/
+
+# ---------- Test / lint caches ----------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ---------- IDE / OS ----------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---------- Misc ----------
+*.bak
+*.tmp
+
+# ---------- Local memory / workspace data (not for public repo) ----------
+.workbuddy/
