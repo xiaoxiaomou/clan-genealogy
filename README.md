@@ -54,7 +54,7 @@
 ### 方式一：Docker（推荐，开箱即用）
 
 ```bash
-git clone https://github.com/<your-name>/zupu.git
+git clone https://github.com/xiaoxiaomou/clan-genealogy.git
 cd zupu
 
 # 生成并写入密钥（示例）

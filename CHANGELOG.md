@@ -21,5 +21,5 @@
 - JWT 鉴权、活人隐私保护、审计日志、分享链接。
 - Docker / Docker Compose 部署支持。
 
-[Unreleased]: https://github.com/<your-name>/zupu/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/<your-name>/zupu/releases/tag/v0.1.0
+[Unreleased]: https://github.com/xiaoxiaomou/clan-genealogy/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/xiaoxiaomou/clan-genealogy/releases/tag/v0.1.0

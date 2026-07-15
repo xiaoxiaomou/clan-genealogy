@@ -54,7 +54,7 @@ Zupu is a full-featured family genealogy management system that helps you digita
 ### Option A: Docker (recommended)
 
 ```bash
-git clone https://github.com/<your-name>/zupu.git
+git clone https://github.com/xiaoxiaomou/clan-genealogy.git
 cd zupu
 
 export SECRET_KEY=$(python -c "import secrets;print(secrets.token_hex(32))")
