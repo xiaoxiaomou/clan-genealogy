@@ -13,7 +13,7 @@
 请通过以下方式私密报告：
 
 - 使用 GitHub 的 **[Private vulnerability reporting](../../security/advisories/new)**（推荐）；或
-- 发送邮件至维护者（请在仓库主页 / `LICENSE` 中获取联系方式）。
+- 发送邮件至维护者：**13168733867@163.com**。
 
 报告时请尽量包含：
 

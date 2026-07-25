@@ -147,7 +147,7 @@ def generate_pdf(family, members, relationships, tree_data):
 
 def generate_traditional_pdf(family, members, relationships, tree_data, style='su'):
     """生成传统谱式 PDF
-    
+
     Args:
         family: 家族对象
         members: 成员列表
@@ -156,7 +156,7 @@ def generate_traditional_pdf(family, members, relationships, tree_data, style='s
         style: 谱式类型 'su'(苏式), 'ou'(欧式), 'bao'(宝塔式)
     """
     from io import BytesIO
-    
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
                           leftMargin=1*cm, rightMargin=1*cm,
@@ -212,22 +212,22 @@ def _generate_su_style(family, members, normal_style, heading_style):
     """苏式族谱 - 表格形式"""
     from reportlab.platypus import Table, TableStyle
     from reportlab.lib import colors
-    
+
     story = []
-    
+
     story.append(Paragraph("一、世系图", heading_style))
-    
+
     gen_members = {}
     for m in members:
         gen = m.generation or 1
         if gen not in gen_members:
             gen_members[gen] = []
         gen_members[gen].append(m)
-    
+
     for gen in sorted(gen_members.keys()):
         story.append(Paragraph(f"第{gen}世", normal_style))
         gen_members[gen].sort(key=lambda x: x.name)
-        
+
         rows = [['序号', '姓名', '字号', '性别', '出生日期', '配偶', '备注']]
         for i, m in enumerate(gen_members[gen], 1):
             gender = {'male': '男', 'female': '女'}.get(m.gender, '')
@@ -238,7 +238,7 @@ def _generate_su_style(family, members, normal_style, heading_style):
             else:
                 remark = ''
             rows.append([str(i), m.name, m.generation_name or '', gender, birth, spouse, remark])
-        
+
         if len(rows) > 1:
             colWidths = [1.5*cm, 3*cm, 2.5*cm, 1.5*cm, 2.5*cm, 3*cm, 3*cm]
             table = Table(rows, colWidths=colWidths)
@@ -256,7 +256,7 @@ def _generate_su_style(family, members, normal_style, heading_style):
             ]))
             story.append(table)
             story.append(Spacer(1, 0.3*cm))
-    
+
     story.append(Paragraph("二、齿录", heading_style))
     for gen in sorted(gen_members.keys()):
         story.append(Paragraph(f"第{gen}世", normal_style))
@@ -274,7 +274,7 @@ def _generate_su_style(family, members, normal_style, heading_style):
                 bio_text += f"，{m.bio}"
             story.append(Paragraph(f"  {m.name}", normal_style))
             story.append(Paragraph(f"    {bio_text}", normal_style))
-    
+
     return story
 
 
@@ -282,16 +282,16 @@ def _generate_ou_style(family, members, relationships, tree_data, normal_style, 
     """欧式族谱 - 树形图形式"""
     from reportlab.platypus import Table, TableStyle
     from reportlab.lib import colors
-    
+
     story = []
-    
+
     story.append(Paragraph("一、族谱总览", heading_style))
-    
+
     nodes = tree_data.get('nodes', [])
     edges = tree_data.get('edges', [])
-    
+
     node_map = {n['id']: n for n in nodes}
-    
+
     parents = {}
     for e in edges:
         if e.get('relationship_type') == 'parent':
@@ -300,7 +300,7 @@ def _generate_ou_style(family, members, relationships, tree_data, normal_style, 
             if parent_id not in parents:
                 parents[parent_id] = []
             parents[parent_id].append(child_id)
-    
+
     def build_tree_html(member_id, level=0):
         if member_id not in node_map:
             return []
@@ -309,13 +309,13 @@ def _generate_ou_style(family, members, relationships, tree_data, normal_style, 
         for child_id in parents.get(member_id, []):
             result.extend(build_tree_html(child_id, level + 1))
         return result
-    
+
     root_members = [n for n in nodes if n.get('generation') == 1]
     for root in root_members:
         tree_text = build_tree_html(root['id'])
         for line in tree_text:
             story.append(Paragraph(line, normal_style))
-    
+
     story.append(Paragraph("二、配偶关系", heading_style))
     spouses = {}
     for e in edges:
@@ -326,11 +326,11 @@ def _generate_ou_style(family, members, relationships, tree_data, normal_style, 
             name2 = node_map.get(m2, {}).get('name', '未知')
             if m1 not in spouses:
                 spouses[m1] = name2
-    
+
     for m_id, spouse_name in spouses.items():
         name = node_map.get(m_id, {}).get('name', '未知')
         story.append(Paragraph(f"{name} ≡ {spouse_name}", normal_style))
-    
+
     return story
 
 

@@ -1,0 +1,32 @@
+line-length = 100
+target-version = "py311"
+
+exclude = [
+    "venv",
+    "venv38",
+    ".venv",
+    "frontend",
+    "node_modules",
+]
+
+[lint]
+# 基础规则集：语法/未定义名(E9, F) + 空格/缩进(E4) + 通用告警(W)
+select = ["E", "F", "W"]
+
+# 纯风格类、噪音较大的规则先忽略，避免 CI 一上来全红；
+# 后续可逐个收紧。
+ignore = [
+    "E501",  # 行过长（由 formatter 处理）
+    "E701",  # 一行多条语句
+    "E712",  # 与 True/False 比较
+    "E722",  # 裸 except
+    "E731",  # lambda 赋值
+    "E741",  # 易混淆变量名
+    "F401",  # 未使用导入（fixtures/tests 中较多）
+    "F541",  # 无占位符的 f-string
+    "F811",  # 重复定义
+    "F841",  # 未使用变量
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E", "F", "W"]

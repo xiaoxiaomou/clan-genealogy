@@ -238,15 +238,15 @@ def update_member(family_id, member_id):
 
     # 活人保护同步 & privacy_level 支持
     if 'privacy_level' in data:
-        member.privacy_level = data['privacy_level']
-        member.privacy_override = True
+        old_member.privacy_level = data['privacy_level']
+        old_member.privacy_override = True
     from app.services.privacy_service import is_living_protected
     if 'is_alive' in data or 'birth_date' in data:
-        if is_living_protected(member) and not member.privacy_override:
-            member.privacy_level = 'private'
-        elif not is_living_protected(member) and not member.privacy_override:
-            member.privacy_level = 'public'
-    
+        if is_living_protected(old_member) and not old_member.privacy_override:
+            old_member.privacy_level = 'private'
+        elif not is_living_protected(old_member) and not old_member.privacy_override:
+            old_member.privacy_level = 'public'
+
     member = FamilyService.update_member(member_id, **{k: v for k, v in data.items() if k not in ('privacy_level', 'privacy_override')})
     if not member:
         return jsonify({'error': '成员不存在'}), 404
