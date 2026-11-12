@@ -193,8 +193,9 @@ def upload_event_image(family_id):
         return jsonify({'error': '不支持的图片格式'}), 400
 
     filename = f"{uuid.uuid4().hex}.{ext}"
-    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
-    events_folder = os.path.join(upload_folder, 'events')
+    # 存到 <static>/images/events/，与返回的 URL 保持一致
+    # （之前存到 UPLOAD_FOLDER(=avatars)/events，URL 却指向 images/events，图片必然 404）
+    events_folder = os.path.join(current_app.static_folder, 'images', 'events')
     os.makedirs(events_folder, exist_ok=True)
 
     filepath = os.path.join(events_folder, filename)

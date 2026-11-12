@@ -168,25 +168,21 @@ export function FamilyTreeEngine({
       })
     }
 
-    function findCoupleRep(memberId: number): number {
-      for (const [repId, c] of coupleInfo.byRep) {
-        if (c.husband.id === memberId) return repId
-        if (c.wife?.id === memberId) return repId
-      }
-      return memberId
-    }
+    // O(1) 查找表：成员 id → 夫妻代表 id、成员 id → 节点，避免每条边线性扫描
+    const repByMember = coupleInfo.repByMember
+    const nodeById = new Map(treeData.nodes.map(n => [n.id, n]))
 
     const flowEdges: FlowEdge[] = parentEdges
       .filter(e => !hiddenIds.has(e.source) && !hiddenIds.has(e.target))
       .map(e => ({
         id: `e-${e.source}-${e.target}`,
-        source: String(coupleInfo.inCouple.has(e.source) ? findCoupleRep(e.source) : e.source),
+        source: String(coupleInfo.inCouple.has(e.source) ? (repByMember.get(e.source) ?? e.source) : e.source),
         target: String(e.target),
         type: 'family',
         markerEnd: 'url(#edge-arrow)',
         data: {
-          sourceName: treeData.nodes.find(n => n.id === e.source)?.name ?? '',
-          targetName: treeData.nodes.find(n => n.id === e.target)?.name ?? '',
+          sourceName: nodeById.get(e.source)?.name ?? '',
+          targetName: nodeById.get(e.target)?.name ?? '',
           isSelected: false,
           isHighlighted: false,
         } satisfies FamilyEdgeData,

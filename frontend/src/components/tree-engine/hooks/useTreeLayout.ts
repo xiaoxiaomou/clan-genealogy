@@ -32,6 +32,8 @@ function getCoupleNodeWidth(husband: TreeNode, wife: TreeNode | null): number {
 export interface CoupleInfo {
   byRep: Map<number, { husband: TreeNode; wife: TreeNode | null; childrenIds: number[] }>
   inCouple: Set<number>
+  /** 成员 id → 所在夫妻节点的代表 id（丈夫 id），O(1) 查找 */
+  repByMember: Map<number, number>
 }
 
 export type LayoutMode = 'tree' | 'fan' | 'hanging'
@@ -42,29 +44,30 @@ export interface DagreLayoutResult {
   coupleInfo: CoupleInfo
 }
 
-function findCoupleRep(memberId: number, byRep: CoupleInfo['byRep']): number {
-  for (const [repId, c] of byRep) {
-    if (c.husband.id === memberId) return repId
-    if (c.wife?.id === memberId) return repId
-  }
-  return memberId
+function findCoupleRep(memberId: number, repByMember: CoupleInfo['repByMember']): number {
+  return repByMember.get(memberId) ?? memberId
 }
 
 export function useTreeLayout(treeData: FamilyTree | null, layoutMode: LayoutMode = 'tree'): DagreLayoutResult {
   const coupleInfo = useMemo<CoupleInfo>(() => {
     const byRep = new Map<number, { husband: TreeNode; wife: TreeNode | null; childrenIds: number[] }>()
     const inCouple = new Set<number>()
+    const repByMember = new Map<number, number>()
     if (treeData?.couples && treeData.nodes) {
+      // O(1) 查找表：couples 循环内不再逐个 find（N² → N）
+      const nodeById = new Map(treeData.nodes.map((n) => [n.id, n]))
       for (const c of treeData.couples) {
-        const husband = treeData.nodes.find(n => n.id === c.husband_id)
+        const husband = nodeById.get(c.husband_id)
         if (!husband) continue
-        const wife = c.wife_id ? treeData.nodes.find(n => n.id === c.wife_id) ?? null : null
+        const wife = c.wife_id ? nodeById.get(c.wife_id) ?? null : null
         byRep.set(c.husband_id, { husband, wife, childrenIds: c.children })
         inCouple.add(c.husband_id)
         if (c.wife_id) inCouple.add(c.wife_id)
+        repByMember.set(c.husband_id, c.husband_id)
+        if (c.wife_id) repByMember.set(c.wife_id, c.husband_id)
       }
     }
-    return { byRep, inCouple }
+    return { byRep, inCouple, repByMember }
   }, [treeData])
 
   const dagreNodeWidthMap = useMemo<Map<number, number>>(() => {
@@ -96,7 +99,7 @@ export function useTreeLayout(treeData: FamilyTree | null, layoutMode: LayoutMod
       })
     }
     for (const repId of coupleInfo.byRep.keys()) {
-      const first = treeData.nodes.find(n => n.id === repId)
+      const first = coupleInfo.byRep.get(repId)?.husband
       g.setNode(String(repId), {
         width: dagreNodeWidthMap.get(repId) ?? NODE_WIDTH_MIN * 2,
         height: NODE_HEIGHT + 16,
@@ -105,7 +108,7 @@ export function useTreeLayout(treeData: FamilyTree | null, layoutMode: LayoutMod
     }
     for (const edge of parentEdges) {
       const source = coupleInfo.inCouple.has(edge.source)
-        ? (coupleInfo.byRep.has(edge.source) ? edge.source : findCoupleRep(edge.source, coupleInfo.byRep))
+        ? findCoupleRep(edge.source, coupleInfo.repByMember)
         : edge.source
       g.setEdge(String(source), String(edge.target))
     }

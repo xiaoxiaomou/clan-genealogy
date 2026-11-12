@@ -19,7 +19,11 @@ export interface MemorialReminder {
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: any;
+  /** 直接上传 FormData：不设 Content-Type，让浏览器自动生成 multipart 边界 */
+  formData?: FormData;
   headers?: Record<string, string>;
+  /** 请求取消信号 */
+  signal?: AbortSignal;
   /** 期望的响应类型：'json'（默认）/ 'blob' / 'text' */
   responseType?: 'json' | 'blob' | 'text';
 }
@@ -68,20 +72,23 @@ async function request<T>(
   options: RequestOptions = {},
   _isRetry = false,
 ): Promise<T> {
-  const { method = 'GET', body, headers = {}, responseType = 'json' } = options;
+  const { method = 'GET', body, formData, headers = {}, responseType = 'json', signal } = options;
 
   const token = localStorage.getItem('access_token');
 
   const config: RequestInit = {
     method,
     headers: {
-      ...(body && responseType === 'json' ? { 'Content-Type': 'application/json' } : {}),
+      ...(body && responseType === 'json' && !formData ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
+    signal,
   };
 
-  if (body) {
+  if (formData) {
+    config.body = formData;
+  } else if (body) {
     config.body = JSON.stringify(body);
   }
 
@@ -143,6 +150,18 @@ async function request<T>(
     return (await response.text()) as unknown as T;
   }
   return response.json();
+}
+
+/** 统一的文件下载：blob → 临时 <a> 触发保存 */
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // Auth API
@@ -279,22 +298,10 @@ export const api = {
   importMembers: async (familyId: number, file: File): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
-
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/family/${familyId}/import`, {
+    return request<any>(`/family/${familyId}/import`, {
       method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
+      formData,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || '导入失败');
-    }
-
-    return response.json();
   },
 
   // Branches
@@ -363,17 +370,10 @@ export const api = {
     formData.append('file', file)
     if (title) formData.append('title', title)
     if (description) formData.append('description', description)
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/family/${familyId}/albums/${albumId}/photos`, {
+    return request<any>(`/family/${familyId}/albums/${albumId}/photos`, {
       method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: formData,
+      formData,
     })
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || '上传照片失败')
-    }
-    return response.json()
   },
 
   deletePhoto: (familyId: number, albumId: number, photoId: number) =>
@@ -521,43 +521,19 @@ export const api = {
   uploadAvatar: async (file: File): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
-
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/upload/avatar`, {
-      method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || '上传失败');
-    }
-
-    return response.json();
+    return request<any>('/upload/avatar', { method: 'POST', formData });
   },
 
   uploadAlbumImage: async (familyId: number, file: File): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
+    return request<any>(`/upload/album/${familyId}`, { method: 'POST', formData });
+  },
 
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/upload/album/${familyId}`, {
-      method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || '上传失败');
-    }
-
-    return response.json();
+  uploadEventImage: async (familyId: number, file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<any>(`/family/${familyId}/events/upload-image`, { method: 'POST', formData });
   },
 
   // Search
@@ -571,12 +547,7 @@ export const api = {
         `/export/${familyId}/export/gedcom`,
         { responseType: 'blob' },
       )
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `family_${familyId}.ged`
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadBlob(blob, `family_${familyId}.ged`)
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : '网络异常，导出失败')
     }
@@ -587,93 +558,35 @@ export const api = {
       `/export/${familyId}/export/pdf/guzhi`,
       { responseType: 'blob' },
     )
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `family_${familyId}_guzhi.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, `family_${familyId}_guzhi.pdf`)
   },
 
   exportTraditionalPdf: async (familyId: number, style: 'su' | 'ou' | 'bao'): Promise<void> => {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/export/${familyId}/export/pdf/traditional?style=${style}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!response.ok) throw new Error('导出失败')
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `family_${familyId}_${style}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+    const blob = await request<Blob>(
+      `/export/${familyId}/export/pdf/traditional?style=${style}`,
+      { responseType: 'blob' },
+    )
+    downloadBlob(blob, `family_${familyId}_${style}.pdf`)
   },
 
   exportPdf: async (familyId: number): Promise<void> => {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/export/${familyId}/export/pdf`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!response.ok) throw new Error('导出失败')
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `family_${familyId}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+    const blob = await request<Blob>(`/export/${familyId}/export/pdf`, { responseType: 'blob' })
+    downloadBlob(blob, `family_${familyId}.pdf`)
   },
 
   exportMembersCsv: async (familyId: number): Promise<void> => {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/export/${familyId}/export/members/csv`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    })
-    if (!response.ok) throw new Error('导出 CSV 失败')
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'members.csv'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.URL.revokeObjectURL(url)
+    const blob = await request<Blob>(`/export/${familyId}/export/members/csv`, { responseType: 'blob' })
+    downloadBlob(blob, 'members.csv')
   },
 
   exportMembersExcel: async (familyId: number): Promise<void> => {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/export/${familyId}/export/members/excel`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    })
-    if (!response.ok) throw new Error('导出 Excel 失败')
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'members.xlsx'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.URL.revokeObjectURL(url)
+    const blob = await request<Blob>(`/export/${familyId}/export/members/excel`, { responseType: 'blob' })
+    downloadBlob(blob, 'members.xlsx')
   },
 
   downloadTemplate: async (familyId: number, format: 'excel' | 'csv'): Promise<void> => {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/family/${familyId}/template/${format}`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    })
-    if (!response.ok) throw new Error('下载模板失败')
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = format === 'excel' ? 'member_import_template.xlsx' : 'member_import_template.csv'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.URL.revokeObjectURL(url)
+    const blob = await request<Blob>(`/family/${familyId}/template/${format}`, { responseType: 'blob' })
+    downloadBlob(blob, format === 'excel' ? 'member_import_template.xlsx' : 'member_import_template.csv')
   },
 
   // Family Articles
@@ -931,20 +844,8 @@ export const api = {
     }>(`/family/${familyId}/members/statistics/generations`),
 
   downloadBackup: async (familyId: number): Promise<void> => {
-    const token = localStorage.getItem('access_token')
-    const response = await fetch(`${API_BASE_URL}/family/${familyId}/export/backup`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    })
-    if (!response.ok) throw new Error('备份下载失败')
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `zupu_backup_${familyId}.zip`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.URL.revokeObjectURL(url)
+    const blob = await request<Blob>(`/family/${familyId}/export/backup`, { responseType: 'blob' })
+    downloadBlob(blob, `zupu_backup_${familyId}.zip`)
   },
 
   // 公开分享链接（管理）

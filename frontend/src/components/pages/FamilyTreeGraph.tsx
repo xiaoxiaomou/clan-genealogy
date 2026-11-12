@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
+import { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react'
 import {
   ReactFlow,
   Controls,
@@ -77,7 +77,8 @@ interface FamilyMemberNodeData {
   onHover?: (member: TreeNode | null, x?: number, y?: number) => void
 }
 
-function FamilyMemberNodeComponent({ data }: { data: FamilyMemberNodeData }) {
+/** memo：上层状态变化时未受影响节点不重渲染 */
+const FamilyMemberNodeComponent = memo(function FamilyMemberNodeComponent({ data }: { data: FamilyMemberNodeData }) {
   const member = data.member as TreeNode
   const isHighlighted = data.isHighlighted as boolean
   const isDimmed = data.isDimmed as boolean
@@ -160,7 +161,7 @@ function FamilyMemberNodeComponent({ data }: { data: FamilyMemberNodeData }) {
       />
     </div>
   )
-}
+})
 
 const nodeTypes = {
   familyMember: FamilyMemberNodeComponent,
@@ -455,6 +456,9 @@ export default function FamilyTreeGraph({
     }
     const edgeColor = activeMode ? colorByMode[activeMode] : null
 
+    // O(1) 查找表：避免每条边/每个节点都线性扫描（N² → N）
+    const treeNodeById = new Map(treeData.nodes.map((n) => [n.id, n]))
+
     const nodes = treeData.nodes.map((node) => {
       let isHighlighted = false
       let isDimmed = false
@@ -486,11 +490,13 @@ export default function FamilyTreeGraph({
       }
     })
 
+    const flowNodeById = new Map(nodes.map((n) => [n.id, n]))
+
     const edges = treeData.edges
       .filter((edge) => edge.type === 'parent')
       .map((edge) => {
-        const sourceNode = treeData.nodes.find(n => n.id === edge.source)
-        const targetNode = treeData.nodes.find(n => n.id === edge.target)
+        const sourceNode = treeNodeById.get(edge.source)
+        const targetNode = treeNodeById.get(edge.target)
         const edgeKey = `${Math.min(edge.source, edge.target)}-${Math.max(edge.source, edge.target)}`
         const isHighlightedByExternal = highlightedMemberId === edge.source || highlightedMemberId === edge.target
         const isHighlightedByLineage = !!activeEdgeKeys && activeEdgeKeys.has(edgeKey)
@@ -521,7 +527,7 @@ export default function FamilyTreeGraph({
     })
 
     sortedNodes.forEach((node) => {
-      const nodeData = nodes.find((n) => n.id === String(node.id))
+      const nodeData = flowNodeById.get(String(node.id))
       if (nodeData) {
         dagreGraph.setNode(nodeData.id, {
           width: NODE_WIDTH,

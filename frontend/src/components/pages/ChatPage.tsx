@@ -58,13 +58,19 @@ export default function ChatPage() {
   const [showCreate, setShowCreate] = useState(false)
   const pollRef = useRef<any>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  // 用 ref 记录最新一条消息 id：setInterval 闭包里的 state 是过期的，
+  // 直接读 messages 会让 since 永远停留在切组时的值，导致增量拉取重复
+  const lastMessageIdRef = useRef<number | undefined>(undefined)
+  const activeGroupRef = useRef<ChatGroup | null>(null)
 
   useEffect(() => {
     loadGroups()
   }, [familyId])
 
   useEffect(() => {
+    activeGroupRef.current = activeGroup
     if (activeGroup) {
+      lastMessageIdRef.current = undefined
       loadMessages()
       pollRef.current = setInterval(() => {
         loadMessages(true)
@@ -92,18 +98,23 @@ export default function ChatPage() {
   }
 
   async function loadMessages(silent = false) {
-    if (!activeGroup) return
+    const group = activeGroupRef.current
+    if (!group) return
     if (!silent) setLoading(true)
     try {
-      const since = messages.length > 0 ? messages[messages.length - 1].id : undefined
-      const data = await api.listChatMessages(familyId, activeGroup.id, since)
+      const since = lastMessageIdRef.current
+      const data = await api.listChatMessages(familyId, group.id, since)
       if (since) {
         // 增量
         if (data.messages && data.messages.length > 0) {
           setMessages((prev) => [...prev, ...data.messages])
+          lastMessageIdRef.current = data.messages[data.messages.length - 1].id
         }
       } else {
         setMessages(data.messages || [])
+        lastMessageIdRef.current = data.messages?.length
+          ? data.messages[data.messages.length - 1].id
+          : undefined
       }
     } catch (err: any) {
       if (!silent) showToast(err.message || '加载消息失败', 'error')

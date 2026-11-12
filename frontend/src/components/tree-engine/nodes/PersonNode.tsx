@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { Card, CardContent } from '@/components/ui'
 import { AvatarDisplay } from '@/components/ui'
@@ -34,7 +35,8 @@ export interface PersonNodeData {
   onHover: ((member: TreeNode | null) => void) | null
 }
 
-export function PersonNode({ data }: { data: PersonNodeData }) {
+/** memo：拖拽/点选等任何上层状态变化时，未受影响节点不再重渲染 */
+export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeData }) {
   const m = data.member
   const borderColor = data.isSelectedNode
     ? '#8b5cf6'
@@ -107,4 +109,4 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
       <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground !w-2 !h-2" />
     </div>
   )
-}
+})
