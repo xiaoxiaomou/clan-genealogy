@@ -1,12 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { Layout } from '@/components/layout/Layout'
-import { Button, useToast } from '@/components/ui'
+import { Button, Input, useToast } from '@/components/ui'
 import {
-  TreePine, BookOpen, Quote, Edit3, Save, X, Plus, Trash2,
-  ChevronDown, ChevronUp, ArrowRight,
+  ChevronDown, ChevronUp, Plus, Trash2, ArrowRight, BookOpen, PenLine,
 } from 'lucide-react'
+
+/* ── 谱书卷首设计令牌：与个人设置页同源的朱砂 + 宋体 ── */
+const SEAL_RED = '#A63A2E'
+const SERIF_DISPLAY = "'Noto Serif SC', 'STSong', 'KaiTi', 'STKaiti', serif"
+
+const CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十']
 
 interface Article {
   id: number
@@ -29,6 +35,9 @@ export default function FamilyIntroPage() {
 
   const [family, setFamily] = useState<any>(null)
   const [articles, setArticles] = useState<Article[]>([])
+  const [stats, setStats] = useState<{ memberCount: number; maxGen: number; genSet: Set<number> }>({
+    memberCount: 0, maxGen: 0, genSet: new Set(),
+  })
   const [loading, setLoading] = useState(true)
   const [canEdit, setCanEdit] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -46,16 +55,28 @@ export default function FamilyIntroPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [familyRes, articlesRes, roleRes] = await Promise.all([
+      const [familyRes, articlesRes, roleRes, treeRes] = await Promise.all([
         api.getFamily(familyId),
         api.getFamilyArticles(familyId),
         api.getMyRole(familyId),
+        api.getFamilyTree(familyId).catch(() => null),
       ])
-      setFamily(familyRes.family)
+      const fam = familyRes.family
+      setFamily(fam)
       setArticles(articlesRes.articles || [])
       setCanEdit(roleRes.can_edit)
-      setEditIntro(familyRes.family.intro || '')
-      setEditMotto(familyRes.family.motto || '')
+      setEditIntro(fam.intro || '')
+      setEditMotto(fam.motto || '')
+      const nodes = treeRes?.nodes || []
+      const genSet = new Set<number>()
+      let maxGen = 0
+      for (const n of nodes) {
+        if (typeof n.generation === 'number') {
+          genSet.add(n.generation)
+          if (n.generation > maxGen) maxGen = n.generation
+        }
+      }
+      setStats({ memberCount: nodes.length || fam.member_count || 0, maxGen, genSet })
     } catch (err: any) {
       showToast(err.message || '加载失败', 'error')
     } finally {
@@ -141,156 +162,376 @@ export default function FamilyIntroPage() {
 
   const typeLabels: Record<string, string> = { intro: '简介', story: '故事', motto: '家训', rule: '族规' }
 
+  /* 卷首语首字（去空白） */
+  const introText = family.intro || ''
+  const leadChar = introText.trim().charAt(0)
+  const introRest = introText.trim().slice(1)
+
+  /* 字辈字符及世代标注 */
+  const zibeiChars: string[] = (family.zibei_text || '').replace(/\s+/g, '').split('')
+  const zibeiStart = family.zibei_assignment === 'generation_based'
+    ? (family.zibei_start_generation || 1)
+    : 1
+
+  /* 朱点分段标题 */
+  const SectionHead = ({ text }: { text: string }) => (
+    <div className="fi-section-head">
+      <span aria-hidden="true" className="fi-dot" />
+      <span className="fi-section-title">{text}</span>
+      <span aria-hidden="true" className="fi-section-rule" />
+    </div>
+  )
+
   return (
     <Layout>
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        {/* 顶部导航 */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg border bg-card shadow-sm">
-              <TreePine className="h-6 w-6 text-primary" />
+      <div className="fi-intro mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <style>{`
+          .fi-intro { font-size: 14px; }
+          .fi-intro .fi-dot { width: 6px; height: 6px; border-radius: 2px; background: ${SEAL_RED}; flex-shrink: 0; }
+          .fi-intro .fi-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+          .fi-intro .fi-section-title {
+            font-family: ${SERIF_DISPLAY}; font-size: 15px; font-weight: 600;
+            letter-spacing: .18em; color: hsl(var(--foreground));
+          }
+          .fi-intro .fi-section-rule { flex: 1; height: 1px; background: hsl(var(--border)); }
+          .fi-intro .fi-serif { font-family: ${SERIF_DISPLAY}; }
+
+          /* 卷首 */
+          .fi-intro .fi-volhead { overflow: hidden; border-radius: 12px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
+          .fi-intro .fi-volhead-grid { display: grid; grid-template-columns: 1fr 200px; }
+          .fi-intro .fi-volhead-main { padding: 30px 34px 26px; }
+          .fi-intro .fi-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .32em; color: hsl(var(--muted-foreground)); }
+          .fi-intro .fi-title-row { display: flex; align-items: center; gap: 18px; margin-top: 16px; }
+          .fi-intro .fi-name-seal {
+            width: 64px; height: 64px; border-radius: 8px; flex-shrink: 0;
+            background: ${SEAL_RED}; color: #fff; display: flex; align-items: center; justify-content: center;
+            font-family: ${SERIF_DISPLAY}; font-size: 34px; font-weight: 600;
+            box-shadow: 0 2px 6px rgb(0 0 0 / .18); transform: rotate(-2deg);
+          }
+          .fi-intro .fi-family-name { font-family: ${SERIF_DISPLAY}; font-size: 34px; font-weight: 600; letter-spacing: .08em; line-height: 1.2; }
+          .fi-intro .fi-family-sub { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; letter-spacing: .12em; }
+          .fi-intro .fi-colophon {
+            display: flex; flex-wrap: wrap; align-items: center; row-gap: 8px;
+            margin-top: 22px; padding-top: 18px; border-top: 1px solid hsl(var(--border));
+            font-size: 12.5px; color: hsl(var(--muted-foreground));
+          }
+          .fi-intro .fi-colophon b { color: hsl(var(--foreground)); font-weight: 500; }
+          .fi-intro .fi-colophon .sep { margin: 0 14px; width: 1px; height: 12px; background: hsl(var(--border)); }
+
+          /* 祖训挂轴 */
+          .fi-intro .fi-scroll-panel {
+            border-left: 1px solid hsl(var(--border));
+            background: hsl(var(--muted) / .4);
+            display: flex; align-items: center; justify-content: center;
+            padding: 24px 18px 34px; position: relative;
+          }
+          .fi-intro .fi-motto-frame {
+            border: 1px solid color-mix(in srgb, ${SEAL_RED} 35%, transparent);
+            outline: 3px solid color-mix(in srgb, ${SEAL_RED} 10%, transparent);
+            outline-offset: 3px; border-radius: 4px;
+            padding: 20px 16px 12px; background: hsl(var(--card));
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+          }
+          .fi-intro .fi-motto-text {
+            writing-mode: vertical-rl;
+            font-family: ${SERIF_DISPLAY}; font-size: 19px; font-weight: 600;
+            letter-spacing: .34em; color: ${SEAL_RED}; max-height: 260px;
+          }
+          .fi-intro .fi-motto-seal {
+            width: 22px; height: 22px; border-radius: 3px;
+            background: ${SEAL_RED}; color: #fff;
+            font-family: ${SERIF_DISPLAY}; font-size: 12px;
+            display: flex; align-items: center; justify-content: center;
+            transform: rotate(3deg); flex-shrink: 0;
+          }
+          .fi-intro .fi-motto-caption {
+            position: absolute; bottom: 8px; left: 0; right: 0; text-align: center;
+            font-size: 11px; letter-spacing: .3em; color: hsl(var(--muted-foreground));
+          }
+
+          /* 卷首语 */
+          .fi-intro .fi-prose {
+            border: 1px solid hsl(var(--border)); border-radius: 12px;
+            padding: 24px 28px; background: hsl(var(--card));
+            font-family: ${SERIF_DISPLAY}; font-size: 14.5px; line-height: 2.05;
+            color: hsl(var(--foreground) / .85); white-space: pre-wrap;
+          }
+          .fi-intro .fi-lead-char {
+            font-size: 30px; color: ${SEAL_RED}; font-weight: 600;
+            margin-right: 6px; line-height: 1;
+          }
+
+          /* 字辈 */
+          .fi-intro .fi-zibei-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+          .fi-intro .fi-zibei-char {
+            width: 42px; height: 46px; display: flex; align-items: center; justify-content: center;
+            border: 1px solid hsl(var(--border)); border-radius: 6px;
+            font-family: ${SERIF_DISPLAY}; font-size: 19px; font-weight: 600;
+            color: hsl(var(--foreground)); background: hsl(var(--card)); position: relative;
+          }
+          .fi-intro .fi-zibei-char small {
+            position: absolute; bottom: 1px; left: 0; right: 0;
+            font-size: 9px; color: hsl(var(--muted-foreground)); font-family: system-ui, sans-serif;
+            font-weight: 400; text-align: center;
+          }
+          .fi-intro .fi-zibei-char.gen-present {
+            border-color: color-mix(in srgb, ${SEAL_RED} 45%, transparent);
+            color: ${SEAL_RED};
+          }
+          .fi-intro .fi-zibei-note { font-size: 11.5px; color: hsl(var(--muted-foreground)); margin-top: 12px; }
+
+          /* 目次 */
+          .fi-intro .fi-toc { border: 1px solid hsl(var(--border)); border-radius: 12px; background: hsl(var(--card)); overflow: hidden; }
+          .fi-intro .fi-toc-item { border-bottom: 1px solid hsl(var(--border)); }
+          .fi-intro .fi-toc-item:last-child { border-bottom: 0; }
+          .fi-intro .fi-toc-row {
+            display: flex; align-items: center; gap: 14px; width: 100%;
+            padding: 14px 20px; background: transparent; border: 0;
+            color: hsl(var(--foreground)); font-size: 13.5px; text-align: left; cursor: pointer;
+          }
+          .fi-intro .fi-toc-row:hover { background: hsl(var(--muted) / .3); }
+          .fi-intro .fi-toc-row .vol {
+            font-family: ${SERIF_DISPLAY}; font-size: 13px; letter-spacing: .1em;
+            color: ${SEAL_RED}; flex-shrink: 0; width: 44px;
+          }
+          .fi-intro .fi-toc-row .title { flex: 1; font-weight: 500; }
+          .fi-intro .fi-toc-row .tag {
+            font-size: 10.5px; padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
+            background: hsl(var(--primary) / .1); color: hsl(var(--primary));
+          }
+          .fi-intro .fi-toc-row .chev { color: hsl(var(--muted-foreground)); display: flex; flex-shrink: 0; }
+          .fi-intro .fi-toc-body { padding: 0 20px 16px 78px; font-size: 13px; color: hsl(var(--muted-foreground)); line-height: 1.9; font-family: ${SERIF_DISPLAY}; white-space: pre-wrap; }
+
+          @media (max-width: 720px) {
+            .fi-intro .fi-volhead-grid { grid-template-columns: 1fr; }
+            .fi-intro .fi-scroll-panel { border-left: 0; border-top: 1px solid hsl(var(--border)); }
+            .fi-intro .fi-toc-body { padding-left: 20px; }
+          }
+        `}</style>
+
+        {/* ══ 卷首：印 + 族名 + 版刻行 + 祖训挂轴 ══ */}
+        <div className="fi-volhead">
+          <div className="fi-volhead-grid">
+            <div className="fi-volhead-main">
+              <div className="fi-eyebrow">
+                <span aria-hidden="true" className="fi-dot" />
+                谱 牒 · 卷 首
+              </div>
+              <div className="fi-title-row">
+                <div className="fi-name-seal" aria-hidden="true">{family.surname || '谱'}</div>
+                <div>
+                  <h1 className="fi-family-name">{family.name}</h1>
+                  {family.origin && (
+                    <p className="fi-family-sub">{family.origin}</p>
+                  )}
+                </div>
+              </div>
+              <div className="fi-colophon">
+                {family.origin && <span>籍贯 <b>{family.origin}</b></span>}
+                {stats.maxGen > 0 && (
+                  <>
+                    {!!family.origin && <span aria-hidden="true" className="sep" />}
+                    <span>世系 <b>{stats.maxGen} 世</b></span>
+                  </>
+                )}
+                {stats.memberCount > 0 && (
+                  <>
+                    <span aria-hidden="true" className="sep" />
+                    <span>入谱 <b>{stats.memberCount} 人</b></span>
+                  </>
+                )}
+                {zibeiChars.length > 0 && (
+                  <>
+                    <span aria-hidden="true" className="sep" />
+                    <span>字辈 <b>{zibeiChars.slice(0, 4).join('')}</b></span>
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold" style={{ fontFamily: "'Noto Serif SC',serif" }}>{family.name}</h1>
-              {family.surname && <p className="text-xs text-muted-foreground">姓氏：{family.surname}</p>}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {canEdit && (
-              <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
-                onClick={() => editMode ? handleSaveIntro() : setEditMode(true)}>
-                {editMode ? <><Save className="h-3.5 w-3.5" />保存</> : <><Edit3 className="h-3.5 w-3.5" />编辑</>}
-              </Button>
-            )}
-            {editMode && (
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setEditMode(false); setEditIntro(family.intro || ''); setEditMotto(family.motto || '') }}>
-                <X className="h-4 w-4" />
-              </Button>
+
+            {/* 祖训挂轴 */}
+            {family.motto ? (
+              <div className="fi-scroll-panel">
+                <div className="fi-motto-frame">
+                  <div className="fi-motto-text">{family.motto}</div>
+                  <div className="fi-motto-seal" aria-hidden="true">训</div>
+                </div>
+                <div className="fi-motto-caption" aria-hidden="true">族 训</div>
+              </div>
+            ) : (
+              <div className="fi-scroll-panel">
+                <p className="text-xs leading-6 text-muted-foreground text-center px-3">
+                  尚未立族训
+                  {canEdit && (
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="mt-2 block mx-auto text-xs text-primary hover:underline"
+                    >
+                      去撰写 →
+                    </button>
+                  )}
+                </p>
+              </div>
             )}
           </div>
         </div>
 
-        {/* 家族简介 */}
-        <div className="mb-8 rounded-lg border bg-card/50 p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <BookOpen className="h-4 w-4 text-primary" />
-            家族简介
+        {/* ══ 编辑模式工具行 ══ */}
+        {canEdit && (
+          <div className="mt-4 flex items-center justify-end gap-2">
+            {editMode ? (
+              <>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs"
+                  onClick={() => { setEditMode(false); setEditIntro(family.intro || ''); setEditMotto(family.motto || '') }}>
+                  取消
+                </Button>
+                <Button variant="apple" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSaveIntro}>
+                  <BookOpen className="h-3.5 w-3.5" /> 保存卷首
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setEditMode(true)}>
+                <PenLine className="h-3.5 w-3.5" /> 修卷首
+              </Button>
+            )}
           </div>
+        )}
+
+        {/* ══ 卷首语 ══ */}
+        <div className="fi-section mt-9">
+          <SectionHead text="卷 首 语" />
           {editMode ? (
-            <textarea
-              value={editIntro}
-              onChange={(e) => setEditIntro(e.target.value)}
-              className="w-full min-h-[120px] rounded border bg-background p-3 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-border"
-              placeholder="请输入家族简介..."
-            />
+            <div className="space-y-3">
+              <textarea
+                value={editIntro}
+                onChange={(e) => setEditIntro(e.target.value)}
+                className="w-full min-h-[120px] rounded-lg border bg-card p-3 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+                placeholder="记述家族源流、迁徙与世系……"
+              />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">族训（竖排展示）</span>
+                <Input
+                  value={editMotto}
+                  onChange={(e) => setEditMotto(e.target.value)}
+                  placeholder="如：敬宗睦族 诗礼传家"
+                  className="max-w-xs"
+                />
+              </div>
+            </div>
+          ) : introText ? (
+            <div className="fi-prose">
+              {leadChar && <span className="fi-lead-char">{leadChar}</span>}
+              {introRest}
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {family.intro || '暂无简介'}
-            </p>
+            <div className="fi-prose text-center">
+              <p className="text-sm" style={{ fontFamily: SERIF_DISPLAY }}>卷首尚虚，待修谱人补序。</p>
+              {!canEdit && <p className="mt-1 text-xs text-muted-foreground">暂无家族简介</p>}
+            </div>
           )}
         </div>
 
-        {/* 家训 */}
-        {family.motto || editMode ? (
-          <div className="mb-8 rounded-lg border bg-card/50 p-6 shadow-sm">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Quote className="h-4 w-4 text-amber-500" />
-              家训/族训
+        {/* ══ 字辈 ══ */}
+        {zibeiChars.length > 0 && (
+          <div className="fi-section mt-9">
+            <SectionHead text="字 辈" />
+            <div className="rounded-xl border bg-card p-5" style={{ borderColor: 'hsl(var(--border))' }}>
+              <div className="fi-zibei-row">
+                {zibeiChars.map((ch, idx) => {
+                  const gen = zibeiStart + idx
+                  const present = stats.genSet.has(gen)
+                  return (
+                    <div key={idx} className={`fi-zibei-char ${present ? 'gen-present' : ''}`}>
+                      {ch}
+                      <small>第{gen}世</small>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="fi-zibei-note">
+                命名以字辈为序，同辈共取一字，昭穆分明。描红为已入谱世代。
+              </p>
             </div>
-            {editMode ? (
-              <input
-                value={editMotto}
-                onChange={(e) => setEditMotto(e.target.value)}
-                className="w-full rounded border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-border"
-                placeholder="请输入家训..."
-              />
-            ) : (
-              <blockquote className="border-l-2 border-amber-400 pl-4 text-sm italic text-muted-foreground">
-                {family.motto}
-              </blockquote>
-            )}
           </div>
-        ) : null}
+        )}
 
-        {/* 文章列表 */}
-        <div className="mb-8">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <BookOpen className="h-4 w-4 text-primary" />
-              家族故事
-            </h2>
-            {editMode && (
-              <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={handleAddArticle}>
-                <Plus className="h-3.5 w-3.5" />添加文章
+        {/* ══ 目次：家族故事 ══ */}
+        <div className="fi-section mt-9">
+          <SectionHead text="目 次" />
+          {editMode && (
+            <div className="mb-3 flex justify-end">
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleAddArticle}>
+                <Plus className="h-3.5 w-3.5" /> 添卷
               </Button>
-            )}
-          </div>
+            </div>
+          )}
 
           {articles.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">暂无文章</p>
+            <div className="rounded-xl border bg-card py-10 text-center" style={{ borderColor: 'hsl(var(--border))' }}>
+              <p className="text-sm" style={{ fontFamily: SERIF_DISPLAY }}>目次尚空，族中故事待录。</p>
+              {editMode && <p className="mt-1 text-xs text-muted-foreground">点击右上「添卷」开始</p>}
+            </div>
           ) : (
-            <div className="space-y-3">
-              {articles.map((article) => {
+            <div className="fi-toc">
+              {articles.map((article, idx) => {
                 const expanded = expandedIds.has(article.id)
                 return (
-                  <div key={article.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] rounded bg-primary/10 text-primary px-1.5 py-0.5 font-medium">
-                            {typeLabels[article.type] || article.type}
-                          </span>
-                          {editMode ? (
-                            <input
-                              value={article.title}
-                              onChange={(e) => handleUpdateArticle(article.id, 'title', e.target.value)}
-                              className="flex-1 rounded border bg-background px-2 py-0.5 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-border"
-                            />
-                          ) : (
-                            <h3 className="text-sm font-medium text-foreground">{article.title}</h3>
-                          )}
-                        </div>
-                        {(article.summary || editMode) && !expanded && (
-                          editMode ? (
-                            <textarea
-                              value={article.summary}
-                              onChange={(e) => handleUpdateArticle(article.id, 'summary', e.target.value)}
-                              className="w-full mt-1 rounded border bg-background p-2 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-border"
-                              placeholder="摘要..."
-                              rows={2}
-                            />
-                          ) : (
-                            <p className="text-xs text-muted-foreground mt-1">{article.summary}</p>
-                          )
+                  <div key={article.id} className="fi-toc-item">
+                    <div className="flex items-center">
+                      <button
+                        className="fi-toc-row flex-1"
+                        onClick={() => toggleExpand(article.id)}
+                        aria-expanded={expanded}
+                      >
+                        <span className="vol">{CN_NUM[idx] || idx + 1}</span>
+                        {editMode ? (
+                          <input
+                            value={article.title}
+                            onChange={(e) => handleUpdateArticle(article.id, 'title', e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 rounded border bg-background px-2 py-0.5 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-ring"
+                          />
+                        ) : (
+                          <span className="title">{article.title}</span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-1 ml-3 shrink-0">
-                        {editMode && (
-                          <button onClick={() => handleDeleteArticle(article.id)}
-                            className="rounded p-1 text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        <button onClick={() => toggleExpand(article.id)}
-                          className="rounded p-1 text-muted-foreground hover:text-foreground">
-                          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        <span className="tag">{typeLabels[article.type] || article.type}</span>
+                        <span className="chev" aria-hidden="true">
+                          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </span>
+                      </button>
+                      {editMode && (
+                        <button
+                          onClick={() => handleDeleteArticle(article.id)}
+                          className="mr-2 rounded p-1.5 text-muted-foreground hover:text-destructive"
+                          aria-label={`删除 ${article.title}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
-                      </div>
+                      )}
                     </div>
 
                     {expanded && (
-                      <div className="mt-3 border-t pt-3">
+                      <div className="fi-toc-body">
                         {editMode ? (
-                          <textarea
-                            value={article.content}
-                            onChange={(e) => handleUpdateArticle(article.id, 'content', e.target.value)}
-                            className="w-full min-h-[100px] rounded border bg-background p-2 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-border"
-                            placeholder="文章内容..."
-                          />
-                        ) : (
-                          <div className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                            {article.content || '暂无内容'}
+                          <div className="space-y-2">
+                            <input
+                              value={article.summary}
+                              onChange={(e) => handleUpdateArticle(article.id, 'summary', e.target.value)}
+                              className="w-full rounded border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                              placeholder="摘要..."
+                            />
+                            <textarea
+                              value={article.content}
+                              onChange={(e) => handleUpdateArticle(article.id, 'content', e.target.value)}
+                              className="w-full min-h-[100px] rounded border bg-background p-2 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+                              placeholder="文章内容..."
+                            />
                           </div>
+                        ) : (
+                          <>
+                            {article.summary && <p className="mb-2">{article.summary}</p>}
+                            {article.content || '暂无内容'}
+                          </>
                         )}
                       </div>
                     )}
@@ -301,17 +542,21 @@ export default function FamilyIntroPage() {
           )}
         </div>
 
-        {/* 进入族谱按钮 */}
-        <div className="flex justify-center border-t pt-8">
+        {/* ══ 卷末 ══ */}
+        <div className="mt-10 flex flex-col items-center border-t pt-8" style={{ borderColor: 'hsl(var(--border))' }}>
           <Button
             variant="apple"
-            glow
             className="gap-2 px-8 h-11"
             onClick={() => navigate(`/family/${familyId}`)}
           >
-            进入族谱
+            展卷入谱
             <ArrowRight className="h-4 w-4" />
           </Button>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {stats.maxGen > 0
+              ? `进入世系图，查看 ${stats.maxGen} 世 ${stats.memberCount} 人的完整谱系`
+              : '进入世系图，查看完整谱系'}
+          </p>
         </div>
       </div>
     </Layout>
