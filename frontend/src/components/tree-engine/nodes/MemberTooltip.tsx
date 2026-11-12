@@ -97,6 +97,24 @@ export function MemberTooltip({ member, mouseX, mouseY, containerRect }: MemberT
               <span>{member.posthumous_name}</span>
             </div>
           )}
+          {member.burial_place && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">葬</span>
+              <span className="truncate ml-2" title={member.burial_place}>{member.burial_place}</span>
+            </div>
+          )}
+          {member.migration_note && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">迁徙</span>
+              <span className="truncate ml-2" title={member.migration_note}>{member.migration_note}</span>
+            </div>
+          )}
+          {member.spouse_family_name && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">适</span>
+              <span>{member.spouse_family_name}</span>
+            </div>
+          )}
         </div>
         {member.bio && (
           <div className="border-t pt-1">

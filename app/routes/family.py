@@ -179,11 +179,21 @@ def add_member(family_id):
         gender=data.get('gender', 'unknown'),
         birth_date=data.get('birth_date'),
         death_date=data.get('death_date'),
+        birth_place=data.get('birth_place'),
+        death_place=data.get('death_place'),
+        burial_place=data.get('burial_place'),
+        migration_note=data.get('migration_note'),
+        spouse_family_name=data.get('spouse_family_name'),
         generation=data.get('generation'),
         generation_name=data.get('generation_name'),
         bio=sanitize_bio(data.get('bio')),
         avatar=data.get('avatar'),
-        is_alive=data.get('is_alive', True)
+        is_alive=data.get('is_alive', True),
+        branch_id=data.get('branch_id'),
+        courtesy_name=data.get('courtesy_name'),
+        art_name=data.get('art_name'),
+        posthumous_name=data.get('posthumous_name'),
+        sort_order=data.get('sort_order'),
     )
     # 活人保护自动标记
     from app.services.privacy_service import is_living_protected
@@ -230,7 +240,8 @@ def update_member(family_id, member_id):
     old_attrs = {
         f: getattr(old_member, f)
         for f in ('name', 'gender', 'generation', 'birth_date', 'death_date',
-                   'is_alive', 'birth_place', 'death_place', 'generation_name',
+                   'is_alive', 'birth_place', 'death_place', 'burial_place',
+                   'migration_note', 'spouse_family_name', 'generation_name',
                    'father_id', 'mother_id', 'spouse_id', 'branch_id', 'bio',
                    'occupation', 'avatar', 'courtesy_name', 'art_name', 'posthumous_name')
         if hasattr(old_member, f)
@@ -521,6 +532,12 @@ def import_members_csv(family_id):
             'generation': gen,
             'birth_place': (row.get('birth_place') or '').strip() or None,
             'death_place': (row.get('death_place') or '').strip() or None,
+            'burial_place': (row.get('burial_place') or '').strip() or None,
+            'migration_note': (row.get('migration_note') or '').strip() or None,
+            'spouse_family_name': (row.get('spouse_family_name') or '').strip() or None,
+            'courtesy_name': (row.get('courtesy_name') or '').strip() or None,
+            'art_name': (row.get('art_name') or '').strip() or None,
+            'posthumous_name': (row.get('posthumous_name') or '').strip() or None,
             'is_alive': str(row.get('is_alive', 'true')).lower() in ('true', '1', 'yes', '是', '1'),
             'bio': (row.get('bio') or '').strip() or None,
         })
@@ -597,6 +614,9 @@ def import_members_excel(family_id):
         'generation_name': 'generation_name', '辈分名称': 'generation_name', '字辈': 'generation_name',
         'birth_place': 'birth_place', '出生地': 'birth_place',
         'death_place': 'death_place', '逝世地': 'death_place',
+        'burial_place': 'burial_place', '葬地': 'burial_place', '安葬地': 'burial_place',
+        'migration_note': 'migration_note', '迁徙': 'migration_note', '迁徙记录': 'migration_note',
+        'spouse_family_name': 'spouse_family_name', '适': 'spouse_family_name', '夫家姓氏': 'spouse_family_name',
         'is_alive': 'is_alive', '是否在世': 'is_alive', '在世': 'is_alive',
         'bio': 'bio', '简介': 'bio', '生平': 'bio',
         'courtesy_name': 'courtesy_name', '字': 'courtesy_name',
@@ -699,10 +719,11 @@ def download_import_template(family_id):
     example_format = wb.add_format({'border': 1, 'text_wrap': True, 'valign': 'vcenter'})
 
     headers = ['姓名', '性别', '出生日期', '逝世日期', '辈分', '字辈', '出生地', '逝世地',
-               '是否在世', '字', '号', '谥', '简介']
-    widths = [12, 8, 12, 12, 8, 10, 16, 16, 10, 10, 14, 10, 30]
+               '葬地', '迁徙', '适', '是否在世', '字', '号', '谥', '简介']
+    widths = [12, 8, 12, 12, 8, 10, 16, 16, 16, 20, 10, 10, 10, 14, 10, 30]
     example = ['张三', '男', '1900-01-01', '1980-12-31', 1, '德', '山东济南', '北京',
-               '否', '子明', '浩然居士', '文正', '家族第十二代传人，德高望重']
+               '北京西山祖茔', '明初自山西洪洞迁至山东济南', '王氏', '否', '子明', '浩然居士', '文正',
+               '家族第十二代传人，德高望重']
 
     for col, (h, w) in enumerate(zip(headers, widths)):
         ws.set_column(col, col, w)
@@ -725,6 +746,9 @@ def download_import_template(family_id):
         ('字辈', '可选，该辈分名称（如：德、建、伟）'),
         ('出生地', '可选，出生地点'),
         ('逝世地', '可选，逝世地点'),
+        ('葬地', '可选，安葬地点（中式族谱"生卒葬"之葬）'),
+        ('迁徙', '可选，迁徙记录（何时自何地迁至何地）'),
+        ('适', '可选，女子出嫁的夫家姓氏（如：王氏、李门王氏）'),
         ('是否在世', '可选，是/否/true/false，默认是'),
         ('字', '可选，古人的表字（如：子瞻）'),
         ('号', '可选，别号（如：东坡居士）'),

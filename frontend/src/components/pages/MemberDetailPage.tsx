@@ -22,6 +22,8 @@ import {
   BookOpen,
   Cross,
   BookText,
+  Landmark,
+  Footprints,
 } from 'lucide-react'
 
 export default function MemberDetailPage() {
@@ -244,6 +246,9 @@ export default function MemberDetailPage() {
             <InfoItem icon={Calendar} label="出生日期" value={member.birth_date} />
             <InfoItem icon={Cross} label="逝世日期" value={member.death_date} />
             <InfoItem icon={MapPin} label="籍贯" value={family?.origin ?? null} />
+            <InfoItem icon={Landmark} label="葬地" value={member.burial_place ?? null} />
+            <InfoItem icon={Heart} label="适（夫家姓氏）" value={member.spouse_family_name ?? null} />
+            <InfoItem icon={Footprints} label="迁徙" value={member.migration_note ?? null} />
           </div>
 
           {/* 生平简介 - 富文本 */}

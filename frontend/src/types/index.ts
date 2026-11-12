@@ -46,6 +46,11 @@ export interface Member {
   courtesy_name?: string | null;
   art_name?: string | null;
   posthumous_name?: string | null;
+  burial_place?: string | null;
+  burial_lat?: number | null;
+  burial_lng?: number | null;
+  migration_note?: string | null;
+  spouse_family_name?: string | null;
   privacy_level?: string;
   privacy_override?: boolean;
   visibility?: string;
@@ -91,6 +96,9 @@ export interface TreeNode {
   courtesy_name?: string | null;
   art_name?: string | null;
   posthumous_name?: string | null;
+  burial_place?: string | null;
+  migration_note?: string | null;
+  spouse_family_name?: string | null;
 }
 
 export interface TreeEdge {

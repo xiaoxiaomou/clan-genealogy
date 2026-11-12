@@ -70,6 +70,9 @@ const defaultMemberForm: MemberFormData = {
   courtesy_name: '',
   art_name: '',
   posthumous_name: '',
+  burial_place: '',
+  migration_note: '',
+  spouse_family_name: '',
   privacy_level: 'public',
   privacy_override: false,
 }
@@ -420,6 +423,13 @@ export default function FamilyTreePage() {
         bio: memberForm.bio || undefined,
         avatar: memberForm.avatar || undefined,
         is_alive: memberForm.is_alive,
+        courtesy_name: memberForm.courtesy_name || undefined,
+        art_name: memberForm.art_name || undefined,
+        posthumous_name: memberForm.posthumous_name || undefined,
+        burial_place: memberForm.burial_place || undefined,
+        migration_note: memberForm.migration_note || undefined,
+        spouse_family_name: memberForm.spouse_family_name || undefined,
+        privacy_level: memberForm.privacy_level,
       })
       showToast('成员添加成功', 'success')
       closeAddMemberModal()
@@ -476,6 +486,14 @@ export default function FamilyTreePage() {
         bio: memberForm.bio || undefined,
         avatar: memberForm.avatar || undefined,
         is_alive: memberForm.is_alive,
+        courtesy_name: memberForm.courtesy_name || undefined,
+        art_name: memberForm.art_name || undefined,
+        posthumous_name: memberForm.posthumous_name || undefined,
+        burial_place: memberForm.burial_place || undefined,
+        migration_note: memberForm.migration_note || undefined,
+        spouse_family_name: memberForm.spouse_family_name || undefined,
+        privacy_level: memberForm.privacy_level,
+        privacy_override: memberForm.privacy_override,
       })
       showToast('成员信息已更新', 'success')
       closeEditMemberModal()
@@ -529,6 +547,9 @@ export default function FamilyTreePage() {
       courtesy_name: member.courtesy_name || '',
       art_name: member.art_name || '',
       posthumous_name: member.posthumous_name || '',
+      burial_place: member.burial_place || '',
+      migration_note: member.migration_note || '',
+      spouse_family_name: member.spouse_family_name || '',
       privacy_level: member.privacy_level || 'public',
       privacy_override: member.privacy_override || false,
     })

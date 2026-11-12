@@ -49,6 +49,11 @@ def run_migrations(db: SQLAlchemy):
             ('posthumous_name', "VARCHAR(100)"),
             ('privacy_level', "VARCHAR(20) DEFAULT 'public'"),
             ('privacy_override', "BOOLEAN DEFAULT 0"),
+            ('burial_place', "VARCHAR(200)"),
+            ('burial_lat', "REAL"),
+            ('burial_lng', "REAL"),
+            ('migration_note', "VARCHAR(500)"),
+            ('spouse_family_name', "VARCHAR(50)"),
         ],
     }
 

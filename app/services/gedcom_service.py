@@ -143,24 +143,31 @@ def export_family(family_id: int) -> str:
         out.write(f'0 {xref} INDI\n')
         out.write(f'1 NAME {m.name or "未知"}\n')
         out.write(f'1 SEX {"M" if m.gender == "male" else "F"}\n')
-        if m.birth_date:
-            try:
-                dt = datetime.strptime(m.birth_date, '%Y-%m-%d')
-                d = dt.strftime('%d %b %Y').upper()
-            except (ValueError, TypeError):
-                d = m.birth_date
+        if m.birth_date or m.birth_place:
             out.write('1 BIRT\n')
-            out.write(f'2 DATE {d}\n')
+            if m.birth_date:
+                try:
+                    dt = datetime.strptime(m.birth_date, '%Y-%m-%d')
+                    d = dt.strftime('%d %b %Y').upper()
+                except (ValueError, TypeError):
+                    d = m.birth_date
+                out.write(f'2 DATE {d}\n')
             if m.birth_place:
                 out.write(f'2 PLAC {m.birth_place}\n')
-        if m.death_date:
-            try:
-                dt = datetime.strptime(m.death_date, '%Y-%m-%d')
-                d = dt.strftime('%d %b %Y').upper()
-            except (ValueError, TypeError):
-                d = m.death_date
+        if m.death_date or m.death_place:
             out.write('1 DEAT\n')
-            out.write(f'2 DATE {d}\n')
+            if m.death_date:
+                try:
+                    dt = datetime.strptime(m.death_date, '%Y-%m-%d')
+                    d = dt.strftime('%d %b %Y').upper()
+                except (ValueError, TypeError):
+                    d = m.death_date
+                out.write(f'2 DATE {d}\n')
+            if m.death_place:
+                out.write(f'2 PLAC {m.death_place}\n')
+        if getattr(m, 'burial_place', None):
+            out.write('1 BURI\n')
+            out.write(f'2 PLAC {m.burial_place}\n')
         if m.bio:
             out.write(f'1 NOTE {m.bio[:200]}\n')
 

@@ -18,6 +18,11 @@ class Member(db.Model):
     death_place = db.Column(db.String(200), nullable=True)
     death_place_lat = db.Column(db.Float, nullable=True)
     death_place_lng = db.Column(db.Float, nullable=True)
+    burial_place = db.Column(db.String(200), nullable=True)  # 葬地（中式族谱"生卒葬"之葬）
+    burial_lat = db.Column(db.Float, nullable=True)
+    burial_lng = db.Column(db.Float, nullable=True)
+    migration_note = db.Column(db.String(500), nullable=True)  # 迁徙记录（何时自何地迁至何地）
+    spouse_family_name = db.Column(db.String(50), nullable=True)  # 适（女子出嫁的夫家姓氏，如"适王"）
     generation = db.Column(db.Integer, nullable=True)  # 第几代/辈分
     generation_name = db.Column(db.String(50), nullable=True)  # 辈分名称
     bio = db.Column(db.Text, nullable=True)  # 简介
@@ -64,6 +69,11 @@ class Member(db.Model):
             'death_place': self.death_place,
             'death_place_lat': self.death_place_lat,
             'death_place_lng': self.death_place_lng,
+            'burial_place': self.burial_place,
+            'burial_lat': self.burial_lat,
+            'burial_lng': self.burial_lng,
+            'migration_note': self.migration_note,
+            'spouse_family_name': self.spouse_family_name,
             'generation': self.generation,
             'generation_name': self.generation_name,
             'bio': self.bio,

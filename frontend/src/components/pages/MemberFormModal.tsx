@@ -16,6 +16,11 @@ export interface MemberFormData {
   courtesy_name: string
   art_name: string
   posthumous_name: string
+  burial_place: string
+  migration_note: string
+  spouse_family_name: string
+  privacy_level: string
+  privacy_override: boolean
 }
 
 interface MemberFormModalProps {
@@ -191,6 +196,20 @@ export default function MemberFormModal({
             <Label className="text-xs">谥</Label>
             <Input value={formData.posthumous_name} onChange={(e) => onChange('posthumous_name', e.target.value)} placeholder="如：文忠" />
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">葬地</Label>
+            <Input value={formData.burial_place} onChange={(e) => onChange('burial_place', e.target.value)} placeholder="如：北京西山祖茔" />
+          </div>
+          <div>
+            <Label className="text-xs">适（夫家姓氏）</Label>
+            <Input value={formData.spouse_family_name} onChange={(e) => onChange('spouse_family_name', e.target.value)} placeholder="出嫁女子填，如：王氏" />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">迁徙</Label>
+          <Input value={formData.migration_note} onChange={(e) => onChange('migration_note', e.target.value)} placeholder="何时自何地迁至何地" />
         </div>
       </div>
 

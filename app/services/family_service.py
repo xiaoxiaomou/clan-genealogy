@@ -81,21 +81,28 @@ class FamilyService:
             return True
         return False
 
+    # 成员可写列：与 Member 模型一致，add/update 共用
+    MEMBER_FIELDS = [
+        'name', 'gender', 'birth_date', 'death_date',
+        'birth_place', 'birth_place_lat', 'birth_place_lng',
+        'death_place', 'death_place_lat', 'death_place_lng',
+        'burial_place', 'burial_lat', 'burial_lng',
+        'migration_note', 'spouse_family_name',
+        'generation', 'generation_name', 'bio', 'avatar', 'is_alive',
+        'branch_id', 'courtesy_name', 'art_name', 'posthumous_name', 'sort_order',
+    ]
+
     @staticmethod
     def add_member(family_id, **kwargs):
         """添加家族成员"""
-        member = Member(
-            family_id=family_id,
-            name=kwargs.get('name'),
-            gender=kwargs.get('gender', 'unknown'),
-            birth_date=kwargs.get('birth_date'),
-            death_date=kwargs.get('death_date'),
-            generation=kwargs.get('generation'),
-            generation_name=kwargs.get('generation_name'),
-            bio=kwargs.get('bio'),
-            avatar=kwargs.get('avatar'),
-            is_alive=kwargs.get('is_alive', True)
-        )
+        member = Member(family_id=family_id, name=kwargs.get('name'))
+        for field in FamilyService.MEMBER_FIELDS:
+            if field == 'name':
+                continue
+            if field in kwargs and kwargs[field] is not None:
+                setattr(member, field, kwargs[field])
+        if member.gender is None:
+            member.gender = 'unknown'
         db.session.add(member)
         db.session.commit()
 
@@ -141,9 +148,8 @@ class FamilyService:
             if member.avatar:
                 delete_avatar_file(member.avatar, current_app.config['UPLOAD_FOLDER'])
 
-        allowed_fields = ['name', 'gender', 'birth_date', 'death_date',
-                         'generation', 'generation_name', 'bio', 'avatar', 'is_alive']
-        for field in allowed_fields:
+        # 白名单须覆盖模型全部可写列，否则 birth_place/字/号 等字段会被静默丢弃
+        for field in FamilyService.MEMBER_FIELDS:
             if field in kwargs:
                 setattr(member, field, kwargs[field])
 
