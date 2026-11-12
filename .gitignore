@@ -29,6 +29,11 @@ app/static/images/avatars/*
 !app/static/images/avatars/.gitkeep
 app/static/images/albums/*
 !app/static/images/albums/.gitkeep
+app/static/images/events/*
+!app/static/images/events/.gitkeep
+
+# ---------- Test / tooling artifacts ----------
+.playwright-mcp/
 
 # ---------- Secrets / env ----------
 .env
