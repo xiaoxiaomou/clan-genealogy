@@ -19,6 +19,8 @@ export interface Family {
   description: string | null;
   surname: string | null;
   origin: string | null;
+  motto?: string | null;
+  merged_into_id?: number | null;
   creator_id: number;
   is_public: boolean;
   member_count: number;
@@ -246,7 +248,7 @@ export interface AuditLog {
   action: string;
   entity_type: string;
   entity_id: number | null;
-  description: string;
+  description: string | null;
   ip_address: string | null;
   created_at: string;
 }

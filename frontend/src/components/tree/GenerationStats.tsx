@@ -2,8 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { api } from '@/lib/api'
 
-const GENDER_COLORS = { male: '#2563eb', female: '#ec4899', unknown: '#94a3b8' }
-
 interface GenerationStatsProps {
   familyId: number
 }

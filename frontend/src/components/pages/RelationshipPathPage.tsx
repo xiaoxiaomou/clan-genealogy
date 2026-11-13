@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { Card, CardContent, useToast, Button, Input, Label } from '@/components/ui'
+import { Button, Input, Label, useToast } from '@/components/ui'
+import { PgPageHead, PgSectionHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
-import { ArrowLeft, Search, Loader2, Route, X, Network } from 'lucide-react'
-
-const BG = 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)'
+import { ArrowLeft, Loader2, Route, X } from 'lucide-react'
 
 interface PathStep {
   from: { id: number; name: string }
@@ -149,64 +149,51 @@ export default function RelationshipPathPage() {
   const titleText = familySurname ? `${familySurname}氏` : '本族'
 
   return (
-    <div className="min-h-screen p-4 sm:p-8" style={{ background: BG }}>
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex items-center gap-2 text-amber-100">
-          <a href={`/family/${familyId}`} className="flex items-center gap-1 text-sm hover:text-amber-300">
+    <Layout>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 pg-rise">
+        <div className="mb-5">
+          <a href={`/family/${familyId}`} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
             返回
           </a>
         </div>
 
-        {/* 匾额 */}
-        <div className="relative overflow-hidden rounded-lg border-2 border-amber-700/40 bg-gradient-to-br from-amber-900/40 to-stone-900/60 p-6 text-center shadow-2xl sm:p-8">
-          <div className="absolute inset-0 opacity-20" style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(245, 230, 211, 0.1) 10px, rgba(245, 230, 211, 0.1) 11px)',
-          }} />
-          <div className="relative">
-            <div className="mb-2 text-xs tracking-[0.5em] text-amber-300/60">寻 根 问 祖</div>
-            <h1 className="font-serif text-4xl font-bold text-amber-100 sm:text-5xl">
-              {titleText}·关系路径
-            </h1>
-            <div className="mt-3 text-sm text-amber-200/70">
-              寻二人之间的血脉联系 · 最短路径算法
-            </div>
-          </div>
-        </div>
+        <PgPageHead
+          eyebrow="谱 牒 · 寻 根"
+          title={`${titleText} · 关系路径`}
+          subtitle="寻二人之间的血脉联系 · 最短路径算法"
+        />
 
-        {/* 选择器 */}
-        <Card className="border-amber-700/30 bg-stone-900/50">
-          <div className="border-b border-amber-700/30 px-5 py-3">
-            <h2 className="flex items-center gap-2 font-serif text-lg text-amber-100">
-              <Search className="h-5 w-5 text-amber-300/70" />
-              选择两位成员
-            </h2>
-          </div>
-          <CardContent className="p-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="mt-6 space-y-6">
+          {/* 选择器 */}
+          <div className="pg-card p-5">
+            <PgSectionHead text="选 择 成 员" />
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <Label className="text-xs text-amber-200/60">起始成员</Label>
+                <Label className="text-xs text-muted-foreground">起始成员</Label>
                 <button
                   onClick={() => setPicker1Open(true)}
-                  className="mt-1 flex w-full items-center gap-2 rounded-md border border-amber-700/30 bg-stone-950/40 px-3 py-2 text-left text-sm text-amber-100 hover:border-amber-600/50"
+                  className="mt-1 flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-accent"
+                  style={{ borderColor: 'hsl(var(--border))' }}
                 >
                   {member1 ? (
-                    <span className="font-serif">{members.find((m) => m.id === member1)?.name || '?'}</span>
+                    <span style={{ fontFamily: PG_SERIF }}>{members.find((m) => m.id === member1)?.name || '?'}</span>
                   ) : (
-                    <span className="text-amber-200/40">点击选择...</span>
+                    <span className="text-muted-foreground">点击选择...</span>
                   )}
                 </button>
               </div>
               <div>
-                <Label className="text-xs text-amber-200/60">目标成员</Label>
+                <Label className="text-xs text-muted-foreground">目标成员</Label>
                 <button
                   onClick={() => setPicker2Open(true)}
-                  className="mt-1 flex w-full items-center gap-2 rounded-md border border-amber-700/30 bg-stone-950/40 px-3 py-2 text-left text-sm text-amber-100 hover:border-amber-600/50"
+                  className="mt-1 flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-accent"
+                  style={{ borderColor: 'hsl(var(--border))' }}
                 >
                   {member2 ? (
-                    <span className="font-serif">{members.find((m) => m.id === member2)?.name || '?'}</span>
+                    <span style={{ fontFamily: PG_SERIF }}>{members.find((m) => m.id === member2)?.name || '?'}</span>
                   ) : (
-                    <span className="text-amber-200/40">点击选择...</span>
+                    <span className="text-muted-foreground">点击选择...</span>
                   )}
                 </button>
               </div>
@@ -215,7 +202,7 @@ export default function RelationshipPathPage() {
               <Button
                 onClick={calculate}
                 disabled={loading || !member1 || !member2}
-                className="bg-amber-700/80 px-8 text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+                className="px-8"
               >
                 {loading ? (
                   <>
@@ -230,41 +217,30 @@ export default function RelationshipPathPage() {
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 关系结果 */}
-        {result && (
-          <Card className="border-amber-700/30 bg-stone-900/50">
-            <div className="border-b border-amber-700/30 px-5 py-3">
-              <h2 className="flex items-center gap-2 font-serif text-lg text-amber-100">
-                <Network className="h-5 w-5 text-amber-300/70" />
-                关系分析
-              </h2>
-            </div>
-            <CardContent className="p-5">
+          {/* 关系结果 */}
+          {result && (
+            <div className="pg-card pg-rise p-5">
+              <PgSectionHead text="关 系 分 析" />
               {!result.connected ? (
-                <div className="py-6 text-center font-serif text-amber-200/50">
-                  二人之间暂未建立血缘或姻亲关系
+                <div className="pg-card-soft py-8 text-center" style={{ fontFamily: PG_SERIF }}>
+                  <p className="text-muted-foreground">二人之间暂未建立血缘或姻亲关系</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="mt-4 space-y-4">
                   {/* 关系结论 */}
-                  <div className="rounded-md border border-amber-700/30 bg-stone-950/40 p-4 text-center">
-                    <div className="text-xs text-amber-200/50">亲缘称谓</div>
-                    <div className="mt-1 font-serif text-2xl text-amber-300">{result.relationship}</div>
-                    <div className="mt-1 text-xs text-amber-200/40">共 {result.path.length} 步关联</div>
+                  <div className="pg-card-soft p-4 text-center">
+                    <div className="text-xs text-muted-foreground">亲缘称谓</div>
+                    <div className="pg-title mt-1 text-2xl font-semibold sm:text-3xl" style={{ color: PG_RED }}>
+                      {result.relationship}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">共 {result.path.length} 步关联</div>
                   </div>
 
                   {/* 路径图 */}
                   {graph && (
-                    <div
-                      className="overflow-x-auto rounded-md border border-amber-700/30 bg-stone-950/40 p-3"
-                      style={{
-                        backgroundImage:
-                          'repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(176,141,87,0.04) 24px, rgba(176,141,87,0.04) 25px), repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(176,141,87,0.04) 24px, rgba(176,141,87,0.04) 25px)',
-                      }}
-                    >
+                    <div className="pg-card-soft overflow-x-auto p-3">
                       <svg width={Math.max(600, parseInt(graph.viewBox.split(' ')[2]))} height={parseInt(graph.viewBox.split(' ')[3])} viewBox={graph.viewBox}>
                         <defs>
                           <marker id="arrow-up" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -301,7 +277,7 @@ export default function RelationshipPathPage() {
                                 y={(from.y + to.y) / 2 - 6}
                                 textAnchor="middle"
                                 style={{ fontSize: 9, fontFamily: 'serif' }}
-                                fill="rgba(245, 230, 211, 0.7)"
+                                fill="hsl(var(--muted-foreground))"
                               >
                                 {REL_LABEL[e.relationship_type] || e.relationship_type} {DIR_LABEL[e.direction]}
                               </text>
@@ -354,32 +330,32 @@ export default function RelationshipPathPage() {
                   )}
 
                   {/* 步骤列表 */}
-                  <div className="rounded-md border border-amber-700/30 bg-stone-950/40 p-4">
-                    <h3 className="mb-2 font-serif text-sm text-amber-200/70">路径详情</h3>
+                  <div className="pg-card-soft p-4">
+                    <h3 className="mb-2 text-sm text-muted-foreground" style={{ fontFamily: PG_SERIF }}>路径详情</h3>
                     <div className="space-y-2 text-sm">
                       {result.path.map((step, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <span className="font-serif text-amber-100">{step.from.name}</span>
+                          <span style={{ fontFamily: PG_SERIF }}>{step.from.name}</span>
                           <span
-                            className="rounded px-2 py-0.5 font-serif text-xs"
-                            style={{ background: DIR_COLOR[step.direction] + '40', color: '#f5e6d3' }}
+                            className="rounded px-2 py-0.5 text-xs"
+                            style={{ background: DIR_COLOR[step.direction] + '40', color: 'hsl(var(--foreground))' }}
                           >
                             {REL_LABEL[step.relationship_type] || step.relationship_type} · {DIR_LABEL[step.direction]}
                           </span>
-                          <span className="text-amber-200/40">→</span>
-                          <span className="font-serif text-amber-100">{step.to.name}</span>
+                          <span className="text-muted-foreground">→</span>
+                          <span style={{ fontFamily: PG_SERIF }}>{step.to.name}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          )}
+        </div>
 
-        <p className="text-center font-serif text-xs text-amber-200/30">
-          溯血脉之源，叙宗族之情
+        <p className="mt-8 text-center text-xs text-muted-foreground" style={{ fontFamily: PG_SERIF, letterSpacing: '0.3em' }}>
+          溯血脉之源 · 叙宗族之情
         </p>
       </div>
 
@@ -408,7 +384,7 @@ export default function RelationshipPathPage() {
         }}
         excludeId={member1}
       />
-    </div>
+    </Layout>
   )
 }
 
@@ -424,14 +400,14 @@ function MemberPicker({ isOpen, onClose, members, search, setSearch, onSelect, e
   if (!isOpen) return null
   const filtered = members.filter((m) => m.id !== excludeId && m.name.includes(search))
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-lg border border-amber-700/40 bg-stone-900 p-5 shadow-2xl"
+        className="pg-card w-full max-w-md p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-serif text-lg text-amber-100">选择成员</h3>
-          <button onClick={onClose} className="text-amber-200/60 hover:text-amber-100">
+          <h3 className="text-lg" style={{ fontFamily: PG_SERIF }}>选择成员</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="关闭">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -440,20 +416,19 @@ function MemberPicker({ isOpen, onClose, members, search, setSearch, onSelect, e
           placeholder="搜索姓名..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border-amber-700/30 bg-stone-950/40 text-amber-100"
         />
         <div className="mt-3 max-h-80 space-y-1 overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="py-6 text-center text-sm text-amber-200/40">无匹配成员</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">无匹配成员</p>
           ) : (
             filtered.map((m) => (
               <button
                 key={m.id}
                 onClick={() => onSelect(m.id)}
-                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-amber-100 hover:bg-amber-900/30"
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent"
               >
-                <span className="font-serif">{m.name}</span>
-                <span className="text-xs text-amber-200/40">
+                <span style={{ fontFamily: PG_SERIF }}>{m.name}</span>
+                <span className="text-xs text-muted-foreground">
                   第{m.generation || '?'}代 · {m.gender === 'male' ? '男' : '女'}
                 </span>
               </button>

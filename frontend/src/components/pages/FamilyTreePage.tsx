@@ -5,7 +5,7 @@ import type { Family, FamilyTree, Member, GenerationRule, FamilyBranch } from '@
 import { Button, Modal, Input, Label, useToast, ScrollReveal, TimeMachinePanel } from '@/components/ui'
 import { ReactFlowProvider } from '@xyflow/react'
 import GenerationStats from '@/components/tree/GenerationStats'
-import { Layout } from '@/components/layout/Layout'
+import { PgSeal, PgSectionHead, PG_RED } from '@/components/ui/pedigree'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import {
   Plus,
@@ -36,12 +36,10 @@ import {
 } from 'recharts'
 import FamilyHeader from './FamilyHeader'
 import MemberCard from './MemberCard'
-import { InkWashBackground } from '@/components/ui/InkWashBackground'
 import type { MemberFormData } from './MemberFormModal'
 import type { QuickFamilyFormData } from './QuickAddFamily'
-import { createDefaultLayer, createDefaultMember } from './QuickAddFamily'
+import { createDefaultLayer } from './QuickAddFamily'
 
-const TreeVisualization = lazy(() => import('./TreeVisualization'))
 const FamilyTreeGraph = lazy(() => import('./FamilyTreeGraph'))
 import { FamilyTreeEngine } from '@/components/tree-engine'
 const Tree3DView = lazy(() => import('./Tree3DView'))
@@ -54,8 +52,6 @@ const QuickAddFamily = lazy(() => import('./QuickAddFamily'))
 
 const SAVE_SHORTCUT_KEYS = 'Ctrl+S / Ctrl+Enter'
 const SAVE_SHORTCUT_HINT = `快捷保存：${SAVE_SHORTCUT_KEYS}`
-
-const BG = 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)'
 
 const defaultMemberForm: MemberFormData = {
   name: '',
@@ -145,7 +141,7 @@ export default function FamilyTreePage() {
     ...defaultQuickFamilyForm,
   })
   const [addingQuickFamily, setAddingQuickFamily] = useState(false)
-  const [branches, setBranches] = useState<FamilyBranch[]>([])
+  const [, setBranches] = useState<FamilyBranch[]>([])
 
   // 批量导入
   const [showImport, setShowImport] = useState(false)
@@ -231,13 +227,7 @@ export default function FamilyTreePage() {
   const handleExportPdf = async () => {
     setIsExporting(true)
     try {
-      const blob = await api.exportFamilyPdf(familyId)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${family?.name || '族谱'}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      await api.exportPdf(familyId)
       showToast('导出成功', 'success')
     } catch (err: any) {
       showToast(err.message || '导出失败', 'error')
@@ -632,7 +622,7 @@ export default function FamilyTreePage() {
 
   return (
     <ScrollReveal>
-    <div className="min-h-screen p-4 sm:p-8" style={{ background: BG }}>
+    <div className="min-h-screen bg-background p-4 sm:p-8">
       <div className="relative z-[2] mx-auto max-w-7xl space-y-6">
         <FamilyHeader
           family={family}
@@ -654,24 +644,24 @@ export default function FamilyTreePage() {
 
         {/* 匾额 */}
         {family && (
-          <div className="relative overflow-hidden rounded-lg border-2 border-amber-700/40 bg-gradient-to-br from-amber-900/40 to-stone-900/60 p-4 text-center shadow-2xl sm:p-6">
-            <div className="absolute inset-0 opacity-20" style={{
-              background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(245, 230, 211, 0.1) 10px, rgba(245, 230, 211, 0.1) 11px)',
-            }} />
-            <div className="relative">
-              <div className="mb-1 text-xs tracking-[0.5em] text-amber-300/60">家 之 谱 系</div>
-              <h1 className="font-serif text-3xl font-bold text-amber-100 sm:text-4xl">
+          <div className="pg-card relative overflow-hidden px-4 py-7 text-center sm:px-6">
+            <div className="text-xs tracking-[0.5em] text-muted-foreground">家 之 谱 系</div>
+            <div className="mt-3 flex items-center justify-center gap-4">
+              {family.surname && (
+                <PgSeal char={family.surname} size={56} title={`姓印 · ${family.surname}`} />
+              )}
+              <h1 className="pg-title text-3xl font-semibold text-foreground sm:text-4xl">
                 {family.surname ? `${family.surname}氏` : ''}·{family.name}
               </h1>
-              {family.motto && (
-                <div className="mt-1 font-serif text-sm text-amber-200/60">「{family.motto}」</div>
-              )}
             </div>
+            {family.motto && (
+              <p className="pg-title mt-2 text-sm text-muted-foreground">「{family.motto}」</p>
+            )}
           </div>
         )}
 
         {/* Tab 切换 */}
-        <div className="flex gap-1 rounded-lg border border-amber-700/30 bg-stone-900/50 p-1">
+        <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
           {[
             { key: 'tree', label: '族谱树', icon: GitBranch },
             { key: 'members', label: '成员列表', icon: Users },
@@ -683,11 +673,11 @@ export default function FamilyTreePage() {
               onClick={() => setActiveTab(tab.key as any)}
               className={`flex flex-1 items-center justify-center gap-2 rounded px-4 py-2.5 text-sm font-medium transition-all ${
                 activeTab === tab.key
-                  ? 'bg-amber-700/30 text-amber-100 shadow-sm shadow-amber-900/30'
-                  : 'text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-100'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <tab.icon className="h-4 w-4" />
+              <tab.icon className="h-4 w-4" aria-hidden="true" />
               {tab.label}
             </button>
           ))}
@@ -723,10 +713,10 @@ export default function FamilyTreePage() {
               {canEdit && (
                 <button
                   onClick={openSampleModal}
-                  className="rounded-md border border-amber-700/30 bg-amber-900/20 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-800/30 transition-colors"
+                  className="rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
                   title="加载内置示例族谱数据"
                 >
-                  📜 加载示例
+                  加载示例
                 </button>
               )}
             </div>
@@ -746,7 +736,7 @@ export default function FamilyTreePage() {
             )}
 
             {treeViewType === 'fan' && (
-              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
+              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
                 <FanChart
                   treeData={treeData}
                   members={members}
@@ -760,7 +750,7 @@ export default function FamilyTreePage() {
             )}
 
             {treeViewType === 'hanging' && (
-              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
+              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
                 <HangingChart
                   treeData={treeData}
                   members={members}
@@ -774,7 +764,7 @@ export default function FamilyTreePage() {
             )}
 
             {treeViewType === 'graph' && (
-              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
+              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
                 <ReactFlowProvider>
                 <FamilyTreeGraph
                   treeData={treeData}
@@ -790,7 +780,7 @@ export default function FamilyTreePage() {
             )}
 
             {treeViewType === 'hourglass' && (
-              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
+              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
                 <HourglassTree
                   familyId={familyId}
                   initialMemberId={highlightedMemberId}
@@ -800,7 +790,7 @@ export default function FamilyTreePage() {
             )}
 
             {treeViewType === 'timeline' && (
-              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
+              <Suspense fallback={<div className="flex h-[500px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
                 <TimelineView
                   members={members}
                   onMemberClick={(member) => {
@@ -812,7 +802,7 @@ export default function FamilyTreePage() {
             )}
 
             {treeViewType === '3d' && (
-              <Suspense fallback={<div className="flex h-[600px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" /></div>}>
+              <Suspense fallback={<div className="flex h-[600px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
                 <Tree3DView
                   members={members}
                   relationships={relationships}
@@ -836,8 +826,9 @@ export default function FamilyTreePage() {
               </div>
             ) : members.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
-                <Users className="mb-4 h-12 w-12 text-muted-foreground/40" />
-                <p className="mb-4 text-muted-foreground">暂无成员</p>
+                <Users className="mb-4 h-12 w-12 text-muted-foreground/40" aria-hidden="true" />
+                <p className="pg-title mb-1 text-muted-foreground">谱中尚无成员</p>
+                <p className="mb-4 text-xs text-muted-foreground/80">点击下方按钮，录入第一位族人</p>
                 {canEdit && (
                   <Button
                     variant="apple" glow
@@ -874,7 +865,10 @@ export default function FamilyTreePage() {
                     >
                       <Filter className="h-4 w-4" />
                       {hasActiveFilters && (
-                        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                        <span
+                          style={{ backgroundColor: PG_RED }}
+                          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] text-white"
+                        >
                          !
                         </span>
                       )}
@@ -885,7 +879,9 @@ export default function FamilyTreePage() {
                   {showAdvancedFilter && (
                     <div className="rounded-lg border bg-card p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium">高级筛选</h4>
+                        <div className="min-w-0 flex-1">
+                          <PgSectionHead text="高 级 筛 选" />
+                        </div>
                         {hasActiveFilters && (
                           <Button
                             variant="ghost"
@@ -1016,8 +1012,8 @@ export default function FamilyTreePage() {
                     </div>
                   ) : hasActiveFilters && !isSearching ? (
                     <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                      <Search className="mb-2 h-8 w-8 opacity-40" />
-                      <p className="text-sm">未找到匹配的成员</p>
+                      <Search className="mb-2 h-8 w-8 opacity-40" aria-hidden="true" />
+                      <p className="pg-title text-sm">未找到匹配的成员</p>
                     </div>
                   ) : null}
                 </div>
@@ -1033,8 +1029,8 @@ export default function FamilyTreePage() {
                   if (filtered.length === 0) {
                     return (
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                        <Search className="mb-2 h-8 w-8 opacity-40" />
-                        <p className="text-sm">未找到匹配的成员</p>
+                        <Search className="mb-2 h-8 w-8 opacity-40" aria-hidden="true" />
+                        <p className="pg-title text-sm">未找到匹配的成员</p>
                       </div>
                     )
                   }
@@ -1043,8 +1039,8 @@ export default function FamilyTreePage() {
                     .sort((a, b) => a - b)
                     .map((gen) => (
                       <div key={gen}>
-                        <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                          {gen > 0 ? `第${gen}代` : '未设置辈分'}
+                        <h3 className="pg-title mb-2 text-sm font-medium text-muted-foreground">
+                          {gen > 0 ? `第${gen}世` : '未设置辈分'}
                         </h3>
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {filtered
@@ -1070,20 +1066,22 @@ export default function FamilyTreePage() {
         {/* 关系管理 */}
         {activeTab === 'relations' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">家族关系</h3>
-              {canEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddRelation(true)}
-                  className="gap-1.5"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  添加关系
-                </Button>
-              )}
-            </div>
+            <PgSectionHead
+              text="家 族 关 系"
+              right={
+                canEdit ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddRelation(true)}
+                    className="gap-1.5"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    添加关系
+                  </Button>
+                ) : undefined
+              }
+            />
 
             {treeData && treeData.edges.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -1133,8 +1131,9 @@ export default function FamilyTreePage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16">
-                <Link2 className="mb-4 h-12 w-12 text-muted-foreground/40" />
-                <p className="mb-4 text-muted-foreground">暂无关系</p>
+                <Link2 className="mb-4 h-12 w-12 text-muted-foreground/40" aria-hidden="true" />
+                <p className="pg-title mb-1 text-muted-foreground">暂无亲属关系</p>
+                <p className="mb-4 text-xs text-muted-foreground/80">为两位族人添加父母、配偶或兄弟姐妹关系</p>
                 <Button
                   variant="outline"
                   onClick={() => setShowAddRelation(true)}
@@ -1175,7 +1174,7 @@ export default function FamilyTreePage() {
 
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="rounded border bg-card p-4">
-                <h3 className="mb-4 font-medium">性别分布</h3>
+                <h3 className="pg-title mb-4 text-sm text-muted-foreground">性别分布</h3>
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -1208,7 +1207,7 @@ export default function FamilyTreePage() {
               </div>
 
               <div className="rounded border bg-card p-4">
-                <h3 className="mb-4 font-medium">在世/已故分布</h3>
+                <h3 className="pg-title mb-4 text-sm text-muted-foreground">在世/已故分布</h3>
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -1236,7 +1235,7 @@ export default function FamilyTreePage() {
             </div>
 
             <div className="rounded border bg-card p-4">
-              <h3 className="mb-4 font-medium">辈分分布</h3>
+              <h3 className="pg-title mb-4 text-sm text-muted-foreground">辈分分布</h3>
               {Object.entries(stats.generation).length > 0 ? (
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1256,7 +1255,7 @@ export default function FamilyTreePage() {
                       <XAxis type="number" />
                       <YAxis type="category" dataKey="name" width={60} />
                       <Tooltip formatter={(value) => [`${value}人`, '人数']} />
-                      <Bar dataKey="count" fill="#8b2500" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="count" fill={PG_RED} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1267,7 +1266,7 @@ export default function FamilyTreePage() {
 
             {(stats as any).age_groups && (
               <div className="rounded border bg-card p-4">
-                <h3 className="mb-4 font-medium">人口金字塔（年龄分布）</h3>
+                <h3 className="pg-title mb-4 text-sm text-muted-foreground">人口金字塔（年龄分布）</h3>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -1499,16 +1498,16 @@ export default function FamilyTreePage() {
           </div>
 
           {importResult && (
-            <div className={`rounded border p-4 ${importResult.error_count > 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+            <div className={`rounded border p-4 ${importResult.error_count > 0 ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-muted/50'}`}>
               <p className="mb-2 font-medium text-foreground">
                 导入完成：成功 {importResult.added_count} 条
                 {importResult.error_count > 0 && `，失败 ${importResult.error_count} 条`}
               </p>
               {importResult.errors.length > 0 && (
                 <div className="mt-2 max-h-32 overflow-y-auto">
-                  <p className="mb-1 text-xs font-medium text-red-600">错误详情：</p>
+                  <p className="mb-1 text-xs font-medium text-destructive">错误详情：</p>
                   {importResult.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-red-500">{err}</p>
+                    <p key={i} className="text-xs text-destructive/90">{err}</p>
                   ))}
                 </div>
               )}
@@ -1603,7 +1602,8 @@ export default function FamilyTreePage() {
                     <button
                       onClick={() => handleLoadSample(ds.key)}
                       disabled={loadingSample}
-                      className="shrink-0 rounded-md bg-amber-700 px-3 py-1.5 text-xs text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                      style={{ backgroundColor: PG_RED }}
+                      className="shrink-0 rounded-md px-3 py-1.5 text-xs text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
                       {loadingSample ? '加载中…' : '加载'}
                     </button>
@@ -1618,7 +1618,8 @@ export default function FamilyTreePage() {
       {/* 浮动：时光机入口 */}
       <button
         onClick={() => setShowTimeMachine((s) => !s)}
-        className="fixed bottom-20 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-amber-700/30 bg-amber-700/90 text-white shadow-lg transition-all hover:scale-110 active:scale-95 sm:bottom-6"
+        style={{ backgroundColor: PG_RED }}
+        className="fixed bottom-20 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-110 active:scale-95 sm:bottom-6"
         aria-label="时光机"
         title="时光机模式"
       >

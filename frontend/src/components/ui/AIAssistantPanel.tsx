@@ -2,11 +2,10 @@
 // 浮动 AI 助手聊天面板
 // 后端 LLM 不可用时自动降级到规则引擎
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Sparkles, X, Send, Loader2, Bot, User, Minimize2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAppSelector } from '@/store';
-import { useLocale } from '@/i18n';
+import { useT } from '@/i18n';
 
 interface Msg {
   role: 'user' | 'ai';
@@ -30,10 +29,9 @@ export default function AIAssistantPanel() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentFamilyId = useAppSelector((s: any) => s.app.currentFamilyId);
-  const { t } = useLocale();
+  const t = useT();
 
   useEffect(() => {
     if (open && scrollRef.current) {

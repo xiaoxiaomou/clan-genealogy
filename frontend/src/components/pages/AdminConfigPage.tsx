@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { SystemConfig } from '@/types'
 import { Layout } from '@/components/layout/Layout'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
 import { Button, Input, useToast } from '@/components/ui'
+import { PgPageHead } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
   Loader2,
@@ -15,19 +15,19 @@ import {
   UserCircle,
   Bell,
   Palette,
-  Settings,
   ToggleLeft,
   ToggleRight,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
 
+/* 分类图记：色彩走主题令牌，谱局页面从素 */
 const CATEGORY_CONFIG = {
-  user: { label: '用户管理', icon: Users, color: '#3b82f6' },
-  family: { label: '族谱功能', icon: BookOpen, color: '#8b5cf6' },
-  content: { label: '家族内容', icon: UserCircle, color: '#10b981' },
-  notification: { label: '通知系统', icon: Bell, color: '#f59e0b' },
-  ui: { label: '界面定制', icon: Palette, color: '#ec4899' },
+  user: { label: '用户管理', icon: Users, color: 'hsl(var(--muted-foreground))' },
+  family: { label: '族谱功能', icon: BookOpen, color: 'hsl(var(--muted-foreground))' },
+  content: { label: '家族内容', icon: UserCircle, color: 'hsl(var(--muted-foreground))' },
+  notification: { label: '通知系统', icon: Bell, color: 'hsl(var(--muted-foreground))' },
+  ui: { label: '界面定制', icon: Palette, color: 'hsl(var(--muted-foreground))' },
 }
 
 const ALL_CATEGORIES = ['user', 'family', 'content', 'notification', 'ui'] as const
@@ -35,7 +35,7 @@ const ALL_CATEGORIES = ['user', 'family', 'content', 'notification', 'ui'] as co
 export function AdminConfigPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { toast } = useToast()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [configs, setConfigs] = useState<SystemConfig[]>([])
@@ -53,14 +53,10 @@ export function AdminConfigPage() {
   const fetchConfigs = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/admin/config')
-      setConfigs(res.data.configs || [])
+      const res = await api.getConfigs()
+      setConfigs(res.configs || [])
     } catch (error) {
-      toast({
-        title: '加载失败',
-        description: '无法获取配置数据',
-        variant: 'destructive',
-      })
+      showToast('加载失败：无法获取配置数据', 'error')
     } finally {
       setLoading(false)
     }
@@ -79,16 +75,12 @@ export function AdminConfigPage() {
   const handleSave = async (key: string) => {
     setSaving(true)
     try {
-      await api.put(`/admin/config/${key}`, { value: editValue })
-      toast({ title: '保存成功', description: `配置项 ${key} 已更新` })
+      await api.updateConfig(key, editValue)
+      showToast(`配置项 ${key} 已更新`, 'success')
       setEditingKey(null)
       fetchConfigs()
     } catch (error: any) {
-      toast({
-        title: '保存失败',
-        description: error.response?.data?.error || '保存配置时出错',
-        variant: 'destructive',
-      })
+      showToast(`保存失败：${error.message || '保存配置时出错'}`, 'error')
     } finally {
       setSaving(false)
     }
@@ -104,11 +96,11 @@ export function AdminConfigPage() {
       return
     }
     try {
-      await api.post('/admin/config/reset', { category: activeCategory })
-      toast({ title: '重置成功', description: '配置已恢复到默认值' })
+      await api.resetConfig(activeCategory)
+      showToast('重置成功：配置已恢复到默认值', 'success')
       fetchConfigs()
     } catch (error) {
-      toast({ title: '重置失败', variant: 'destructive' })
+      showToast('重置失败', 'error')
     }
   }
 
@@ -189,35 +181,38 @@ export function AdminConfigPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-6 py-8">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/admin')}
-            >
-              <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
-              返回
-            </Button>
-            <div className="flex items-center gap-2">
-              <Settings className="h-5 w-5 text-primary" aria-hidden="true" />
-              <h1 className="text-xl font-semibold text-foreground">系统配置</h1>
-            </div>
-          </div>
+      <div className="pg-rise mx-auto max-w-6xl px-6 py-8">
+        {/* 顶部导航 */}
+        <div className="mb-5">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={handleResetCategory}
+            onClick={() => navigate('/admin')}
           >
-            <RotateCcw className="mr-1 h-4 w-4" aria-hidden="true" />
-            重置当前分类
+            <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
+            返回
           </Button>
         </div>
 
+        {/* Header */}
+        <PgPageHead
+          eyebrow="谱 局 · 配 置"
+          title="系统配置"
+          subtitle="平台各功能项的参数设定"
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetCategory}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" aria-hidden="true" />
+              重置当前分类
+            </Button>
+          }
+        />
+
         {/* Category Tabs */}
-        <div className="mb-6 flex gap-2 border-b overflow-x-auto">
+        <div className="mb-6 flex gap-2 border-b overflow-x-auto" style={{ borderColor: 'hsl(var(--border))' }}>
           {ALL_CATEGORIES.map((cat) => {
             const info = CATEGORY_CONFIG[cat]
             const Icon = info.icon
@@ -245,98 +240,99 @@ export function AdminConfigPage() {
         {/* Config List */}
         <div className="space-y-3">
           {filteredConfigs.map((config) => (
-            <Card key={config.key}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{config.label}</h3>
-                      {config.is_public && (
-                        <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
-                          公开
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground font-mono">
-                      {config.key}
-                    </p>
-                    {(config.description || config.min_value !== null) && (
-                      <div className="mt-2">
-                        <button
-                          onClick={() => setExpandedDesc(
-                            expandedDesc === config.key ? null : config.key
-                          )}
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          {expandedDesc === config.key ? (
-                            <ChevronUp className="h-3 w-3" aria-hidden="true" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3" aria-hidden="true" />
-                          )}
-                          {config.description?.slice(0, 50)}
-                          {config.description && config.description.length > 50 && '...'}
-                        </button>
-                        {expandedDesc === config.key && (
-                          <div className="mt-2 rounded bg-muted p-2 text-xs">
-                            <p>{config.description}</p>
-                            {(config.min_value !== null || config.max_value !== null) && (
-                              <p className="mt-1 text-muted-foreground">
-                                有效范围: {config.min_value ?? '-'} ~ {config.max_value ?? '-'}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
+            <div key={config.key} className="pg-card p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium">{config.label}</h3>
+                    {config.is_public && (
+                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
+                        公开
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {editingKey === config.key ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => handleSave(config.key)}
-                          disabled={saving}
-                        >
-                          <Save className="mr-1 h-3 w-3" aria-hidden="true" />
-                          保存
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancel}
-                        >
-                          取消
-                        </Button>
-                      </>
-                    ) : (
+                  <p className="mt-1 text-xs text-muted-foreground font-mono">
+                    {config.key}
+                  </p>
+                  {(config.description || config.min_value !== null) && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => setExpandedDesc(
+                          expandedDesc === config.key ? null : config.key
+                        )}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        {expandedDesc === config.key ? (
+                          <ChevronUp className="h-3 w-3" aria-hidden="true" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" aria-hidden="true" />
+                        )}
+                        {config.description?.slice(0, 50)}
+                        {config.description && config.description.length > 50 && '...'}
+                      </button>
+                      {expandedDesc === config.key && (
+                        <div className="mt-2 rounded bg-muted p-2 text-xs">
+                          <p>{config.description}</p>
+                          {(config.min_value !== null || config.max_value !== null) && (
+                            <p className="mt-1 text-muted-foreground">
+                              有效范围: {config.min_value ?? '-'} ~ {config.max_value ?? '-'}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {editingKey === config.key ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleSave(config.key)}
+                        disabled={saving}
+                      >
+                        <Save className="mr-1 h-3 w-3" aria-hidden="true" />
+                        保存
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleEdit(config)}
+                        onClick={handleCancel}
                       >
-                        编辑
+                        取消
                       </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  {renderConfigInput(config)}
-                  {config.value_type === 'boolean' && editingKey !== config.key && (
-                    config.value === 'true' ? (
-                      <ToggleRight className="h-5 w-5 text-green-600" aria-hidden="true" />
-                    ) : (
-                      <ToggleLeft className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    )
+                    </>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(config)}
+                    >
+                      编辑
+                    </Button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                {renderConfigInput(config)}
+                {config.value_type === 'boolean' && editingKey !== config.key && (
+                  config.value === 'true' ? (
+                    <ToggleRight className="h-5 w-5 text-success" aria-hidden="true" />
+                  ) : (
+                    <ToggleLeft className="h-5 w-5 text-muted-foreground/50" aria-hidden="true" />
+                  )
+                )}
+              </div>
+            </div>
           ))}
 
           {filteredConfigs.length === 0 && (
-            <div className="py-12 text-center text-muted-foreground">
-              该分类暂无配置项
+            <div className="pg-card py-12 text-center">
+              <p className="pg-title text-sm text-muted-foreground" style={{ letterSpacing: '0.1em' }}>
+                此类目下暂无配置项。
+              </p>
+              <p className="mt-1.5 text-xs text-muted-foreground">切换其他分类，或由谱局先行增设</p>
             </div>
           )}
         </div>
@@ -344,3 +340,5 @@ export function AdminConfigPage() {
     </Layout>
   )
 }
+
+export default AdminConfigPage

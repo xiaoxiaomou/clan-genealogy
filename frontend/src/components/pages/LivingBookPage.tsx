@@ -4,11 +4,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { Card, CardContent, useToast } from '@/components/ui';
+import { useToast } from '@/components/ui';
+import { PgPageHead, PG_RED } from '@/components/ui/pedigree';
 import { api } from '@/lib/api';
-import { BookOpen, ChevronLeft, ChevronRight, Calendar, MapPin, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, MapPin, Users } from 'lucide-react';
 
 interface Member {
+  generation_name?: string | null
   id: number;
   name: string;
   gender: string;
@@ -106,7 +108,7 @@ export default function LivingBookPage() {
     return (
       <Layout>
         <div className="flex h-[60vh] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </Layout>
     )
@@ -114,68 +116,83 @@ export default function LivingBookPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        <header className="mb-4 flex items-center justify-between">
-          <h1 className="flex items-center gap-2 text-xl font-semibold sm:text-2xl">
-            <BookOpen className="h-6 w-6 text-amber-600" aria-hidden="true" />
-            {family?.name || '家族'} · 活的书
-          </h1>
-          <div className="text-xs text-muted-foreground tabular-nums">
-            第 {pageIdx + 1} / {pages.length} 页 · ←/→ 翻页
-          </div>
-        </header>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 pg-rise">
+        <PgPageHead
+          eyebrow="谱 牒 · 活 册"
+          title={`${family?.name || '家族'} · 活的书`}
+          subtitle="以世系为经、生平为纬，翻页阅读族中历代成员"
+          actions={
+            <div className="text-xs tabular-nums text-muted-foreground">
+              第 {pageIdx + 1} / {pages.length} 页
+            </div>
+          }
+        />
 
-        {/* 翻书容器 */}
-        <div
-          className="relative mx-auto aspect-[3/2] w-full max-w-4xl overflow-hidden rounded-xl border-2 border-amber-700/30 bg-gradient-to-br from-amber-50 to-amber-100 shadow-2xl dark:from-amber-950 dark:to-stone-900"
-          style={{ perspective: '1500px' }}
-        >
-          <div className="grid h-full grid-cols-2">
-            {/* 左页 */}
-            <div
-              className="book-page relative h-full overflow-y-auto border-r border-amber-700/20 p-6 sm:p-10"
-              style={{ transformStyle: 'preserve-3d' }}
-            >
-              {current.left.type === 'cover' && <CoverPage family={family} members={members} />}
-              {current.left.type === 'overview' && <OverviewPage family={family} members={members} />}
-              {current.left.type === 'member' && <MemberPage member={current.left.payload} />}
-            </div>
-            {/* 右页 */}
-            <div
-              className="book-page relative h-full overflow-y-auto p-6 sm:p-10"
-              style={{ transformStyle: 'preserve-3d' }}
-            >
-              {current.right.type === 'overview' && <OverviewPage family={family} members={members} />}
-              {current.right.type === 'member' && <MemberPage member={current.right.payload} />}
-              {current.right.type === 'blank' && <BlankPage />}
-            </div>
+        {/* 翻书容器：书脊题签 + 双页书身（仅重构外围，翻页结构与 preserve-3d 原样保留） */}
+        <div className="flex items-stretch justify-center gap-4">
+          <div aria-hidden="true" className="hidden w-10 shrink-0 items-start justify-center pt-2 lg:flex">
+            <span className="pg-spine text-base">{family?.surname || '谱'}氏</span>
           </div>
 
-          {/* 翻页按钮 */}
-          <button
-            onClick={() => setPageIdx((i) => Math.max(i - 1, 0))}
-            disabled={pageIdx === 0}
-            className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-amber-700/30 bg-background/80 p-2 text-amber-700 transition-all hover:scale-110 disabled:opacity-30"
-            aria-label="上一页"
+          <div
+            className="relative aspect-[3/2] min-w-0 max-w-4xl flex-1 overflow-hidden rounded-xl border shadow-md"
+            style={{
+              borderColor: 'hsl(var(--border))',
+              background: 'hsl(var(--card))',
+              perspective: '1500px',
+            }}
           >
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          </button>
-          <button
-            onClick={() => setPageIdx((i) => Math.min(i + 1, pages.length - 1))}
-            disabled={pageIdx === pages.length - 1}
-            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-amber-700/30 bg-background/80 p-2 text-amber-700 transition-all hover:scale-110 disabled:opacity-30"
-            aria-label="下一页"
-          >
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </button>
+            <div className="grid h-full grid-cols-2">
+              {/* 左页 */}
+              <div
+                className="book-page relative h-full overflow-y-auto border-r p-6 sm:p-10"
+                style={{ transformStyle: 'preserve-3d', borderColor: 'hsl(var(--border))' }}
+              >
+                {current.left.type === 'cover' && <CoverPage family={family} members={members} />}
+                {current.left.type === 'overview' && <OverviewPage family={family} members={members} />}
+                {current.left.type === 'member' && <MemberPage member={current.left.payload} />}
+              </div>
+              {/* 右页 */}
+              <div
+                className="book-page relative h-full overflow-y-auto p-6 sm:p-10"
+                style={{ transformStyle: 'preserve-3d' }}
+              >
+                {current.right.type === 'overview' && <OverviewPage family={family} members={members} />}
+                {current.right.type === 'member' && <MemberPage member={current.right.payload} />}
+                {current.right.type === 'blank' && <BlankPage />}
+              </div>
+            </div>
+
+            {/* 翻页按钮 */}
+            <button
+              onClick={() => setPageIdx((i) => Math.max(i - 1, 0))}
+              disabled={pageIdx === 0}
+              className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border bg-background/90 p-2 text-muted-foreground transition-all hover:scale-110 hover:text-foreground disabled:opacity-30"
+              style={{ borderColor: 'hsl(var(--border))' }}
+              aria-label="上一页"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => setPageIdx((i) => Math.min(i + 1, pages.length - 1))}
+              disabled={pageIdx === pages.length - 1}
+              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border bg-background/90 p-2 text-muted-foreground transition-all hover:scale-110 hover:text-foreground disabled:opacity-30"
+              style={{ borderColor: 'hsl(var(--border))' }}
+              aria-label="下一页"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div aria-hidden="true" className="hidden w-10 shrink-0 lg:block" />
         </div>
 
-        {/* 进度条 */}
+        {/* 进度条：朱丝书签 */}
         <div className="mx-auto mt-3 max-w-4xl">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-amber-700/10">
+          <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: 'hsl(var(--muted))' }}>
             <div
-              className="h-full bg-amber-600 transition-all duration-500"
-              style={{ width: `${((pageIdx + 1) / pages.length) * 100}%` }}
+              className="h-full transition-all duration-500"
+              style={{ width: `${((pageIdx + 1) / pages.length) * 100}%`, background: PG_RED }}
             />
           </div>
         </div>
@@ -188,7 +205,7 @@ export default function LivingBookPage() {
       <style>{`
         .book-page {
           background-image:
-            repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(180, 140, 80, 0.04) 30px, rgba(180, 140, 80, 0.04) 31px);
+            repeating-linear-gradient(0deg, transparent, transparent 30px, hsl(var(--border) / 0.35) 30px, hsl(var(--border) / 0.35) 31px);
         }
         @media (prefers-reduced-motion: reduce) {
           .book-page { transition: none !important; }

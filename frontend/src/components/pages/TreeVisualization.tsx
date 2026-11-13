@@ -13,9 +13,6 @@ interface TreeVisualizationProps {
   branches?: FamilyBranch[]
   onEditMember: (member: Member) => void
   onDeleteMember: (memberId: number) => void
-  onOpenAddMember: () => void
-  onOpenQuickFamily: () => void
-  onOpenImport: () => void
 }
 
 interface LayoutNode {
@@ -113,7 +110,7 @@ function computeTreeLayout(nodes: TreeNode[], edges: TreeEdge[], siblingOrder?: 
   if (nodes.length === 0) return { layoutNodes: [], svgWidth: 1000, svgHeight: 800 }
   const NODE_WIDTH = 100, NODE_HEIGHT = 50, H_GAP = 24, V_GAP = 80, PADDING = 50
 
-  const { childrenOf, parentsOf, spouseOf, primaryParentOf, primaryTree } = buildGraph(nodes, edges)
+  const { parentsOf, spouseOf, primaryTree } = buildGraph(nodes, edges)
   // 应用兄弟顺序
   if (siblingOrder) {
     primaryTree.forEach((children, pid) => {
@@ -413,11 +410,6 @@ export default function TreeVisualization({
       <div className="flex h-[600px] items-center justify-center rounded-md border bg-card shadow-sm">
         <div className="text-center">
           <p className="text-sm text-muted-foreground mb-3">暂无族谱数据</p>
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenAddMember?.()}>添加成员</Button>
-            <Button variant="outline" size="sm" onClick={() => onOpenQuickFamily?.()}>快速建家庭</Button>
-            <Button variant="outline" size="sm" onClick={() => onOpenImport?.()}>批量导入</Button>
-          </div>
         </div>
       </div>
     )

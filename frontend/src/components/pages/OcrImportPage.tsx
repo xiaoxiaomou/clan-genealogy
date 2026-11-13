@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, useToast, Input, Label, OcrPipelinePanel } from '@/components/ui'
+import { Button, useToast, Input, Label, OcrPipelinePanel } from '@/components/ui'
+import { PgPageHead, PgSectionHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { api } from '@/lib/api'
-import { Sparkles, Upload, Loader2, Check, X, Edit2, Save, RotateCcw, FileImage, Zap } from 'lucide-react'
+import { Upload, Loader2, Check, X, Edit2, Save, RotateCcw, Zap } from 'lucide-react'
 
 interface OcrMember {
   name: string
@@ -31,6 +32,10 @@ interface OcrResult {
   error?: string
   filename?: string
 }
+
+/* 性别标记色（数据编码，与丁口图同源，跨主题可辨） */
+const C_MALE = '#7ba6c7'
+const C_FEMALE = '#c08494'
 
 export default function OcrImportPage() {
   const { id } = useParams<{ id: string }>()
@@ -157,16 +162,12 @@ export default function OcrImportPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-6">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground sm:text-3xl">
-            <Sparkles className="h-7 w-7 text-primary" />
-            AI 家谱识别
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            上传家谱图片（族谱印刷品、墓碑、手写世系图等），AI 自动识别成员信息
-          </p>
-        </div>
+      <div className="pg-rise mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+        <PgPageHead
+          eyebrow="谱 牒 · 影 抄"
+          title="AI 家谱识别"
+          subtitle="上传家谱图片（族谱印刷品、墓碑、手写世系图等），AI 自动识别成员信息"
+        />
 
         {/* 流水线模式 */}
         <div className="mb-6">
@@ -177,17 +178,18 @@ export default function OcrImportPage() {
         </div>
 
         {/* 步骤 1: 上传 */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>
-              <FileImage className="mr-2 inline-block h-5 w-5" />
-              1. 上传家谱图片
-            </CardTitle>
-            <CardDescription>
-              支持 JPG / PNG / WebP，最大 10MB
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <section className="pg-card mb-6">
+          <div className="px-5 pt-5">
+            <PgSectionHead
+              text="一 · 上传家谱图片"
+              right={
+                <span className="text-xs text-muted-foreground">
+                  支持 JPG / PNG / WebP，最大 10MB
+                </span>
+              }
+            />
+          </div>
+          <div className="px-5 pb-5">
             <div
               className={`rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
                 preview ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30'
@@ -204,7 +206,7 @@ export default function OcrImportPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
                   <p className="text-sm text-muted-foreground">点击或拖拽图片到此处</p>
                 </div>
               )}
@@ -218,28 +220,28 @@ export default function OcrImportPage() {
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                 <Button
                   type="button"
-                  variant={preview ? 'outline' : 'default'}
+                  variant={preview ? 'outline' : 'apple'}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload className="mr-1 h-4 w-4" />
+                  <Upload className="mr-1 h-4 w-4" aria-hidden="true" />
                   {preview ? '更换图片' : '选择图片'}
                 </Button>
                 {preview && (
                   <Button type="button" variant="ghost" onClick={reset}>
-                    <RotateCcw className="mr-1 h-4 w-4" />
+                    <RotateCcw className="mr-1 h-4 w-4" aria-hidden="true" />
                     重置
                   </Button>
                 )}
                 {preview && !result && (
-                  <Button type="button" onClick={handleRecognize} disabled={loading}>
+                  <Button type="button" onClick={handleRecognize} disabled={loading} aria-busy={loading}>
                     {loading ? (
                       <>
-                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
                         识别中...
                       </>
                     ) : (
                       <>
-                        <Zap className="mr-1 h-4 w-4" />
+                        <Zap className="mr-1 h-4 w-4" aria-hidden="true" />
                         开始识别
                       </>
                     )}
@@ -247,55 +249,55 @@ export default function OcrImportPage() {
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         {/* 步骤 2: 识别结果 */}
         {result && (
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle>
-                    <Check className="mr-2 inline-block h-5 w-5 text-green-500" />
-                    2. 识别结果
-                  </CardTitle>
-                  <CardDescription>
-                    {result.note && <span className="text-amber-600">提示：{result.note} · </span>}
-                    共 {result.members.length} 位成员，{result.relationships.length} 条关系
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  {result.relationships.length > 0 && (
-                    <label className="flex items-center gap-1 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={includeRelationships}
-                        onChange={(e) => setIncludeRelationships(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      包含关系
-                    </label>
-                  )}
-                  <Button
-                    type="button"
-                    onClick={handleImport}
-                    disabled={importing || result.members.length === 0}
-                  >
-                    {importing ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-1 h-4 w-4" />
+          <section className="pg-card">
+            <div className="px-5 pt-5">
+              <PgSectionHead
+                text="二 · 识别结果"
+                right={
+                  <>
+                    {result.relationships.length > 0 && (
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={includeRelationships}
+                          onChange={(e) => setIncludeRelationships(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        包含关系
+                      </label>
                     )}
-                    导入到族谱
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+                    <Button
+                      type="button"
+                      onClick={handleImport}
+                      disabled={importing || result.members.length === 0}
+                      aria-busy={importing}
+                    >
+                      {importing ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Save className="mr-1 h-4 w-4" aria-hidden="true" />
+                      )}
+                      导入到族谱
+                    </Button>
+                  </>
+                }
+              />
+              <p className="pg-subtitle -mt-1 mb-4">
+                {result.note && <span className="text-foreground/70">提示：{result.note} · </span>}
+                共 <b style={{ fontFamily: PG_SERIF, color: PG_RED }}>{result.members.length}</b> 位成员，
+                <b style={{ fontFamily: PG_SERIF, color: PG_RED }}>{result.relationships.length}</b> 条关系
+                <Check className="ml-1 inline-block h-4 w-4 text-primary" aria-hidden="true" />
+              </p>
+            </div>
+            <div className="px-5 pb-5">
               {result.members.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-6 text-center dark:border-amber-800 dark:bg-amber-950/30">
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                <div className="pg-card-soft px-6 py-10 text-center">
+                  <p className="text-sm" style={{ fontFamily: PG_SERIF }}>
                     未识别到成员信息
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -381,11 +383,11 @@ export default function OcrImportPage() {
                             </div>
                             <div className="flex justify-end gap-2">
                               <Button type="button" variant="ghost" size="sm" onClick={() => cancelEdit(idx)}>
-                                <X className="mr-1 h-3.5 w-3.5" />
+                                <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                                 取消
                               </Button>
                               <Button type="button" size="sm" onClick={() => finishEdit(idx)}>
-                                <Check className="mr-1 h-3.5 w-3.5" />
+                                <Check className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                                 完成
                               </Button>
                             </div>
@@ -393,26 +395,38 @@ export default function OcrImportPage() {
                         ) : (
                           <div className="flex items-center gap-3">
                             <div
-                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-                                m_view.gender === 'male'
-                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                                  : m_view.gender === 'female'
-                                  ? 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-200'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                              style={{
+                                background: 'hsl(var(--muted))',
+                                color:
+                                  m_view.gender === 'male'
+                                    ? C_MALE
+                                    : m_view.gender === 'female'
+                                    ? C_FEMALE
+                                    : 'hsl(var(--muted-foreground))',
+                              }}
+                              aria-hidden="true"
                             >
                               {m_view.gender === 'male' ? '♂' : m_view.gender === 'female' ? '♀' : '?'}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2 text-sm">
-                                <span className="font-medium">{m_view.name}</span>
+                                <span className="font-medium" style={{ fontFamily: PG_SERIF }}>
+                                  {m_view.name}
+                                </span>
                                 {m_view.generation != null && (
-                                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-900 dark:text-amber-200">
-                                    第{m_view.generation}代
+                                  <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                    第{m_view.generation}世
                                   </span>
                                 )}
                                 {m_view.generation_name && (
-                                  <span className="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                                  <span
+                                    className="rounded border px-1.5 py-0.5 text-xs"
+                                    style={{
+                                      borderColor: `color-mix(in srgb, ${PG_RED} 45%, transparent)`,
+                                      color: PG_RED,
+                                    }}
+                                  >
                                     {m_view.generation_name}字辈
                                   </span>
                                 )}
@@ -435,8 +449,9 @@ export default function OcrImportPage() {
                                 size="sm"
                                 onClick={() => startEdit(idx, m)}
                                 className="h-7 w-7 p-0"
+                                aria-label={`编辑 ${m_view.name}`}
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                <Edit2 className="h-3.5 w-3.5" aria-hidden="true" />
                               </Button>
                               <Button
                                 type="button"
@@ -444,8 +459,9 @@ export default function OcrImportPage() {
                                 size="sm"
                                 onClick={() => removeMember(idx)}
                                 className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                aria-label={`删除 ${m_view.name}`}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X className="h-3.5 w-3.5" aria-hidden="true" />
                               </Button>
                             </div>
                           </div>
@@ -458,13 +474,14 @@ export default function OcrImportPage() {
 
               {/* 关系预览 */}
               {includeRelationships && result.relationships.length > 0 && (
-                <div className="mt-6 border-t border-border pt-4">
-                  <h4 className="mb-2 text-sm font-medium text-foreground">关系预览</h4>
+                <div className="mt-6 border-t pt-4" style={{ borderColor: 'hsl(var(--border))' }}>
+                  <PgSectionHead text="关系预览" />
                   <div className="flex flex-wrap gap-1.5">
                     {result.relationships.map((r, idx) => (
                       <span
                         key={idx}
-                        className="rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-xs"
+                        className="rounded-full border px-2.5 py-0.5 text-xs"
+                        style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--muted) / 0.3)' }}
                       >
                         {r.from} → {r.to}{' '}
                         <span className="text-muted-foreground">
@@ -475,8 +492,8 @@ export default function OcrImportPage() {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         )}
       </div>
     </Layout>

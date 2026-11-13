@@ -21,7 +21,7 @@ import {
   Compass,
 } from 'lucide-react'
 import { api } from '@/lib/api'
-import { useAppDispatch, useAppSelector, addToast } from '@/store'
+import { useAppDispatch, addToast } from '@/store'
 import { setTheme } from '@/store/slices/appSlice'
 import type { ThemeMode } from '@/store/slices/appSlice'
 

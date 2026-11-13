@@ -488,6 +488,39 @@ export const api = {
   markAsRead: (notificationId: number) =>
     request<any>(`/notification/${notificationId}/read`, { method: 'PUT' }),
 
+  markAllNotificationsRead: () =>
+    request<any>('/notification/mark-all-read', { method: 'PUT' }),
+
+  // 谱局（Admin，挂载于 /api/config）
+  adminAuditLogs: (params: { page?: number; per_page?: number; action?: string } = {}) => {
+    const qs = new URLSearchParams()
+    if (params.page) qs.set('page', String(params.page))
+    if (params.per_page) qs.set('per_page', String(params.per_page))
+    if (params.action) qs.set('action', params.action)
+    const s = qs.toString()
+    return request<any>(`/admin/audit-logs${s ? `?${s}` : ''}`)
+  },
+
+  adminAuditLogsExport: (format: 'json' | 'csv') =>
+    request<any>(`/admin/audit-logs/export?format=${format}`),
+
+  adminSystemStatus: () => request<any>('/admin/system/status'),
+
+  advancedSearch: (familyId: number, params: Record<string, string | number | boolean>) => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== '' && v !== undefined) qs.set(k, String(v))
+    }
+    const s = qs.toString()
+    return request<any>(`/family/${familyId}/search/advanced${s ? `?${s}` : ''}`)
+  },
+
+  assignMemberBranch: (familyId: number, memberId: number, branchId: number) =>
+    request<any>(`/family/${familyId}/members/${memberId}/assign-branch`, {
+      method: 'PUT',
+      body: { branch_id: branchId },
+    }),
+
   // Admin endpoints
   getPendingUsers: () => request<any>('/auth/admin/users/pending'),
 
@@ -505,20 +538,32 @@ export const api = {
   enableUser: (userId: number) =>
     request<any>(`/auth/admin/users/${userId}/enable`, { method: 'PUT' }),
 
-  getAuditLogs: (familyId?: number) =>
-    request<any>(familyId ? `/family/${familyId}/audit` : '/family/audit'),
+  getAuditLogs: (familyId?: number, page?: number, perPage?: number) => {
+    const params = new URLSearchParams()
+    if (page !== undefined) params.set('page', String(page))
+    if (perPage !== undefined) params.set('per_page', String(perPage))
+    const qs = params.toString()
+    const base = familyId ? `/family/${familyId}/audit-logs` : '/family/audit-logs'
+    return request<any>(qs ? `${base}?${qs}` : base)
+  },
+
+  getAuditLogStats: (familyId: number) =>
+    request<any>(`/family/${familyId}/audit-logs/stats`),
+
+  searchUsers: (query: string) =>
+    request<any>(`/family/users/search?q=${encodeURIComponent(query)}`),
 
   // Config
-  getConfigs: () => request<any>('/config/admin/config'),
+  getConfigs: () => request<any>('/admin/config'),
 
   updateConfig: (key: string, value: string) =>
-    request<any>(`/config/admin/config/${key}`, { method: 'PUT', body: { value } }),
+    request<any>(`/admin/config/${key}`, { method: 'PUT', body: { value } }),
 
   resetConfig: (category: string) =>
-    request<any>('/config/admin/config/reset', { method: 'POST', body: { category } }),
+    request<any>('/admin/config/reset', { method: 'POST', body: { category } }),
 
   // Upload
-  uploadAvatar: async (file: File): Promise<any> => {
+  uploadAvatar: async (file: File | Blob): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
     return request<any>('/upload/avatar', { method: 'POST', formData });

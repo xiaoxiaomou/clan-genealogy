@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { Card, CardContent, useToast, FamilyExhibition3D } from '@/components/ui';
+import { useToast, FamilyExhibition3D } from '@/components/ui';
+import { PgPageHead, PgSectionHead, PgSeal } from '@/components/ui/pedigree';
 import { api } from '@/lib/api';
-import { Sparkles } from 'lucide-react';
 
 export default function FamilyExhibitPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,37 +31,35 @@ export default function FamilyExhibitPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        <header className="mb-4">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold sm:text-3xl">
-            <Sparkles className="h-6 w-6 text-amber-500" aria-hidden="true" />
-            {family?.name || '家族'} · 数字展厅
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            第一人称 3D 漫游：走进家族历史博物馆。中心大厅展示家族族徽，四周展板陈列成员生平。
-          </p>
-        </header>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 pg-rise">
+        <PgPageHead
+          eyebrow="谱 牒 · 展 厅"
+          title={`${family?.name || '家族'} · 数字展厅`}
+          subtitle="第一人称 3D 漫游：走进家族历史博物馆。中心大厅展示家族族徽，四周展板陈列成员生平。"
+          actions={<PgSeal char="展" size={56} title="数字展厅" />}
+        />
 
+        {/* 3D 展厅内容区（组件原样保留，仅外围样式重构） */}
         {loading ? (
           <div className="flex h-[500px] items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : (
           <FamilyExhibition3D members={members} familyId={familyId} />
         )}
 
-        <Card className="mt-4">
-          <CardContent className="p-4 text-xs text-muted-foreground">
-            <p><strong>操作说明：</strong></p>
-            <ul className="mt-1 list-disc pl-5 space-y-0.5">
+        <div className="mt-6">
+          <PgSectionHead text="观 展 指 引" />
+          <div className="pg-card-soft p-5">
+            <ul className="space-y-1 text-xs leading-6 text-muted-foreground">
               <li>点击「进入展厅」按钮开始第一人称体验</li>
               <li>W / A / S / D 键前后左右移动</li>
               <li>鼠标移动控制视角方向</li>
               <li>鼠标悬停展板可查看成员详细生平</li>
               <li>按 Esc 或点击「退出」按钮可退出沉浸模式</li>
             </ul>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </Layout>
   );

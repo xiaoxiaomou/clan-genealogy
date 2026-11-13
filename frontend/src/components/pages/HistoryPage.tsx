@@ -1,14 +1,14 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Card,
-  CardContent,
   Button,
   Input,
   Label,
   Modal,
   useToast,
 } from '@/components/ui'
+import { PgPageHead, PgSeal, PG_SERIF } from '@/components/ui/pedigree'
+import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { ArrowLeft, Plus, Trash2, Edit2, History as HistoryIcon } from 'lucide-react'
 
@@ -24,6 +24,7 @@ interface HistoryEvent {
   related_member_ids: number[]
 }
 
+/* 分类色为数据编码（区分事件类别），非页面装饰 */
 const CATEGORIES = [
   { value: 'politics', label: '政治', accent: '#c08494' },
   { value: 'military', label: '军事', accent: '#d97757' },
@@ -32,9 +33,7 @@ const CATEGORIES = [
   { value: 'event', label: '事件', accent: '#7ba17b' },
 ]
 
-const BG = 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)'
-
-const inputClass = "mt-1 w-full rounded-md border border-amber-700/30 bg-stone-950/40 px-3 py-2 text-sm text-amber-100 placeholder:text-amber-200/30 focus:border-amber-600/60 focus:outline-none focus:ring-1 focus:ring-amber-600/30"
+const inputClass = 'mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring'
 
 export default function HistoryPage() {
   const { id } = useParams<{ id: string }>()
@@ -95,69 +94,62 @@ export default function HistoryPage() {
   const titleText = familySurname ? `${familySurname}氏` : (familyName || '本族')
 
   return (
-    <div className="min-h-screen p-4 sm:p-8" style={{ background: BG }}>
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between text-amber-100">
+    <Layout>
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6 pg-rise">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(`/family/${familyId}`)}
-            className="flex items-center gap-1 text-sm hover:text-amber-300"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
-            返回
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            返回族谱
           </button>
-          {canEdit && (
-            <Button
-              onClick={() => { setEditing(null); setShowEditor(true) }}
-              className="bg-amber-700/80 text-amber-50 hover:bg-amber-600"
-            >
-              <Plus className="mr-1 h-4 w-4" /> 录入新事
-            </Button>
-          )}
         </div>
 
-        {/* 匾额 */}
-        <div className="relative overflow-hidden rounded-lg border-2 border-amber-700/40 bg-gradient-to-br from-amber-900/40 to-stone-900/60 p-8 text-center shadow-2xl">
-          <div className="absolute inset-0 opacity-20" style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(245, 230, 211, 0.1) 10px, rgba(245, 230, 211, 0.1) 11px)',
-          }} />
-          <div className="relative">
-            <div className="mb-2 text-xs tracking-[0.5em] text-amber-300/60">史 海 钩 沉</div>
-            <h1 className="font-serif text-5xl font-bold text-amber-100">
-              {titleText}·历史事实
-            </h1>
-            <div className="mt-3 text-sm text-amber-200/70">
-              与家族同代发生的历史大事 · 可与成员关联
-            </div>
-            {events.length > 0 && (
-              <div className="mt-2 text-xs text-amber-200/40">共 {events.length} 件史录</div>
-            )}
-          </div>
-        </div>
+        <PgPageHead
+          eyebrow="谱 牒 · 史 海"
+          title={`${titleText}·史录`}
+          subtitle="与家族同代发生的历史大事，可与成员相互对照"
+          actions={
+            <>
+              {canEdit && (
+                <Button onClick={() => { setEditing(null); setShowEditor(true) }}>
+                  <Plus className="mr-1 h-4 w-4" aria-hidden="true" /> 录入新事
+                </Button>
+              )}
+              <PgSeal char="史" size={56} title="族史钩沉" />
+            </>
+          }
+        />
 
         {loading ? (
-          <Card className="border-amber-700/30 bg-stone-900/50">
-            <CardContent className="py-10 text-center text-sm text-amber-200/60">展卷候...</CardContent>
-          </Card>
+          <div className="pg-card py-10 text-center text-sm text-muted-foreground">展卷候...</div>
         ) : events.length === 0 ? (
-          <Card className="border-amber-700/30 bg-stone-900/50">
-            <CardContent className="py-10 text-center">
-              <HistoryIcon className="mx-auto h-10 w-10 text-amber-200/20" />
-              <p className="mt-3 font-serif text-sm text-amber-200/50">
-                暂无史录，{canEdit ? '点击右上角录入' : '请联系管理员'}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="pg-card py-12 text-center">
+            <HistoryIcon className="mx-auto h-10 w-10 text-muted-foreground opacity-30" aria-hidden="true" />
+            <p
+              className="mt-3 text-sm"
+              style={{ fontFamily: PG_SERIF, color: 'hsl(var(--muted-foreground))' }}
+            >
+              史录尚空，{canEdit ? '点击右上角「录入新事」' : '请联系管理员补录'}
+            </p>
+          </div>
         ) : (
-          <div className="relative space-y-10 pl-10 before:absolute before:bottom-0 before:left-4 before:top-0 before:w-px before:bg-gradient-to-b before:from-amber-700/40 before:via-amber-700/20 before:to-transparent">
+          /* 世纪分组时间轴（分组与条目映射保持原逻辑，仅重构外围样式） */
+          <div className="relative space-y-10 pl-10 before:absolute before:bottom-0 before:left-4 before:top-0 before:w-px before:bg-border">
             {byCentury.map(([century, list]) => (
               <div key={century} className="relative">
                 <div
-                  className="absolute -left-10 top-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-amber-700/50 bg-amber-900/60 font-serif text-[10px] text-amber-100 shadow-md"
-                  style={{ boxShadow: '0 0 12px rgba(212,165,116,0.25)' }}
+                  className="absolute -left-10 top-1 flex h-8 w-8 items-center justify-center rounded-full border text-[10px]"
+                  style={{
+                    borderColor: 'hsl(var(--border))',
+                    background: 'hsl(var(--card))',
+                    fontFamily: PG_SERIF,
+                  }}
                 >
                   {century.split(' ')[0].slice(2)}s
                 </div>
-                <h2 className="mb-4 font-serif text-base text-amber-200">
+                <h2 className="mb-4 text-sm" style={{ fontFamily: PG_SERIF, letterSpacing: '0.2em' }}>
                   {century}
                 </h2>
                 <div className="space-y-3">
@@ -165,49 +157,48 @@ export default function HistoryPage() {
                     const cat = CATEGORIES.find((c) => c.value === e.category) || CATEGORIES[4]
                     const date = [e.year, e.month, e.day].filter(Boolean).join('-')
                     return (
-                      <Card
-                        key={e.id}
-                        className="border-amber-700/30 bg-stone-900/50 transition-colors hover:border-amber-600/50 hover:bg-stone-900/70"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-xs text-amber-200/50">{date}</span>
-                                <span
-                                  className="rounded-full border px-2 py-0.5 text-[10px]"
-                                  style={{ borderColor: cat.accent + '60', color: cat.accent, backgroundColor: cat.accent + '15' }}
-                                >
-                                  {cat.label}
-                                </span>
-                              </div>
-                              <h3 className="font-serif text-lg font-semibold text-amber-100">{e.title}</h3>
-                              {e.description && (
-                                <p className="text-sm leading-relaxed text-amber-200/70">{e.description}</p>
-                              )}
-                              {e.source && (
-                                <p className="text-xs italic text-amber-200/40">来源：{e.source}</p>
-                              )}
+                      <div key={e.id} className="pg-card p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs text-muted-foreground">{date}</span>
+                              <span
+                                className="rounded-full border px-2 py-0.5 text-[10px]"
+                                style={{ borderColor: cat.accent + '60', color: cat.accent, backgroundColor: cat.accent + '15' }}
+                              >
+                                {cat.label}
+                              </span>
                             </div>
-                            {canEdit && (
-                              <div className="flex shrink-0 gap-1">
-                                <button
-                                  onClick={() => { setEditing(e); setShowEditor(true) }}
-                                  className="rounded p-1 text-amber-200/50 hover:bg-amber-700/20 hover:text-amber-100"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => remove(e.id)}
-                                  className="rounded p-1 text-amber-200/50 hover:bg-rose-700/30 hover:text-rose-300"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
+                            <h3 className="text-lg font-semibold" style={{ fontFamily: PG_SERIF, letterSpacing: '0.04em' }}>
+                              {e.title}
+                            </h3>
+                            {e.description && (
+                              <p className="text-sm leading-relaxed text-muted-foreground">{e.description}</p>
+                            )}
+                            {e.source && (
+                              <p className="text-xs italic text-muted-foreground opacity-70">来源：{e.source}</p>
                             )}
                           </div>
-                        </CardContent>
-                      </Card>
+                          {canEdit && (
+                            <div className="flex shrink-0 gap-1">
+                              <button
+                                onClick={() => { setEditing(e); setShowEditor(true) }}
+                                className="rounded p-1 text-muted-foreground hover:text-foreground"
+                                aria-label={`编辑 ${e.title}`}
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => remove(e.id)}
+                                className="rounded p-1 text-muted-foreground hover:text-destructive"
+                                aria-label={`删除 ${e.title}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
@@ -216,8 +207,11 @@ export default function HistoryPage() {
           </div>
         )}
 
-        <p className="text-center text-xs text-amber-200/30">
-          以史为鉴，知家族兴替
+        <p
+          className="text-center text-xs text-muted-foreground"
+          style={{ fontFamily: PG_SERIF, letterSpacing: '0.3em' }}
+        >
+          以史为鉴 · 知家族兴替
         </p>
       </div>
 
@@ -228,7 +222,7 @@ export default function HistoryPage() {
         event={editing}
         onSaved={() => { setShowEditor(false); load() }}
       />
-    </div>
+    </Layout>
   )
 }
 
@@ -306,52 +300,51 @@ function HistoryEditor({
       isOpen={open}
       onClose={onClose}
       title={event ? '编辑史录' : '录入史录'}
-      className="border-amber-700/40 bg-stone-900 [&_.text-foreground]:text-amber-100"
     >
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-amber-200/80">年</Label>
+            <Label>年</Label>
             <Input
               type="number"
               value={form.year}
               onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || 0 })}
-              className="mt-1 border-amber-700/30 bg-stone-950/40 text-amber-100"
+              className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-amber-200/80">月</Label>
+            <Label>月</Label>
             <Input
               type="number"
               min={1}
               max={12}
               value={form.month}
               onChange={(e) => setForm({ ...form, month: parseInt(e.target.value) || '' })}
-              className="mt-1 border-amber-700/30 bg-stone-950/40 text-amber-100"
+              className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-amber-200/80">日</Label>
+            <Label>日</Label>
             <Input
               type="number"
               min={1}
               max={31}
               value={form.day}
               onChange={(e) => setForm({ ...form, day: parseInt(e.target.value) || '' })}
-              className="mt-1 border-amber-700/30 bg-stone-950/40 text-amber-100"
+              className="mt-1"
             />
           </div>
         </div>
         <div>
-          <Label className="text-amber-200/80">标题</Label>
+          <Label>标题</Label>
           <Input
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="mt-1 border-amber-700/30 bg-stone-950/40 text-amber-100"
+            className="mt-1"
           />
         </div>
         <div>
-          <Label className="text-amber-200/80">分类</Label>
+          <Label>分类</Label>
           <select
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -363,7 +356,7 @@ function HistoryEditor({
           </select>
         </div>
         <div>
-          <Label className="text-amber-200/80">描述</Label>
+          <Label>描述</Label>
           <textarea
             rows={4}
             value={form.description}
@@ -372,26 +365,18 @@ function HistoryEditor({
           />
         </div>
         <div>
-          <Label className="text-amber-200/80">资料来源</Label>
+          <Label>资料来源</Label>
           <Input
             value={form.source}
             onChange={(e) => setForm({ ...form, source: e.target.value })}
-            className="mt-1 border-amber-700/30 bg-stone-950/40 text-amber-100"
+            className="mt-1"
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="border-amber-700/40 text-amber-200 hover:bg-amber-900/30"
-          >
+          <Button variant="outline" onClick={onClose}>
             取消
           </Button>
-          <Button
-            onClick={save}
-            disabled={saving}
-            className="bg-amber-700/80 text-amber-50 hover:bg-amber-600"
-          >
+          <Button onClick={save} disabled={saving}>
             {saving ? '保存中...' : '保存'}
           </Button>
         </div>

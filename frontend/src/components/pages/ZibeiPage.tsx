@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { ArrowLeft } from 'lucide-react'
+import { PgPageHead, PgSeal, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { Layout } from '@/components/layout/Layout'
 import ZibeiPoemEditor from './ZibeiPoemEditor'
-
-const BG = 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)'
 
 export default function ZibeiPage() {
   const { id } = useParams<{ id: string }>()
@@ -43,42 +43,58 @@ export default function ZibeiPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: BG }}>
-        <p className="text-amber-100">展卷候...</p>
-      </div>
+      <Layout>
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </Layout>
     )
   }
 
   const titleText = familySurname ? `${familySurname}氏` : (familyName || '本族')
 
   return (
-    <div className="min-h-screen p-4 sm:p-8" style={{ background: BG }}>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center gap-2 text-amber-100">
+    <Layout>
+      <div className="pg-rise mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <div className="mb-5">
           <button
             onClick={() => navigate(`/family/${familyId}`)}
-            className="flex items-center gap-1 text-sm hover:text-amber-300"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
-            返回
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            返回族谱
           </button>
         </div>
 
-        {/* 匾额 */}
-        <div className="relative overflow-hidden rounded-lg border-2 border-amber-700/40 bg-gradient-to-br from-amber-900/40 to-stone-900/60 p-8 text-center shadow-2xl">
-          <div className="absolute inset-0 opacity-20" style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(245, 230, 211, 0.1) 10px, rgba(245, 230, 211, 0.1) 11px)',
-          }} />
-          <div className="relative">
-            <div className="mb-2 text-xs tracking-[0.5em] text-amber-300/60">字 辈 诗 牒</div>
-            <h1 className="font-serif text-5xl font-bold text-amber-100">
-              {titleText}字辈
-            </h1>
-            <div className="mt-3 text-sm text-amber-200/70">
-              {charCount > 0 ? <>共 {charCount} 字 · 代代相承</> : '尚未立诗'}
+        <PgPageHead
+          eyebrow="谱 牒 · 字 辈"
+          title={`${titleText}字辈`}
+          subtitle={
+            charCount > 0 ? (
+              <>
+                共 <b style={{ fontFamily: PG_SERIF, color: PG_RED }}>{charCount}</b> 字 · 代代相承
+              </>
+            ) : (
+              '尚未立诗，待修谱人补录字辈诗'
+            )
+          }
+        />
+
+        {/* 字辈印 + 版刻行 */}
+        {charCount > 0 && (
+          <section className="pg-card mb-6 flex items-center gap-4 px-5 py-4">
+            <PgSeal char={familySurname || '辈'} size={44} title="字辈印" />
+            <div className="pg-colophon flex-1">
+              <span>
+                字辈字数 <b style={{ fontFamily: PG_SERIF, color: PG_RED }}>{charCount} 字</b>
+              </span>
+              <span aria-hidden="true" className="pg-colophon-sep" />
+              <span>
+                体例 <b>同辈共取一字 · 昭穆分明</b>
+              </span>
             </div>
-          </div>
-        </div>
+          </section>
+        )}
 
         <ZibeiPoemEditor
           familyId={familyId}
@@ -87,10 +103,13 @@ export default function ZibeiPage() {
           onConfigChange={(cfg) => setCharCount((cfg.zibei_text || '').replace(/[^\u4e00-\u9fff]/g, '').length)}
         />
 
-        <p className="text-center text-xs text-amber-200/30">
-          愿字辈绵延，家声永振
+        <p
+          className="mt-10 text-center text-xs tracking-[0.3em] text-muted-foreground"
+          style={{ fontFamily: PG_SERIF }}
+        >
+          愿字辈绵延 · 家声永振
         </p>
       </div>
-    </div>
+    </Layout>
   )
 }

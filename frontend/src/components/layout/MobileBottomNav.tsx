@@ -9,7 +9,7 @@ import {
   Bell,
   User,
   Menu as MenuIcon,
-  TreePine,
+
   ScrollText,
   Heart,
   Image as ImageIcon,
@@ -30,10 +30,12 @@ import {
   LogOut,
   Sun,
   Moon,
-  type LucideIcon,
+
 } from 'lucide-react'
+import type { ComponentType, SVGProps } from 'react'
+type LucideIcon = ComponentType<SVGProps<SVGSVGElement>>
 import { logout } from '@/store/slices/authSlice'
-import { cycleTheme, selectTheme, selectIsDark } from '@/store/slices/appSlice'
+import { cycleTheme, selectIsDark } from '@/store/slices/appSlice'
 
 interface TabItem {
   key: string
@@ -56,7 +58,7 @@ export function MobileBottomNav() {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((s) => s.auth)
   const { unreadCount } = useAppSelector((s) => s.app)
-  const theme = useAppSelector(selectTheme)
+
   const isDark = useAppSelector(selectIsDark)
 
   const [moreOpen, setMoreOpen] = useState(false)
@@ -71,10 +73,10 @@ export function MobileBottomNav() {
   }
   const goProfile = () => navigate('/profile')
 
-  const onFamily = familyId !== null
-  const isHome = location.pathname === '/'
-  const isStatsActive = !!familyId && location.pathname.endsWith('/stats')
-  const isProfile = location.pathname.startsWith('/profile')
+
+  
+
+
 
   const tabs: TabItem[] = [
     {
@@ -95,7 +97,7 @@ export function MobileBottomNav() {
       key: 'bell',
       label: '通知',
       icon: Bell,
-      match: (p) => false,
+      match: () => false,
       onClick: () => dispatch(setShowMobileMenu(true)),
     },
     {
@@ -109,7 +111,7 @@ export function MobileBottomNav() {
       key: 'more',
       label: '更多',
       icon: MenuIcon,
-      match: (p) => false,
+      match: () => false,
       onClick: () => setMoreOpen(true),
     },
   ]

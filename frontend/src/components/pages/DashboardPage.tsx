@@ -3,21 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Family } from '@/types'
 import {
-  BorderGlow,
   Button,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
   Modal,
   Input,
   Label,
   useToast,
 } from '@/components/ui'
 import { Layout } from '@/components/layout/Layout'
+import { PgPageHead, PgSeal } from '@/components/ui/pedigree'
 import {
-  TreePine,
   Plus,
   Users,
   Globe,
@@ -115,68 +109,54 @@ export default function DashboardPage() {
       
 
       <div className="mx-auto max-w-6xl px-6 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">我的族谱</h1>
-            <p className="mt-1 text-muted-foreground">
-              管理和浏览您的家族传承记录
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isAdmin && (
-              <Button
-                variant="outline"
-                onClick={() => navigate('/admin/users')}
-                className="gap-2"
-              >
-                <Shield className="h-4 w-4" aria-hidden="true" />
-                用户审核
-              </Button>
-            )}
-            {isAdmin && (
-              <Button
-                variant="apple"
-                glow
-                onClick={() => setShowCreate(true)}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" aria-hidden="true" />
-                创建族谱
-              </Button>
-            )}
-          </div>
-        </div>
+        <PgPageHead
+          eyebrow="谱 牒 · 总 目"
+          title="我的族谱"
+          subtitle="收录您名下的族谱卷帙，管理与浏览家族传承"
+          actions={
+            <>
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/admin/users')}
+                  className="gap-2"
+                >
+                  <Shield className="h-4 w-4" aria-hidden="true" />
+                  用户审核
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  variant="apple"
+                  onClick={() => setShowCreate(true)}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  创建族谱
+                </Button>
+              )}
+            </>
+          }
+        />
 
-        <BorderGlow
-          backgroundColor="transparent"
-          className="!bg-transparent border-0 p-0"
-          colors={['#4facfe', '#00f2fe', '#43e97b']}
-          glowIntensity={0.3}
-          edgeSensitivity={35}
-        >
-          {isLoading ? (
+        {isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-live="polite">
             {[1, 2, 3].map((i) => (
-              <Card spotlight key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-6 w-2/3 rounded bg-muted" />
-                  <div className="h-4 w-1/2 rounded bg-muted" />
-                </CardHeader>
-                <CardContent>
-                  <div className="h-4 w-full rounded bg-muted" />
-                </CardContent>
-              </Card>
+              <div key={i} className="pg-card animate-pulse p-5">
+                <div className="h-12 w-12 rounded-lg bg-muted" />
+                <div className="mt-4 h-5 w-2/3 rounded bg-muted" />
+                <div className="mt-2 h-4 w-1/2 rounded bg-muted" />
+                <div className="mt-6 h-4 w-full rounded bg-muted" />
+              </div>
             ))}
           </div>
         ) : families.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 animate-fade-in">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded bg-primary/8 border border-primary/15">
-              <TreePine className="h-10 w-10 text-primary" />
-            </div>
-            <h2 className="mb-2 text-xl font-semibold tracking-tight">
+          <div className="pg-card pg-rise flex flex-col items-center justify-center py-16">
+            <PgSeal char="谱" size={72} title="谱印" />
+            <h2 className="pg-title mt-6 text-xl font-semibold">
               {isAdmin ? '开始创建您的第一个族谱' : '暂无族谱'}
             </h2>
-            <p className="mb-8 max-w-md text-center text-muted-foreground">
+            <p className="mt-2 mb-6 max-w-md text-center text-sm leading-7 text-muted-foreground">
               {isAdmin
                 ? '族谱是记录家族传承的载体。点击下方按钮，创建属于您家族的族谱吧。'
                 : '您暂未被授权访问任何族谱，请联系管理员获取权限。'}
@@ -184,7 +164,6 @@ export default function DashboardPage() {
             {isAdmin && (
               <Button
                 variant="apple"
-                glow
                 size="lg"
                 onClick={() => setShowCreate(true)}
                 className="gap-2"
@@ -195,66 +174,67 @@ export default function DashboardPage() {
             )}
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {families.map((family, index) => (
-              <Card spotlight
+          <div className="pg-rise grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {families.map((family) => (
+              <div
                 key={family.id}
-                className="rounded-lg bg-white dark:bg-[#262628] border group cursor-pointer animate-fade-in transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
-                style={{ animationDelay: `${index * 80}ms` }}
+                className="pg-card group cursor-pointer p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
                 onClick={() => navigate(`/family/${family.id}/intro`)}
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded bg-primary/8 border border-primary/15">
-                      <TreePine className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => handleDeleteFamily(e, family.id)}
-                        className="rounded p-2 text-muted-foreground opacity-0 transition-all hover:bg-destructive/8 hover:text-destructive group-hover:opacity-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                        aria-label={`删除族谱：${family.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      {family.is_public ? (
-                        <Globe className="h-4 w-4 text-muted-foreground" aria-label="公开族谱" />
-                      ) : (
-                        <Lock className="h-4 w-4 text-muted-foreground" aria-label="私有族谱" />
-                      )}
-                    </div>
+                <div className="flex items-start justify-between">
+                  <PgSeal
+                    char={family.surname || '谱'}
+                    size={48}
+                    title={`${family.name} · 姓氏印`}
+                  />
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => handleDeleteFamily(e, family.id)}
+                      className="rounded p-2 text-muted-foreground opacity-0 transition-all hover:bg-destructive/8 hover:text-destructive group-hover:opacity-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label={`删除族谱：${family.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    {family.is_public ? (
+                      <Globe className="h-4 w-4 text-muted-foreground" aria-label="公开族谱" />
+                    ) : (
+                      <Lock className="h-4 w-4 text-muted-foreground" aria-label="私有族谱" />
+                    )}
                   </div>
-                  <CardTitle className="mt-3 font-semibold">{family.name}</CardTitle>
-                  <CardDescription>
-                    {family.surname && `${family.surname}氏家族`}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {family.description && (
-                    <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
-                      {family.description}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-4">
+                </div>
+                <h3 className="pg-title mt-4 text-lg font-semibold text-foreground">
+                  {family.name}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {family.surname ? `${family.surname}氏家族` : '族谱一卷'}
+                </p>
+                {family.description && (
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground line-clamp-2">
+                    {family.description}
+                  </p>
+                )}
+                <div
+                  className="mt-4 flex items-center justify-between border-t pt-3 text-sm text-muted-foreground"
+                  style={{ borderColor: 'hsl(var(--border))' }}
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                      {family.member_count} 人
+                    </span>
+                    {family.origin && (
                       <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        {family.member_count} 人
+                        <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+                        {family.origin}
                       </span>
-                      {family.origin && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5" />
-                          {family.origin}
-                        </span>
-                      )}
-                    </div>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </div>
+              </div>
             ))}
           </div>
         )}
-        </BorderGlow>
       </div>
 
       <Modal
@@ -330,7 +310,7 @@ export default function DashboardPage() {
                 }))
               }
               rows={3}
-              className="flex w-full rounded-lg border-0 bg-[#fafafc] dark:bg-[#2a2a2d] px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+              className="flex w-full rounded-lg border-0 bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             />
           </div>
 

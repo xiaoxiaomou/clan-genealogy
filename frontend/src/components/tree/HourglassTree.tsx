@@ -5,11 +5,7 @@ import {
   Background,
   Handle,
   Position,
-  BaseEdge,
-  getBezierPath,
   useReactFlow,
-  type Edge,
-  type Node,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
@@ -39,6 +35,23 @@ interface HourglassMemberNodeData {
   gender?: string
 }
 
+// src/env.d.ts 中对 '@xyflow/react' 的 ambient 声明覆盖了包内类型，
+// 这里以结构等价的局部类型替代 Node/Edge（仅类型层面，无运行时影响）。
+interface HourglassFlowNode {
+  id: string
+  type?: string
+  position: { x: number; y: number }
+  data: HourglassMemberNodeData
+}
+
+interface HourglassFlowEdge {
+  id: string
+  source: string
+  target: string
+  type?: string
+  animated?: boolean
+}
+
 function HourglassNodeComponent({ data }: { data: HourglassMemberNodeData }) {
   const member = data.member as HourglassMember
   return (
@@ -46,7 +59,7 @@ function HourglassNodeComponent({ data }: { data: HourglassMemberNodeData }) {
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <Card className="cursor-pointer hover:shadow-lg transition-shadow" style={{ borderColor: getGenderColor('male'), borderWidth: 1 }}>
         <CardContent className="p-2 flex items-center gap-2">
-          <AvatarDisplay name={member.name} size={32} className="flex-shrink-0" />
+          <AvatarDisplay avatar={null} name={member.name} size={32} className="flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="font-medium text-xs truncate">{member.name}</p>
             <p className="text-[10px] text-muted-foreground">第{member.generation}世</p>
@@ -81,10 +94,10 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
   const [ancestorEdgeKeys, setAncestorEdgeKeys] = useState<string[]>([])
   const [descendantEdgeKeys, setDescendantEdgeKeys] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedMember, setSelectedMember] = useState<HourglassMember | null>(null)
+  const [, setSelectedMember] = useState<HourglassMember | null>(null)
 
   const reactFlowInstance = useRef<ReturnType<typeof useReactFlow> | null>(null)
-  const { focusMemberId, generateFocusUrl, clearFocus } = useTreeFocus()
+  const { focusMemberId } = useTreeFocus()
 
   const loadHourglass = useCallback(async (memberId: number) => {
     setLoading(true)
@@ -110,7 +123,7 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
     }
   }, [initialMemberId, loadHourglass])
 
-  const handleNodeClick = useCallback((_: unknown, node: Node) => {
+  const handleNodeClick = useCallback((_: unknown, node: HourglassFlowNode) => {
     const member = node.data?.member as HourglassMember | undefined
     if (member) {
       setSelectedMember(member)
@@ -119,7 +132,7 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
   }, [onMemberClick])
 
   const { nodes, edges, dagrePositions } = useMemo(() => {
-    if (!centerMember) return { nodes: [] as Node[], edges: [] as Edge[], dagrePositions: new Map<number, { x: number; y: number }>() }
+    if (!centerMember) return { nodes: [] as HourglassFlowNode[], edges: [] as HourglassFlowEdge[], dagrePositions: new Map<number, { x: number; y: number }>() }
 
     const dagreGraph = new dagre.graphlib.Graph()
     dagreGraph.setDefaultEdgeLabel(() => ({}))
@@ -153,7 +166,7 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
       if (!idSet.has(d.id)) { allNodes.push(d); idSet.add(d.id) }
     }
 
-    const reactflowNodes: Node[] = allNodes.map((n) => ({
+    const reactflowNodes: HourglassFlowNode[] = allNodes.map((n) => ({
       id: String(n.id),
       type: 'hourglassMember',
       position: { x: 0, y: 0 },
@@ -164,7 +177,7 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
     const edgeSet = new Set(ancestorEdgeKeys)
     for (const k of descendantEdgeKeys) edgeSet.add(k)
 
-    const reactflowEdges: Edge[] = []
+    const reactflowEdges: HourglassFlowEdge[] = []
     for (const ek of edgeSet) {
       const [a, b] = ek.split('-').map(Number)
       if (idSet.has(a) && idSet.has(b)) {

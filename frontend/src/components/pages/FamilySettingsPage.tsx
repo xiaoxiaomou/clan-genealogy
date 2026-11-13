@@ -10,27 +10,23 @@ import {
   AvatarDisplay,
 } from '@/components/ui'
 import { Layout } from '@/components/layout/Layout'
+import { PgPageHead, PgSectionHead, PG_SERIF } from '@/components/ui/pedigree'
 import { ShareLinksSection } from '@/components/ui/ShareLinksSection'
 import { FamilyMergeSection } from '@/components/ui/FamilyMergeSection'
 import {
   ArrowLeft,
-  Settings,
-  Users,
   UserPlus,
   Trash2,
-  Shield,
   Search,
   Pencil,
   Save,
   X,
-  BookText,
   Plus,
   Copy,
   Check,
   Share2,
   GitMerge,
   Clock,
-  Activity,
   ExternalLink,
   ListChecks,
   ChevronLeft,
@@ -44,10 +40,11 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: '查看者',
 }
 
+/* 角色徽记：走主题令牌，素色呈现，所有者以朱红点出 */
 const ROLE_COLORS: Record<string, string> = {
-  owner: 'text-amber-600 bg-amber-50',
-  admin: 'text-blue-600 bg-blue-50',
-  editor: 'text-green-600 bg-green-50',
+  owner: 'text-[#A63A2E] bg-[#A63A2E]/10',
+  admin: 'text-foreground bg-muted',
+  editor: 'text-muted-foreground bg-muted',
   viewer: 'text-muted-foreground bg-muted',
 }
 
@@ -178,7 +175,7 @@ export default function FamilySettingsPage() {
   const handleDeleteInvitation = async (inviteId: number) => {
     if (!confirm('确定要删除此邀请吗？')) return
     try {
-      await api.deleteInvitation(familyId, inviteId)
+      await api.deactivateInvitation(familyId, inviteId)
       showToast('邀请已删除', 'success')
       loadInvitations()
     } catch (err: any) {
@@ -202,9 +199,9 @@ export default function FamilySettingsPage() {
     try {
       const res = await api.getAuditLogs(familyId, page, 20)
       setAuditLogs(res.audit_logs)
-      setAuditTotal(res.total)
-      setAuditPage(res.page)
-      setAuditPages(res.pages)
+      setAuditTotal(res.pagination.total)
+      setAuditPage(res.pagination.page)
+      setAuditPages(res.pagination.pages)
     } catch {
       // ignore
     } finally {
@@ -232,7 +229,7 @@ export default function FamilySettingsPage() {
       const res = await api.searchUsers(searchQuery.trim())
       // 过滤掉已在族谱中的用户
       const existingIds = new Set(users.map((u) => u.user_id))
-      const filtered = res.users.filter((u) => !existingIds.has(u.id))
+      const filtered = res.users.filter((u: { id: number }) => !existingIds.has(u.id))
       setSearchResults(filtered)
       setShowSearchResults(true)
     } catch (err: any) {
@@ -317,7 +314,7 @@ export default function FamilySettingsPage() {
     if (!genForm.generation || !genForm.character.trim()) return
     setAddingGen(true)
     try {
-      await api.addGeneration(familyId, {
+      await api.createGeneration(familyId, {
         generation: genForm.generation,
         character: genForm.character.trim(),
         description: genForm.description.trim() || undefined,
@@ -391,7 +388,10 @@ export default function FamilySettingsPage() {
     return (
       <Layout>
         <div className="flex h-screen flex-col items-center justify-center text-muted-foreground">
-          <p>族谱不存在或无权访问</p>
+          <p className="pg-title text-lg" style={{ letterSpacing: '0.08em' }}>
+            族谱不存在或无权访问
+          </p>
+          <p className="mt-2 text-xs">请确认谱册编号，或返回首页另择一卷。</p>
           <Button
             variant="ghost"
             className="mt-4"
@@ -407,9 +407,9 @@ export default function FamilySettingsPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="pg-rise mx-auto max-w-3xl px-4 py-8">
         {/* 顶部导航 */}
-        <div className="mb-8 flex items-center gap-4">
+        <div className="mb-5">
           <Button
             variant="ghost"
             size="sm"
@@ -419,42 +419,42 @@ export default function FamilySettingsPage() {
             <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
             返回族谱
           </Button>
-          <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            <h1 className="text-xl font-semibold text-foreground">
-              {family.name} - 设置
-            </h1>
-          </div>
         </div>
 
+        <PgPageHead
+          eyebrow="谱 牒 · 凡 例"
+          title="族谱设置"
+          subtitle={`${family.name} · 谱例、成员与邀请的管理`}
+        />
+
         {/* 快捷操作 */}
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <button
             onClick={() => navigate(`/family/${familyId}/batch`)}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-amber-700/20 bg-amber-700/5 p-4 text-xs font-medium text-foreground transition-colors hover:bg-amber-700/10"
+            className="pg-card flex flex-col items-center gap-1.5 p-4 text-xs font-medium text-foreground transition-colors hover:border-muted-foreground/40"
             aria-label="批量操作成员"
           >
-            <ListChecks className="h-5 w-5 text-amber-700" aria-hidden="true" />
+            <ListChecks className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             批量操作
             <span className="text-[10px] font-normal text-muted-foreground">编辑/删除/导入</span>
           </button>
           <button
             onClick={() => document.getElementById('share-section')?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-amber-700/20 bg-amber-700/5 p-4 text-xs font-medium text-foreground transition-colors hover:bg-amber-700/10"
+            className="pg-card flex flex-col items-center gap-1.5 p-4 text-xs font-medium text-foreground transition-colors hover:border-muted-foreground/40"
             aria-label="管理公开分享链接"
           >
-            <Share2 className="h-5 w-5 text-amber-700" aria-hidden="true" />
+            <Share2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             公开分享
             <span className="text-[10px] font-normal text-muted-foreground">生成只读链接</span>
           </button>
           <button
             onClick={() => document.getElementById('merge-section')?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 text-xs font-medium text-foreground transition-colors hover:bg-rose-500/10"
+            className="pg-card flex flex-col items-center gap-1.5 p-4 text-xs font-medium text-foreground transition-colors hover:border-destructive/40"
             aria-label="合并其他家族"
           >
-            <GitMerge className="h-5 w-5 text-rose-500" aria-hidden="true" />
+            <GitMerge className="h-5 w-5 text-destructive/70" aria-hidden="true" />
             家族合并
-            <span className="text-[10px] font-normal text-muted-foreground">高危操作</span>
+            <span className="text-[10px] font-normal text-destructive/80">高危操作</span>
           </button>
         </div>
 
@@ -467,37 +467,39 @@ export default function FamilySettingsPage() {
         </div>
 
         {/* 族谱信息 */}
-        <div className="mb-8 rounded-lg bg-white dark:bg-[#262628] border p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-foreground">族谱信息</h2>
-            <div className="flex items-center gap-2">
-              {canManage() && !isEditing && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="gap-1"
-                  aria-label="编辑族谱信息"
-                >
-                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                  编辑
-                </Button>
-              )}
-              {canManage() && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDeleteFamily}
-                  className="gap-1 text-red-600 hover:bg-red-50 hover:text-red-700"
-                  aria-label="删除族谱"
-                >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  删除
-                </Button>
-              )}
-            </div>
-          </div>
-
+        <section className="mb-8">
+          <PgSectionHead
+            text="族 谱 信 息"
+            right={
+              <>
+                {canManage() && !isEditing && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="gap-1"
+                    aria-label="编辑族谱信息"
+                  >
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                    编辑
+                  </Button>
+                )}
+                {canManage() && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeleteFamily}
+                    className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="删除族谱"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    删除
+                  </Button>
+                )}
+              </>
+            }
+          />
+          <div className="pg-card p-6">
           {isEditing ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -590,61 +592,69 @@ export default function FamilySettingsPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <dl className="grid grid-cols-1 gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
               <div>
-                <span className="text-muted-foreground">名称：</span>
-                <span className="font-medium text-foreground">{family.name}</span>
+                <dt className="text-xs text-muted-foreground">名称</dt>
+                <dd
+                  className="mt-0.5 font-medium text-foreground"
+                  style={{ fontFamily: PG_SERIF, fontSize: '15px', letterSpacing: '0.05em' }}
+                >
+                  {family.name}
+                </dd>
               </div>
               <div>
-                <span className="text-muted-foreground">姓氏：</span>
-                <span className="font-medium text-foreground">
+                <dt className="text-xs text-muted-foreground">姓氏</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
                   {family.surname || '未设置'}
-                </span>
+                </dd>
               </div>
               <div>
-                <span className="text-muted-foreground">籍贯：</span>
-                <span className="font-medium text-foreground">
+                <dt className="text-xs text-muted-foreground">籍贯</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
                   {family.origin || '未设置'}
-                </span>
+                </dd>
               </div>
               <div>
-                <span className="text-muted-foreground">公开：</span>
-                <span className="font-medium text-foreground">
+                <dt className="text-xs text-muted-foreground">公开</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
                   {family.is_public ? '是' : '否'}
-                </span>
+                </dd>
               </div>
-              <div className="col-span-2">
-                <span className="text-muted-foreground">描述：</span>
-                <span className="font-medium text-foreground">
+              <div className="col-span-1 sm:col-span-2">
+                <dt className="text-xs text-muted-foreground">描述</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
                   {family.description || '未设置'}
-                </span>
+                </dd>
               </div>
-            </div>
+            </dl>
           )}
-        </div>
+          </div>
+        </section>
 
         {/* 辈分字派管理 */}
-        <div className="mb-8 rounded-lg bg-white dark:bg-[#262628] border p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookText className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <h2 className="text-lg font-medium text-foreground">辈分字派</h2>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                {generations.length}
-              </span>
-            </div>
-            {canManage() && !showAddGen && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddGen(true)}
-                className="gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                添加字派
-              </Button>
-            )}
-          </div>
+        <section className="mb-8">
+          <PgSectionHead
+            text="辈 分 字 派"
+            right={
+              <>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  {generations.length}
+                </span>
+                {canManage() && !showAddGen && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddGen(true)}
+                    className="gap-1"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    添加字派
+                  </Button>
+                )}
+              </>
+            }
+          />
+          <div className="pg-card p-6">
 
           {/* 添加字派表单 */}
           {showAddGen && (
@@ -698,10 +708,14 @@ export default function FamilySettingsPage() {
 
           {/* 字派列表 */}
           {generations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <BookText className="mb-2 h-8 w-8 opacity-40" />
-              <p className="text-sm">尚未设置辈分字派</p>
-              <p className="text-xs mt-1">添加字派后，添加成员时可以自动推荐对应辈分的字</p>
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+              <p className="pg-title text-sm" style={{ letterSpacing: '0.1em' }}>
+                行第尚虚，字派未立。
+              </p>
+              <p className="mt-1.5 text-xs">
+                添加字派后，新增成员可按辈分自动推荐用字
+                {canManage() ? '，点击右上「添加字派」开始' : ''}
+              </p>
             </div>
           ) : (
             <div className="overflow-hidden rounded border">
@@ -729,7 +743,7 @@ export default function FamilySettingsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => handleDeleteGeneration(g.id)}
                             aria-label={`删除第${g.generation}代字派`}
                           >
@@ -746,43 +760,49 @@ export default function FamilySettingsPage() {
 
           {/* 字派诗展示 */}
           {generations.length >= 4 && (
-            <div className="mt-6 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 p-4 border border-amber-200 dark:border-amber-800">
-              <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-3 flex items-center gap-2">
-                <BookText className="h-4 w-4" />
-                字派诗
-              </h3>
-              <div className="flex flex-wrap gap-2">
+            <div className="pg-card-soft mt-6 p-5">
+              <PgSectionHead text="字 派 诗" />
+              <div className="flex flex-wrap items-center gap-1.5">
                 {generations
                   .sort((a, b) => a.generation - b.generation)
                   .map((g, idx) => (
-                    <div key={g.id} className="flex items-center gap-1">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 font-mono font-bold text-sm">
+                    <div key={g.id} className="flex items-center gap-1.5">
+                      <span
+                        className="relative inline-flex h-11 w-10 items-center justify-center rounded-md border bg-card pb-1.5 text-lg font-semibold text-foreground"
+                        style={{ fontFamily: PG_SERIF, borderColor: 'hsl(var(--border))' }}
+                      >
                         {g.character}
+                        <small className="absolute bottom-0.5 left-0 right-0 text-center text-[9px] font-normal text-muted-foreground">
+                          第{g.generation}代
+                        </small>
                       </span>
                       {idx < generations.length - 1 && (
-                        <span className="text-amber-400 mx-1">→</span>
+                        <span aria-hidden="true" className="text-xs text-muted-foreground/60">
+                          →
+                        </span>
                       )}
                     </div>
                   ))}
               </div>
-              <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+              <p className="mt-4 text-xs text-muted-foreground">
                 共 {generations.length} 个辈分，{generations[0].generation} - {generations[generations.length - 1].generation} 代
               </p>
             </div>
           )}
-        </div>
+          </div>
+        </section>
 
         {/* 成员权限管理 */}
-        <div className="rounded-lg bg-white dark:bg-[#262628] border p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <h2 className="text-lg font-medium text-foreground">成员权限</h2>
+        <section className="mb-8">
+          <PgSectionHead
+            text="成 员 权 限"
+            right={
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                 {users.length}
               </span>
-            </div>
-          </div>
+            }
+          />
+          <div className="pg-card p-6">
 
           {/* 添加用户 */}
           {canManage() && (
@@ -823,7 +843,8 @@ export default function FamilySettingsPage() {
                     {searchResults.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center justify-between rounded-lg bg-white px-3 py-2"
+                        className="flex items-center justify-between rounded-lg border bg-card px-3 py-2"
+                        style={{ borderColor: 'hsl(var(--border))' }}
                       >
                         <div className="flex items-center gap-3">
                           <AvatarDisplay
@@ -890,7 +911,6 @@ export default function FamilySettingsPage() {
                   {/* 角色标签/选择 */}
                   {canManage() && user.user_id !== currentUserId ? (
                     <div className="flex items-center gap-2">
-                      <Shield className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                       <select
                         value={user.role}
                         onChange={(e) =>
@@ -920,7 +940,7 @@ export default function FamilySettingsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => handleRemoveUser(user.user_id)}
                         aria-label={`移除 ${user.display_name || user.username}`}
                       >
@@ -931,40 +951,45 @@ export default function FamilySettingsPage() {
               </div>
             ))}
           </div>
-        </div>
+          </div>
+        </section>
 
         {/* 邀请管理 */}
-        <div className="mb-8 rounded-lg bg-white dark:bg-[#262628] border p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <h2 className="text-lg font-medium text-foreground">邀请管理</h2>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                {invitations.length}
-              </span>
-            </div>
-            {canManage() && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShowInviteModal(true)
-                  setCreatedCode('')
-                  setInviteForm({ role: 'viewer', max_uses: 0, expires_in_hours: 72 })
-                }}
-                className="gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                生成邀请
-              </Button>
-            )}
-          </div>
+        <section className="mb-8">
+          <PgSectionHead
+            text="邀 请 管 理"
+            right={
+              <>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  {invitations.length}
+                </span>
+                {canManage() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowInviteModal(true)
+                      setCreatedCode('')
+                      setInviteForm({ role: 'viewer', max_uses: 0, expires_in_hours: 72 })
+                    }}
+                    className="gap-1"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    生成邀请
+                  </Button>
+                )}
+              </>
+            }
+          />
+          <div className="pg-card p-6">
 
           {/* 生成邀请弹窗 */}
           {showInviteModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/15 backdrop-blur-sm">
-              <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
-                <h3 className="mb-4 text-lg font-semibold">生成邀请链接</h3>
+              <div className="pg-card w-full max-w-md p-6 shadow-lg">
+                <h3 className="pg-title mb-4 text-lg font-semibold" style={{ letterSpacing: '0.06em' }}>
+                  生成邀请链接
+                </h3>
                 {createdCode ? (
                   <div className="space-y-4">
                     <div className="rounded border bg-muted/30 p-4">
@@ -1067,10 +1092,14 @@ export default function FamilySettingsPage() {
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : invitations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Share2 className="mb-2 h-8 w-8 opacity-40" />
-              <p className="text-sm">暂无邀请</p>
-              <p className="text-xs mt-1">生成邀请链接，让其他人加入这个族谱</p>
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+              <p className="pg-title text-sm" style={{ letterSpacing: '0.1em' }}>
+                尚未发出邀请。
+              </p>
+              <p className="mt-1.5 text-xs">
+                生成邀请链接，邀族人持码入谱
+                {canManage() ? '，点击右上「生成邀请」开始' : ''}
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1080,23 +1109,19 @@ export default function FamilySettingsPage() {
                   className="flex items-center justify-between rounded border px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded bg-primary/10">
-                      <Share2 className="h-4 w-4 text-primary" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded bg-muted">
+                      <Share2 className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <code className="rounded bg-muted px-2 py-0.5 font-mono text-sm">
                           {inv.code}
                         </code>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          inv.role === 'admin' ? 'text-blue-600 bg-blue-50' :
-                          inv.role === 'editor' ? 'text-green-600 bg-green-50' :
-                          'text-muted-foreground bg-muted'
-                        }`}>
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                           {inv.role === 'admin' ? '管理员' : inv.role === 'editor' ? '编辑者' : '查看者'}
                         </span>
                         {!inv.is_active && (
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">已失效</span>
+                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">已失效</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1">
@@ -1126,7 +1151,7 @@ export default function FamilySettingsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => handleDeleteInvitation(inv.id)}
                         aria-label="删除邀请"
                       >
@@ -1138,47 +1163,50 @@ export default function FamilySettingsPage() {
               ))}
             </div>
           )}
-        </div>
+          </div>
+        </section>
 
         {/* 审计日志 */}
-        <div className="rounded-lg bg-white dark:bg-[#262628] border p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <h2 className="text-lg font-medium text-foreground">审计日志</h2>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                {auditTotal}
-              </span>
-            </div>
-            {canManage() && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  loadAuditLogs()
-                  loadAuditStats()
-                }}
-                className="gap-1"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                刷新
-              </Button>
-            )}
-          </div>
+        <section className="mb-8">
+          <PgSectionHead
+            text="审 计 日 志"
+            right={
+              <>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  {auditTotal}
+                </span>
+                {canManage() && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      loadAuditLogs()
+                      loadAuditStats()
+                    }}
+                    className="gap-1"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    刷新
+                  </Button>
+                )}
+              </>
+            }
+          />
+          <div className="pg-card p-6">
 
           {/* 审计统计 */}
           {auditStats && (
             <div className="mb-4 grid grid-cols-3 gap-3">
-              <div className="rounded border bg-muted/30 p-3 text-center">
-                <p className="text-lg font-bold text-foreground">{Object.values(auditStats.by_action).reduce((a, b) => a + b, 0)}</p>
+              <div className="pg-card-soft p-3 text-center">
+                <p className="pg-title text-lg font-semibold text-foreground">{Object.values(auditStats.by_action).reduce((a, b) => a + b, 0)}</p>
                 <p className="text-xs text-muted-foreground">总操作数</p>
               </div>
-              <div className="rounded border bg-muted/30 p-3 text-center">
-                <p className="text-lg font-bold text-foreground">{Object.keys(auditStats.by_action).length}</p>
+              <div className="pg-card-soft p-3 text-center">
+                <p className="pg-title text-lg font-semibold text-foreground">{Object.keys(auditStats.by_action).length}</p>
                 <p className="text-xs text-muted-foreground">操作类型</p>
               </div>
-              <div className="rounded border bg-muted/30 p-3 text-center">
-                <p className="text-lg font-bold text-foreground">{Object.keys(auditStats.by_entity).length}</p>
+              <div className="pg-card-soft p-3 text-center">
+                <p className="pg-title text-lg font-semibold text-foreground">{Object.keys(auditStats.by_entity).length}</p>
                 <p className="text-xs text-muted-foreground">涉及模块</p>
               </div>
             </div>
@@ -1190,9 +1218,11 @@ export default function FamilySettingsPage() {
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : auditLogs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Activity className="mb-2 h-8 w-8 opacity-40" />
-              <p className="text-sm">暂无审计日志</p>
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+              <p className="pg-title text-sm" style={{ letterSpacing: '0.1em' }}>
+                尚无审计记录。
+              </p>
+              <p className="mt-1.5 text-xs">谱内成员的增删改动，将在此留痕备查</p>
             </div>
           ) : (
             <>
@@ -1257,11 +1287,12 @@ export default function FamilySettingsPage() {
               )}
             </>
           )}
-</div>
-        </div>
+          </div>
+        </section>
+      </div>
 
       {/* Toast */}
-      
+
     </Layout>
   )
 }

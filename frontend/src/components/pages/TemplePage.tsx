@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, CardContent, useToast } from '@/components/ui'
+import { useToast } from '@/components/ui'
+import { PgPageHead, PgSectionHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
-import { ArrowLeft, ScrollText, Sparkles, MapPin } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { formatPoem } from '@/lib/zibei'
 
 interface TempleData {
@@ -44,137 +46,151 @@ export default function TemplePage() {
 
   if (loading || !data) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)' }}
-      >
-        <p className="text-amber-100">焚香候...</p>
-      </div>
+      <Layout>
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </Layout>
     )
   }
 
   const poem = formatPoem(data.zibei_text, 10)
 
   return (
-    <div
-      className="min-h-screen p-4 sm:p-8"
-      style={{
-        background: 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)',
-      }}
-    >
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center gap-2 text-amber-100">
+    <Layout>
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6 pg-rise">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(`/family/${familyId}`)}
-            className="flex items-center gap-1 text-sm hover:text-amber-300"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
-            返回
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            返回族谱
           </button>
         </div>
 
-        {/* 匾额 */}
-        <div className="relative overflow-hidden rounded-lg border-2 border-amber-700/40 bg-gradient-to-br from-amber-900/40 to-stone-900/60 p-8 text-center shadow-2xl">
-          <div className="absolute inset-0 opacity-20" style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(245, 230, 211, 0.1) 10px, rgba(245, 230, 211, 0.1) 11px)',
-          }} />
-          <div className="relative">
-            <div className="mb-2 text-xs tracking-[0.5em] text-amber-300/60">家 庙</div>
-            <h1 className="font-serif text-5xl font-bold text-amber-100">
-              {data.family.surname || data.family.name}氏家庙
-            </h1>
-            <div className="mt-3 text-sm text-amber-200/70">
-              {data.family.origin && <>发祥于 {data.family.origin}</>}
-            </div>
-            <div className="mt-1 text-xs text-amber-200/40">
+        <PgPageHead
+          eyebrow="谱 牒 · 家 庙"
+          title={`${data.family.surname || data.family.name}氏家庙`}
+          subtitle={
+            <>
+              {data.family.origin && <>发祥于 {data.family.origin} · </>}
               {data.family.created_at?.slice(0, 4)} 年立 · 现存 {data.descendant_count_5gen} 位五代内后昆
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* 始祖 */}
         {data.founder && (
-          <Card className="border-amber-700/30 bg-stone-900/50">
-            <CardContent className="p-6">
-              <h2 className="mb-3 flex items-center gap-2 font-serif text-xl text-amber-200">
-                <Sparkles className="h-4 w-4" />
-                始祖
-              </h2>
+          <div>
+            <PgSectionHead text="始 祖" />
+            <div className="pg-card p-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-amber-700/50 bg-amber-100 text-3xl font-serif text-amber-900">
+                <div
+                  className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border text-3xl"
+                  style={{
+                    borderColor: 'hsl(var(--border))',
+                    background: 'hsl(var(--muted) / .3)',
+                    fontFamily: PG_SERIF,
+                  }}
+                  aria-hidden="true"
+                >
                   {data.founder.name?.[0] || '?'}
                 </div>
                 <div className="space-y-1">
-                  <div className="font-serif text-2xl text-amber-100">{data.founder.name}</div>
-                  <div className="text-sm text-amber-200/70">
+                  <div className="text-2xl" style={{ fontFamily: PG_SERIF, letterSpacing: '0.06em' }}>
+                    {data.founder.name}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
                     第 {data.founder.generation || '?'} 代 · {data.founder.gender === 'male' ? '公' : '氏'}
                   </div>
-                  <div className="text-xs text-amber-200/50">
+                  <div className="text-xs text-muted-foreground">
                     {data.founder.birth_year || '?'} - {data.founder.death_year || '今'}
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
-        {/* 家训 */}
+        {/* 家训挂轴 */}
         {data.motto && (
-          <Card className="border-amber-700/30 bg-stone-900/50">
-            <CardContent className="p-6">
-              <h2 className="mb-3 flex items-center gap-2 font-serif text-xl text-amber-200">
-                <ScrollText className="h-4 w-4" />
-                家训
-              </h2>
-              <p className="font-serif text-lg leading-loose text-amber-100/90">{data.motto}</p>
-            </CardContent>
-          </Card>
+          <div>
+            <PgSectionHead text="家 训" />
+            <div className="pg-card flex justify-center px-6 py-8" style={{ background: 'hsl(var(--muted) / .3)' }}>
+              <div
+                className="rounded-[4px] px-5 pb-3 pt-5"
+                style={{
+                  border: `1px solid color-mix(in srgb, ${PG_RED} 35%, transparent)`,
+                  outline: `3px solid color-mix(in srgb, ${PG_RED} 10%, transparent)`,
+                  outlineOffset: 3,
+                  background: 'hsl(var(--card))',
+                }}
+              >
+                <div
+                  className="pg-vertical-text mx-auto max-h-56 text-lg font-semibold"
+                  style={{ color: PG_RED, lineHeight: 1.7 }}
+                >
+                  {data.motto}
+                </div>
+                <div
+                  className="mx-auto mt-2 flex h-5 w-5 rotate-3 items-center justify-center rounded-[3px] text-[11px] font-semibold text-white"
+                  style={{ background: PG_RED, fontFamily: PG_SERIF }}
+                  aria-hidden="true"
+                >
+                  训
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* 家族简介 */}
         {(data.intro || data.description) && (
-          <Card className="border-amber-700/30 bg-stone-900/50">
-            <CardContent className="p-6">
-              <h2 className="mb-3 flex items-center gap-2 font-serif text-xl text-amber-200">
-                <MapPin className="h-4 w-4" />
-                家族简介
-              </h2>
+          <div>
+            <PgSectionHead text="家 族 简 介" />
+            <div className="pg-card p-6">
               <div
-                className="prose prose-invert prose-sm max-w-none font-serif text-amber-100/80"
-                dangerouslySetInnerHTML={{ __html: data.intro || data.description || '<p class="text-amber-200/40">（未填写）</p>' }}
+                className="prose prose-sm max-w-none text-sm leading-relaxed"
+                style={{ color: 'hsl(var(--foreground) / 0.8)' }}
+                dangerouslySetInnerHTML={{ __html: data.intro || data.description }}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* 字辈诗 */}
         {poem.length > 0 && (
-          <Card className="border-amber-700/30 bg-stone-900/50">
-            <CardContent className="p-6">
-              <h2 className="mb-3 flex items-center gap-2 font-serif text-xl text-amber-200">
-                <Sparkles className="h-4 w-4" />
-                字辈诗
-              </h2>
+          <div>
+            <PgSectionHead text="字 辈 诗" />
+            <div className="pg-card p-6">
               {data.zibei_description && (
-                <p className="mb-4 text-sm text-amber-200/60">{data.zibei_description}</p>
+                <p className="mb-4 text-sm text-muted-foreground">{data.zibei_description}</p>
               )}
-              <div className="space-y-2 rounded border border-amber-700/30 bg-stone-950/50 p-4 font-serif text-lg leading-loose">
+              <div className="pg-card-soft space-y-2 p-4">
                 {poem.map((line, idx) => (
-                  <div key={idx} className="flex justify-center gap-2 text-amber-100">
+                  <div
+                    key={idx}
+                    className="flex justify-center gap-2 text-lg leading-loose"
+                    style={{ fontFamily: PG_SERIF, letterSpacing: '0.1em' }}
+                  >
                     {line.split('').map((c, i) => (
                       <span key={i}>{c}</span>
                     ))}
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
-        <p className="text-center text-xs text-amber-200/30">
-          愿家族昌盛，子孙兴旺
+        <p
+          className="text-center text-xs text-muted-foreground"
+          style={{ fontFamily: PG_SERIF, letterSpacing: '0.3em' }}
+        >
+          愿家族昌盛 · 子孙兴旺
         </p>
       </div>
-    </div>
+    </Layout>
   )
 }

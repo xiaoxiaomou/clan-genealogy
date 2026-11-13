@@ -9,13 +9,12 @@ import {
   Input,
   Label,
   useToast,
-  BorderGlow,
 } from '@/components/ui'
+import { PgPageHead, PgSectionHead, PgColophon } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import {
   ArrowLeft,
   Plus,
-  Calendar,
   MapPin,
   Trash2,
   Pencil,
@@ -33,17 +32,18 @@ import {
   TreePine,
 } from 'lucide-react'
 
-const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  birth: { label: '出生', icon: <Baby className="h-3.5 w-3.5" />, color: 'bg-green-100 text-green-700 border-green-200' },
-  marriage: { label: '婚嫁', icon: <Heart className="h-3.5 w-3.5" />, color: 'bg-pink-100 text-pink-700 border-pink-200' },
-  move: { label: '迁居', icon: <Home className="h-3.5 w-3.5" />, color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  build: { label: '修建', icon: <Building2 className="h-3.5 w-3.5" />, color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  ancestor_worship: { label: '祭祖', icon: <TreePine className="h-3.5 w-3.5" />, color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  genealogy_update: { label: '修谱', icon: <BookOpen className="h-3.5 w-3.5" />, color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  clan_gathering: { label: '宗亲会', icon: <Users className="h-3.5 w-3.5" />, color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
-  education: { label: '升学/科举', icon: <BookOpen className="h-3.5 w-3.5" />, color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-  birthday: { label: '寿诞', icon: <Gift className="h-3.5 w-3.5" />, color: 'bg-rose-100 text-rose-700 border-rose-200' },
-  other: { label: '其他', icon: <MoreHorizontal className="h-3.5 w-3.5" />, color: 'bg-gray-100 text-gray-700 border-gray-200' },
+/* 谱事类型：图标 + 名称即可辨义，配色统一走主题令牌 */
+const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode }> = {
+  birth: { label: '出生', icon: <Baby className="h-3.5 w-3.5" /> },
+  marriage: { label: '婚嫁', icon: <Heart className="h-3.5 w-3.5" /> },
+  move: { label: '迁居', icon: <Home className="h-3.5 w-3.5" /> },
+  build: { label: '修建', icon: <Building2 className="h-3.5 w-3.5" /> },
+  ancestor_worship: { label: '祭祖', icon: <TreePine className="h-3.5 w-3.5" /> },
+  genealogy_update: { label: '修谱', icon: <BookOpen className="h-3.5 w-3.5" /> },
+  clan_gathering: { label: '宗亲会', icon: <Users className="h-3.5 w-3.5" /> },
+  education: { label: '升学/科举', icon: <BookOpen className="h-3.5 w-3.5" /> },
+  birthday: { label: '寿诞', icon: <Gift className="h-3.5 w-3.5" /> },
+  other: { label: '其他', icon: <MoreHorizontal className="h-3.5 w-3.5" /> },
 }
 
 export default function FamilyEventsPage() {
@@ -227,40 +227,29 @@ export default function FamilyEventsPage() {
 
   return (
     <Layout>
-      
-
-      <BorderGlow
-        backgroundColor="transparent"
-        className="!bg-transparent border-0 p-0"
-        colors={['#4facfe', '#00f2fe', '#43e97b']}
-        glowIntensity={0.3}
-        edgeSensitivity={35}
-      >
-      <div className="mx-auto max-w-4xl px-6 py-8">
-        {/* 页面头部 */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(`/family/${familyId}`)}
-              className="rounded"
-              aria-label="返回族谱"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">家族大事记</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                记录家族中的重要时刻和事件
-              </p>
-            </div>
-          </div>
-          <Button variant="apple" glow onClick={openAddForm} className="gap-2">
-            <Plus className="h-4 w-4" />
-            添加事件
-          </Button>
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 pg-rise">
+        <div className="mb-5 flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/family/${familyId}`)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回族谱
+          </button>
         </div>
+
+        {/* 页头 */}
+        <PgPageHead
+          eyebrow="谱 牒 · 谱 事"
+          title="家族大事记"
+          subtitle="族中大情小事，按年编次，以备查考"
+          actions={
+            <Button variant="apple" glow onClick={openAddForm} className="gap-2">
+              <Plus className="h-4 w-4" />
+              添加事件
+            </Button>
+          }
+        />
 
         {isLoading ? (
           <div className="space-y-6" aria-busy="true">
@@ -270,7 +259,7 @@ export default function FamilyEventsPage() {
                   <div className="h-12 w-24 rounded bg-muted" />
                   <div className="mt-2 h-6 w-0.5 bg-muted" />
                 </div>
-                <div className="flex-1 rounded-lg border bg-white dark:bg-[#262628] p-5">
+                <div className="pg-card flex-1 p-5">
                   <div className="mb-2 h-5 w-2/3 rounded bg-muted" />
                   <div className="mb-2 h-4 w-1/3 rounded bg-muted" />
                   <div className="h-4 w-full rounded bg-muted" />
@@ -279,128 +268,153 @@ export default function FamilyEventsPage() {
             ))}
           </div>
         ) : sortedEvents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 animate-fade-in">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/8 border border-primary/15">
-              <Calendar className="h-10 w-10 text-primary" />
-            </div>
-            <h2 className="mb-2 text-xl font-semibold tracking-tight">暂无大事记</h2>
-            <p className="mb-8 max-w-md text-center text-muted-foreground">
-              家族大事记记录了家族历史中的重要时刻。点击上方按钮添加第一条记录。
+          <div className="pg-card flex flex-col items-center justify-center py-20">
+            <h2 className="mb-2 text-xl font-semibold pg-title">谱事尚空</h2>
+            <p className="mb-8 max-w-md text-center text-sm text-muted-foreground">
+              家族大事记记录了族中的重要时刻。点击右上「添加事件」，先记下第一则。
             </p>
-          <Button variant="apple" glow onClick={openAddForm} className="gap-2">
+            <Button variant="apple" glow onClick={openAddForm} className="gap-2">
               <Plus className="h-4 w-4" />
               添加第一条大事记
             </Button>
           </div>
         ) : (
-          <div className="relative">
-            {/* 时间轴线 */}
-            <div className="absolute left-[140px] top-0 h-full w-0.5 bg-border/60" aria-hidden="true" />
+          <div>
+            <PgSectionHead text="谱 事 编 年" />
 
-            <div className="space-y-6">
-              {sortedEvents.map((event, index) => {
-                const config = getEventTypeConfig(event.event_type)
-                return (
-                  <div
-                    key={event.id}
-                    className="relative flex gap-6 animate-fade-in group"
-                    style={{ animationDelay: `${index * 60}ms` }}
-                  >
-                    {/* 左侧日期 */}
-                    <div className="w-[120px] shrink-0 pt-2 text-right">
-                      <p className="text-sm font-bold text-foreground">
-                        {new Date(event.event_date).toLocaleDateString('zh-CN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                        })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(event.event_date).toLocaleDateString('zh-CN', {
-                          weekday: 'short',
-                        })}
-                      </p>
-                    </div>
+            <div className="relative mt-5">
+              {/* 时间轴线 */}
+              <div
+                className="absolute left-[140px] top-0 h-full w-px"
+                style={{ background: 'hsl(var(--border))' }}
+                aria-hidden="true"
+              />
 
-                    {/* 时间点圆点 */}
-                    <div className="absolute left-[133px] top-4 z-10 h-4 w-4 rounded-full border-2 border-primary bg-card" aria-hidden="true" />
-
-                    {/* 事件卡片 */}
-                    <div className="flex-1 rounded-lg border bg-white dark:bg-[#262628] p-5 transition-all duration-200 hover:shadow-md cursor-pointer"
-                      onClick={() => openEditForm(event)}
+              <div className="space-y-6">
+                {sortedEvents.map((event, index) => {
+                  const config = getEventTypeConfig(event.event_type)
+                  return (
+                    <div
+                      key={event.id}
+                      className="pg-rise relative flex gap-6 group"
+                      style={{ animationDelay: `${index * 60}ms` }}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="mb-2 flex items-center gap-2">
-                            <h3 className="text-base font-semibold text-foreground truncate">
-                              {event.title}
-                            </h3>
-                            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${config.color}`}>
-                              {config.icon}
-                              {config.label}
-                            </span>
+                      {/* 左侧日期 */}
+                      <div className="w-[120px] shrink-0 pt-2 text-right">
+                        <p className="text-sm font-semibold pg-title">
+                          {new Date(event.event_date).toLocaleDateString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                          })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(event.event_date).toLocaleDateString('zh-CN', {
+                            weekday: 'short',
+                          })}
+                        </p>
+                      </div>
+
+                      {/* 时间点：朱点 */}
+                      <div
+                        className="pg-stamp absolute left-[137px] top-4 z-10 h-2.5 w-2.5 rounded-full"
+                        style={{ background: 'var(--pg-red)', boxShadow: '0 0 0 4px hsl(var(--card))' }}
+                        aria-hidden="true"
+                      />
+
+                      {/* 事件卡片 */}
+                      <div
+                        className="pg-card flex-1 cursor-pointer p-5 transition-shadow duration-200 hover:shadow-md"
+                        onClick={() => openEditForm(event)}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <h3 className="pg-title truncate text-base font-semibold">
+                                {event.title}
+                              </h3>
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs"
+                                style={{
+                                  borderColor: 'hsl(var(--border))',
+                                  background: 'hsl(var(--muted) / 0.4)',
+                                  color: 'hsl(var(--muted-foreground))',
+                                }}
+                              >
+                                {config.icon}
+                                {config.label}
+                              </span>
+                            </div>
+
+                            {event.location && (
+                              <p className="mb-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                {event.location}
+                              </p>
+                            )}
+
+                            {event.description && (
+                              <p className="text-sm leading-relaxed line-clamp-2 text-muted-foreground/80">
+                                {event.description}
+                              </p>
+                            )}
                           </div>
 
-                          {event.location && (
-                            <p className="mb-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <MapPin className="h-3.5 w-3.5 shrink-0" />
-                              {event.location}
-                            </p>
-                          )}
-
-                          {event.description && (
-                            <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
-                              {event.description}
-                            </p>
-                          )}
+                          {/* 操作按钮 */}
+                          <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openEditForm(event)
+                              }}
+                              aria-label="编辑事件"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(event.id)
+                              }}
+                              aria-label="删除事件"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
 
-                        {/* 操作按钮 */}
-                        <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openEditForm(event)
-                            }}
-                            aria-label="编辑事件"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDelete(event.id)
-                            }}
-                            aria-label="删除事件"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(event.created_at)}
+                          </span>
                         </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(event.created_at)}
-                        </span>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 卷末：记事总数 */}
+            <div className="mt-8">
+              <PgColophon
+                items={[
+                  ['所记谱事', `${sortedEvents.length} 则`],
+                  ['编次', '由近及远'],
+                ]}
+              />
             </div>
           </div>
         )}
       </div>
-      </BorderGlow>
 
-      {/* 添加/编辑事件弹窗 */}
+      {/* 添加/编辑事件弹窗（保留 Modal 组件，标题套谱牒页头风格） */}
       <Modal
         isOpen={showForm}
         onClose={() => {
@@ -408,7 +422,24 @@ export default function FamilyEventsPage() {
           resetForm()
         }}
         title={editingEvent ? '编辑事件' : '添加事件'}
+        className="fe-modal"
       >
+        <style>{`
+          .fe-modal h2 {
+            font-family: var(--pg-serif);
+            letter-spacing: 0.06em;
+          }
+          .fe-modal h2::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 2px;
+            background: var(--pg-red);
+            margin-right: 10px;
+            vertical-align: 2px;
+          }
+        `}</style>
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="event-title">
@@ -452,7 +483,7 @@ export default function FamilyEventsPage() {
                 id="event-type"
                 value={formData.event_type}
                 onChange={(e) => setFormData((p) => ({ ...p, event_type: e.target.value }))}
-                className="flex h-11 w-full rounded-lg border-0 bg-[#fafafc] dark:bg-[#2a2a2d] px-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                className="flex h-11 w-full rounded-lg border border-input bg-background px-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               >
                 {Object.entries(EVENT_TYPE_CONFIG).map(([key, config]) => (
                   <option key={key} value={key}>{config.label}</option>
@@ -479,7 +510,7 @@ export default function FamilyEventsPage() {
               value={formData.description}
               onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
               rows={3}
-              className="flex w-full rounded-lg border-0 bg-[#fafafc] dark:bg-[#2a2a2d] px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 resize-none"
+              className="flex w-full rounded-lg border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 resize-none"
             />
           </div>
 
@@ -487,19 +518,20 @@ export default function FamilyEventsPage() {
             <Label>事件图片（最多9张）</Label>
             <div className="grid grid-cols-4 gap-2">
               {formData.images.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border group">
+                <div key={idx} className="pg-card-soft relative aspect-square overflow-hidden group">
                   <img src={img} alt={`图片${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
                     className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`移除图片${idx + 1}`}
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
               {formData.images.length < 9 && (
-                <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
+                <label className="pg-card-soft aspect-square flex flex-col items-center justify-center border-dashed cursor-pointer hover:border-primary/50 transition-colors">
                   <Upload className="h-5 w-5 text-muted-foreground mb-1" />
                   <span className="text-xs text-muted-foreground">上传</span>
                   <input
@@ -518,9 +550,9 @@ export default function FamilyEventsPage() {
 
           <div className="space-y-2">
             <Label>关联成员</Label>
-            <div className="max-h-40 overflow-y-auto rounded-lg border p-2 space-y-1">
+            <div className="pg-card-soft max-h-40 overflow-y-auto p-2 space-y-1">
               {members.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-2">暂无成员数据</p>
+                <p className="py-2 text-sm text-muted-foreground">暂无成员数据</p>
               ) : (
                 members.map((m) => (
                   <label key={m.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer">

@@ -7,14 +7,14 @@ import { PointerLockControls, Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Member } from '@/types';
 import { Card, CardContent } from '@/components/ui';
-import { Eye, RotateCcw, Move3D, X } from 'lucide-react';
+import { Eye, Move3D, X } from 'lucide-react';
 
 interface Props {
   members: Member[];
   familyId: number;
 }
 
-export default function FamilyExhibition3D({ members, familyId }: Props) {
+export default function FamilyExhibition3D({ members }: Props) {
   const [active, setActive] = useState(false);
   const [nearestId, setNearestId] = useState<number | null>(null);
 

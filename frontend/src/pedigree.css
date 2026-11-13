@@ -1,0 +1,169 @@
+/* ============================================================
+   谱牒设计系统 · Pedigree Design System
+   与个人设置页 / 族谱卷首页同源的视觉语言。
+   色彩走主题令牌（适配浅色/墨韵/暗色），唯一固定色为朱砂印泥红。
+   ============================================================ */
+
+:root {
+  --pg-red: #A63A2E; /* 印泥朱红，跨主题固定 */
+  --pg-serif: 'Noto Serif SC', 'STSong', 'KaiTi', 'STKaiti', serif;
+}
+
+/* ── 页头 ── */
+.pg-page-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.pg-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  color: hsl(var(--muted-foreground));
+}
+.pg-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--pg-red);
+}
+.pg-title {
+  font-family: var(--pg-serif);
+  letter-spacing: 0.05em;
+}
+.pg-subtitle {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── 朱点分段标题 ── */
+.pg-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pg-section-head::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--pg-red);
+  flex-shrink: 0;
+}
+.pg-section-title {
+  font-family: var(--pg-serif);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+.pg-section-rule {
+  flex: 1;
+  height: 1px;
+  background: hsl(var(--border));
+}
+
+/* ── 印章 ── */
+.pg-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pg-red);
+  color: #fff;
+  font-family: var(--pg-serif);
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+  transform: rotate(-2deg);
+  flex-shrink: 0;
+  user-select: none;
+}
+.pg-seal-sm { transform: rotate(3deg); border-radius: 3px; }
+
+/* ── 竖排题签 ── */
+.pg-spine {
+  writing-mode: vertical-rl;
+  font-family: var(--pg-serif);
+  letter-spacing: 0.42em;
+  color: var(--pg-red);
+  user-select: none;
+}
+
+/* ── 版刻藏书行 ── */
+.pg-colophon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid hsl(var(--border));
+  font-size: 12.5px;
+  color: hsl(var(--muted-foreground));
+}
+.pg-colophon b {
+  color: hsl(var(--foreground));
+  font-weight: 500;
+}
+.pg-colophon-sep {
+  margin: 0 14px;
+  width: 1px;
+  height: 12px;
+  background: hsl(var(--border));
+}
+
+/* ── 卷页卡片 ── */
+.pg-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+}
+.pg-card-soft {
+  background: hsl(var(--muted) / 0.4);
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+}
+
+/* ── 卷首语正文 ── */
+.pg-prose {
+  font-family: var(--pg-serif);
+  line-height: 2.05;
+  color: hsl(var(--foreground) / 0.85);
+  white-space: pre-wrap;
+}
+.pg-lead-char {
+  font-size: 30px;
+  color: var(--pg-red);
+  font-weight: 600;
+  margin-right: 6px;
+  line-height: 1;
+}
+
+/* ── 竖排引文（祖训/挂轴）── */
+.pg-vertical-text {
+  writing-mode: vertical-rl;
+  font-family: var(--pg-serif);
+  letter-spacing: 0.34em;
+}
+
+/* ── 入场动效（尊重减少动效）── */
+@media (prefers-reduced-motion: no-preference) {
+  .pg-rise {
+    animation: pg-rise 0.4s ease-out;
+  }
+  .pg-stamp {
+    animation: pg-stamp 0.35s ease-out 0.12s both;
+  }
+}
+@keyframes pg-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pg-stamp {
+  0% { opacity: 0; transform: scale(1.5) rotate(6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-2deg); }
+}

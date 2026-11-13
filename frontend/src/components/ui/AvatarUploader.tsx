@@ -24,8 +24,6 @@ export function AvatarUploader({
   name,
   gender,
   size = 96,
-  type = 'member',
-  memberId,
   disabled = false,
 }: AvatarUploaderProps) {
   const [isUploading, setIsUploading] = useState(false)
@@ -74,7 +72,7 @@ export function AvatarUploader({
       const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels)
 
       // 上传
-      const result = await api.uploadAvatar(croppedBlob, type, memberId)
+      const result = await api.uploadAvatar(croppedBlob)
 
       // 回调
       onUpload(result.url)

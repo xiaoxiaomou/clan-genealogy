@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, useToast, Button, MigrationPaths } from '@/components/ui'
+import { useToast, MigrationPaths } from '@/components/ui'
+import { PgPageHead, PgSectionHead } from '@/components/ui/pedigree'
 import { api } from '@/lib/api'
 import FamilyMapView, { type PlaceMark } from './FamilyMapView'
-import { MapPin, Globe, Users, TrendingUp, Sparkles } from 'lucide-react'
 
 interface FamilyInfo {
   id: number
@@ -122,95 +122,82 @@ export default function FamilyMapPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-        {/* 标题 */}
-        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground sm:text-3xl">
-              <Globe className="h-7 w-7 text-primary" />
-              家族地理分布
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              展示家族成员在地理空间上的分布与迁徙路径
-            </p>
-          </div>
-        </div>
+      <div className="pg-rise mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+        <PgPageHead
+          eyebrow="谱 牒 · 舆 图"
+          title="家族地理分布"
+          subtitle="族人出生、逝世与迁徙的地理轨迹"
+        />
 
-        {/* 统计卡片 */}
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard icon={Users} label="家族成员" value={stats.totalMembers} color="text-blue-500" />
-          <StatCard icon={MapPin} label="出生地点" value={stats.withBirth} color="text-pink-500" />
-          <StatCard icon={MapPin} label="逝世地点" value={stats.withDeath} color="text-gray-500" />
-          <StatCard icon={TrendingUp} label="涉及省份" value={stats.provinces} color="text-amber-500" />
+        {/* 统计 — 四柱 */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="家族成员" value={stats.totalMembers} />
+          <StatCard label="出生地点" value={stats.withBirth} />
+          <StatCard label="逝世地点" value={stats.withDeath} />
+          <StatCard label="涉及省份" value={stats.provinces} />
         </div>
 
         {/* 地图 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <MapPin className="mr-2 inline-block h-5 w-5" />
-              地理分布图
-            </CardTitle>
-            <CardDescription>
-              {places.length > 0
-                ? `共 ${places.length} 个标记点（点击标记查看详情）`
-                : '暂无坐标数据，请在成员编辑中添加出生/逝世地点坐标'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
+        <section className="mt-8">
+          <PgSectionHead
+            text="地 理 分 布 图"
+            right={
+              <span className="text-xs text-muted-foreground">
+                {places.length > 0
+                  ? `共 ${places.length} 个标记点（点击标记查看详情）`
+                  : '暂无坐标数据'}
+              </span>
+            }
+          />
+          <div className="pg-card overflow-hidden">
             {loading ? (
               <div className="flex h-[500px] items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-amber-500" />
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
             ) : places.length === 0 ? (
-              <div className="flex h-[500px] flex-col items-center justify-center gap-2 text-muted-foreground">
-                <MapPin className="h-12 w-12" />
-                <p>暂无地理数据</p>
-                <p className="text-xs">提示：在成员编辑页使用"选点"功能添加出生/逝世地坐标</p>
+              <div className="flex h-[500px] flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+                <p className="pg-title text-base" style={{ letterSpacing: '0.12em' }}>
+                  舆图尚空，未录坐标。
+                </p>
+                <p className="text-xs">
+                  在成员编辑页使用「选点」功能，为族人标注出生 / 逝世地点
+                </p>
               </div>
             ) : (
               <FamilyMapView places={places} height="600px" showLines />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* 迁徙路径动画列表 */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>
-              <Sparkles className="mr-2 inline-block h-5 w-5 text-amber-500" />
-              成员迁徙路径
-            </CardTitle>
-            <CardDescription>
-              {migrationPaths.length > 0
-                ? `共 ${migrationPaths.length} 条迁徙轨迹（出生地 → 逝世地）`
-                : '尚无完整出生/逝世地坐标的成员'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* 迁徙路径 */}
+        <section className="mt-8">
+          <PgSectionHead
+            text="迁 徙 路 径"
+            right={
+              <span className="text-xs text-muted-foreground">
+                {migrationPaths.length > 0
+                  ? `共 ${migrationPaths.length} 条迁徙轨迹（出生地 → 逝世地）`
+                  : '尚无完整出生/逝世地坐标的成员'}
+              </span>
+            }
+          />
+          <div className="pg-card p-5">
             <MigrationPaths paths={migrationPaths} />
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     </Layout>
   )
 }
 
-function StatCard({ icon: Icon, label, value, color }: {
-  icon: React.ComponentType<{ className?: string }>
+function StatCard({ label, value }: {
   label: string
   value: number
-  color: string
 }) {
   return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <Icon className={`h-8 w-8 ${color}`} />
-        <div>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="pg-card p-4 text-center">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="pg-title mt-2 text-3xl font-semibold">{value}</div>
+    </div>
   )
 }

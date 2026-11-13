@@ -2,7 +2,8 @@
 // 合并其他家族到本家族 - 预览冲突 + 执行
 import { useState, useEffect } from 'react';
 import { ArrowRight, GitMerge, AlertTriangle, CheckCircle2, RefreshCw, X, Users } from 'lucide-react';
-import { api, Family } from '../../lib/api';
+import { api } from '../../lib/api';
+import type { Family } from '../../types';
 
 interface MergePreview {
   target: { id: number; name: string; surname: string };

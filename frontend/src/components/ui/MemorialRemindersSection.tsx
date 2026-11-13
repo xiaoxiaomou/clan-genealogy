@@ -46,7 +46,6 @@ export function MemorialRemindersSection({ familyId, isAdmin = false }: Props) {
   };
 
   const grouped = useMemo(() => {
-    const now = new Date();
     const today = items.filter(i => i.days_until === 0);
     const week = items.filter(i => i.days_until > 0 && i.days_until <= 7);
     const month = items.filter(i => i.days_until > 7 && i.days_until <= 30);

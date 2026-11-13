@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
-import { Card, CardContent, useToast } from '@/components/ui'
+import { useToast } from '@/components/ui'
+import { PgPageHead, PgSectionHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { Layout } from '@/components/layout/Layout'
+import { ArrowLeft } from 'lucide-react'
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -9,10 +12,6 @@ import {
   LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts'
-import {
-  ArrowLeft, Users, UserCheck, UserX, Baby, Heart, TrendingUp,
-  Crown, Sparkles, Clock, ChevronUp,
-} from 'lucide-react'
 
 interface Stats {
   total: number
@@ -41,23 +40,27 @@ interface Stats {
   birth_decades: Array<{ decade: string; count: number }>
 }
 
-const AMBER = '#d4a574'
-const ROSE = '#c08494'
-const JADE = '#7ba17b'
-const SLATE = '#8a8a8a'
-const BRONZE = '#b08d57'
+/* 图表数据色（数据编码，非页面装饰；跨主题可辨） */
+const C_MALE = '#7ba6c7'
+const C_FEMALE = '#c08494'
+const C_JADE = '#7ba17b'
+const C_SLATE = '#8a8a8a'
+const C_BRONZE = '#b08d57'
+const C_AMBER = '#d4a574'
 
+/* 图表套用主题令牌，浅色/暗色均成立 */
 const TOOLTIP_STYLE = {
-  backgroundColor: 'rgba(28, 20, 16, 0.96)',
-  border: '1px solid rgba(176, 141, 87, 0.4)',
-  borderRadius: 6,
-  color: '#f5e6d3',
+  backgroundColor: 'hsl(var(--popover))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: 8,
+  color: 'hsl(var(--popover-foreground))',
   fontSize: 12,
   padding: '8px 12px',
 }
-const TOOLTIP_LABEL_STYLE = { color: '#d4a574', fontWeight: 600 }
-const AXIS_STYLE = { fontSize: 11, fill: 'rgba(245, 230, 211, 0.55)' }
-const GRID_STROKE = 'rgba(176, 141, 87, 0.15)'
+const TOOLTIP_LABEL_STYLE = { color: 'hsl(var(--foreground))', fontWeight: 600 }
+const AXIS_STYLE = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' }
+const GRID_STROKE = 'hsl(var(--border))'
+const SERIES_CYCLE = [C_AMBER, C_FEMALE, C_JADE, C_BRONZE, C_SLATE, '#a37ba5']
 
 export default function StatsPage() {
   const { id } = useParams<{ id: string }>()
@@ -97,33 +100,31 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)' }}
-      >
-        <p className="text-amber-100">执卷候...</p>
-      </div>
+      <Layout>
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </Layout>
     )
   }
   if (!stats) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)' }}
-      >
-        <p className="text-amber-100">暂无数据</p>
-      </div>
+      <Layout>
+        <div className="flex h-[60vh] items-center justify-center">
+          <p className="text-muted-foreground">暂无数据</p>
+        </div>
+      </Layout>
     )
   }
 
   const genderData = [
-    { name: '男', value: stats.gender.male, color: '#7ba6c7' },
-    { name: '女', value: stats.gender.female, color: '#c08494' },
-    { name: '未知', value: stats.gender.unknown, color: '#8a8a8a' },
+    { name: '男', value: stats.gender.male, color: C_MALE },
+    { name: '女', value: stats.gender.female, color: C_FEMALE },
+    { name: '未知', value: stats.gender.unknown, color: C_SLATE },
   ]
   const aliveData = [
-    { name: '在世', value: stats.alive_status.alive, color: '#7ba17b' },
-    { name: '已故', value: stats.alive_status.deceased, color: '#8a8a8a' },
+    { name: '在世', value: stats.alive_status.alive, color: C_JADE },
+    { name: '已故', value: stats.alive_status.deceased, color: C_SLATE },
   ]
   const generationData = Object.entries(stats.generation)
     .sort(([a], [b]) => {
@@ -156,232 +157,210 @@ export default function StatsPage() {
   const titleText = surname ? `${surname}氏` : (familyName || '家族')
 
   return (
-    <div
-      className="min-h-screen p-4 sm:p-8"
-      style={{
-        background: 'linear-gradient(135deg, #1c1410 0%, #2d1f1a 50%, #1c1410 100%)',
-      }}
-    >
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center gap-2 text-amber-100">
+    <Layout>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 pg-rise">
+        <div className="mb-5 flex items-center gap-2">
           <button
             onClick={() => navigate(`/family/${familyId}/intro`)}
-            className="flex items-center gap-1 text-sm hover:text-amber-300"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            返回
+            返回卷首
           </button>
         </div>
 
-        {/* 匾额 */}
-        <div className="relative overflow-hidden rounded-lg border-2 border-amber-700/40 bg-gradient-to-br from-amber-900/40 to-stone-900/60 p-8 text-center shadow-2xl">
-          <div className="absolute inset-0 opacity-20" style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(245, 230, 211, 0.1) 10px, rgba(245, 230, 211, 0.1) 11px)',
-          }} />
-          <div className="relative">
-            <div className="mb-2 text-xs tracking-[0.5em] text-amber-300/60">族 谱 数 据</div>
-            <h1 className="font-serif text-5xl font-bold text-amber-100">
-              {titleText}·丁口图
-            </h1>
-            <div className="mt-3 text-sm text-amber-200/70">
+        <PgPageHead
+          eyebrow="谱 牒 · 丁 口"
+          title={`${titleText} · 丁口图`}
+          subtitle={
+            <>
               {origin && <>发祥于 {origin} · </>}
               {maxGen > 0 && <>历 {maxGen} 世 · </>}
               共 {stats.total} 丁
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* 核心指标 — 四柱 */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <KpiPillar
-            icon={<Users className="h-4 w-4" />}
-            label="总丁口"
-            value={stats.total}
-            color={AMBER}
-          />
-          <KpiPillar
-            icon={<UserCheck className="h-4 w-4" />}
-            label="在世"
-            value={stats.alive_status.alive}
-            color={JADE}
-          />
-          <KpiPillar
-            icon={<UserX className="h-4 w-4" />}
-            label="已故"
-            value={stats.alive_status.deceased}
-            color={SLATE}
-          />
-          <KpiPillar
-            icon={<Crown className="h-4 w-4" />}
-            label="世代"
-            value={`${maxGen} 世`}
-            color={BRONZE}
-          />
+          <KpiPillar label="总丁口" value={stats.total} />
+          <KpiPillar label="在世" value={stats.alive_status.alive} accent={C_JADE} />
+          <KpiPillar label="已故" value={stats.alive_status.deceased} accent={C_SLATE} />
+          <KpiPillar label="世代" value={maxGen > 0 ? `${maxGen} 世` : '—'} />
         </div>
 
-        {/* 性别 + 在世 + 世代 */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <AncientCard title="男女丁口" icon={<Baby className="h-4 w-4" />} color={ROSE}>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={genderData} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" outerRadius={70} innerRadius={40}
-                  label={(e) => `${e.name} ${e.value}`}
-                  labelLine={false}
-                >
-                  {genderData.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(245,230,211,0.15)" />)}
-                </Pie>
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
-              </PieChart>
-            </ResponsiveContainer>
-          </AncientCard>
-
-          <AncientCard title="存殁" icon={<Heart className="h-4 w-4" />} color={JADE}>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={aliveData} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" outerRadius={70} innerRadius={40}
-                  label={(e) => `${e.name} ${e.value}`}
-                  labelLine={false}
-                >
-                  {aliveData.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(245,230,211,0.15)" />)}
-                </Pie>
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
-              </PieChart>
-            </ResponsiveContainer>
-          </AncientCard>
-
-          <AncientCard title="世代分布" icon={<TrendingUp className="h-4 w-4" />} color={BRONZE}>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={generationData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
-                <XAxis dataKey="name" tick={AXIS_STYLE} axisLine={{ stroke: GRID_STROKE }} />
-                <YAxis tick={AXIS_STYLE} allowDecimals={false} axisLine={{ stroke: GRID_STROKE }} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} cursor={{ fill: 'rgba(176,141,87,0.08)' }} />
-                <Bar dataKey="人数" fill={BRONZE} radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </AncientCard>
-        </div>
-
-        {/* 人口金字塔 */}
-        <AncientCard title="丁口金锥（按年龄段 × 性别）" icon={<Users className="h-4 w-4" />} color={AMBER}>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={pyramidData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
-              <XAxis type="number" tick={AXIS_STYLE} axisLine={{ stroke: GRID_STROKE }} />
-              <YAxis dataKey="age" type="category" tick={AXIS_STYLE} width={50} axisLine={{ stroke: GRID_STROKE }} />
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                labelStyle={TOOLTIP_LABEL_STYLE}
-                cursor={{ fill: 'rgba(176,141,87,0.08)' }}
-                formatter={(v: any) => Math.abs(Number(v))}
-              />
-              <Legend wrapperStyle={{ color: '#d4a574', fontSize: 12 }} />
-              <Bar dataKey="男" fill="#7ba6c7" stackId="a" />
-              <Bar dataKey="女" fill={ROSE} stackId="a" />
-            </BarChart>
-          </ResponsiveContainer>
-          <p className="mt-2 text-center text-[11px] text-amber-200/40">横轴负值表示男性人数（取绝对值）</p>
-        </AncientCard>
-
-        {/* 分支 + 出生年代 */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <AncientCard title="房支分布" icon={<Sparkles className="h-4 w-4" />} color={BRONZE}>
-            {branchData.length === 0 ? (
-              <p className="py-10 text-center text-sm text-amber-200/40">暂无分支数据</p>
-            ) : (
+        {/* 性别 + 存殁 + 世代 */}
+        <div className="mt-8">
+          <PgSectionHead text="丁 口 构 成" />
+          <div className="grid gap-4 md:grid-cols-3">
+            <ChartCard title="男女丁口">
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
-                    data={branchData} dataKey="value" nameKey="name"
-                    cx="50%" cy="50%" outerRadius={80}
+                    data={genderData} dataKey="value" nameKey="name"
+                    cx="50%" cy="50%" outerRadius={70} innerRadius={40}
                     label={(e) => `${e.name} ${e.value}`}
                     labelLine={false}
                   >
-                    {branchData.map((_, i) => (
-                      <Cell key={i} fill={[AMBER, ROSE, JADE, BRONZE, SLATE, '#a37ba5'][i % 6]} stroke="rgba(245,230,211,0.15)" />
-                    ))}
+                    {genderData.map((d, i) => <Cell key={i} fill={d.color} stroke="hsl(var(--card))" />)}
                   </Pie>
                   <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
-            )}
-          </AncientCard>
+            </ChartCard>
 
-          <AncientCard title="生年分布" icon={<Clock className="h-4 w-4" />} color={JADE}>
-            {decadeData.length === 0 ? (
-              <p className="py-10 text-center text-sm text-amber-200/40">暂无出生日期数据</p>
-            ) : (
+            <ChartCard title="存殁">
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={decadeData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
-                  <XAxis dataKey="decade" tick={AXIS_STYLE} axisLine={{ stroke: GRID_STROKE }} />
-                  <YAxis tick={AXIS_STYLE} allowDecimals={false} axisLine={{ stroke: GRID_STROKE }} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} cursor={{ stroke: GRID_STROKE }} />
-                  <Line type="monotone" dataKey="人数" stroke={AMBER} strokeWidth={2} dot={{ r: 4, fill: AMBER }} />
-                </LineChart>
+                <PieChart>
+                  <Pie
+                    data={aliveData} dataKey="value" nameKey="name"
+                    cx="50%" cy="50%" outerRadius={70} innerRadius={40}
+                    label={(e) => `${e.name} ${e.value}`}
+                    labelLine={false}
+                  >
+                    {aliveData.map((d, i) => <Cell key={i} fill={d.color} stroke="hsl(var(--card))" />)}
+                  </Pie>
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
+                </PieChart>
               </ResponsiveContainer>
-            )}
-          </AncientCard>
+            </ChartCard>
+
+            <ChartCard title="世代分布">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={generationData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis dataKey="name" tick={AXIS_STYLE} axisLine={{ stroke: GRID_STROKE }} />
+                  <YAxis tick={AXIS_STYLE} allowDecimals={false} axisLine={{ stroke: GRID_STROKE }} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} cursor={{ fill: 'hsl(var(--muted) / .4)' }} />
+                  <Bar dataKey="人数" fill={C_BRONZE} radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+        </div>
+
+        {/* 人口金字塔 */}
+        <div className="mt-8">
+          <PgSectionHead text="年 齿 金 锥" />
+          <ChartCard title="按年龄段 × 性别">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={pyramidData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                <XAxis type="number" tick={AXIS_STYLE} axisLine={{ stroke: GRID_STROKE }} />
+                <YAxis dataKey="age" type="category" tick={AXIS_STYLE} width={50} axisLine={{ stroke: GRID_STROKE }} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
+                  cursor={{ fill: 'hsl(var(--muted) / .4)' }}
+                  formatter={(v: any) => Math.abs(Number(v))}
+                />
+                <Legend wrapperStyle={{ color: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <Bar dataKey="男" fill={C_MALE} stackId="a" />
+                <Bar dataKey="女" fill={C_FEMALE} stackId="a" />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">横轴负值表示男性人数（取绝对值）</p>
+          </ChartCard>
+        </div>
+
+        {/* 分支 + 出生年代 */}
+        <div className="mt-8">
+          <PgSectionHead text="支 系 与 生 息" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <ChartCard title="房支分布">
+              {branchData.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">暂无分支数据</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={branchData} dataKey="value" nameKey="name"
+                      cx="50%" cy="50%" outerRadius={80}
+                      label={(e) => `${e.name} ${e.value}`}
+                      labelLine={false}
+                    >
+                      {branchData.map((_, i) => (
+                        <Cell key={i} fill={SERIES_CYCLE[i % SERIES_CYCLE.length]} stroke="hsl(var(--card))" />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </ChartCard>
+
+            <ChartCard title="生年分布">
+              {decadeData.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">暂无出生日期数据</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={decadeData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                    <XAxis dataKey="decade" tick={AXIS_STYLE} axisLine={{ stroke: GRID_STROKE }} />
+                    <YAxis tick={AXIS_STYLE} allowDecimals={false} axisLine={{ stroke: GRID_STROKE }} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} cursor={{ stroke: GRID_STROKE }} />
+                    <Line type="monotone" dataKey="人数" stroke={C_AMBER} strokeWidth={2} dot={{ r: 4, fill: C_AMBER }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </ChartCard>
+          </div>
         </div>
 
         {/* 长寿榜 */}
-        <AncientCard title="寿星榜" icon={<Heart className="h-4 w-4" />} color={ROSE}>
-          <div className="mb-4 grid gap-2 grid-cols-2 sm:grid-cols-4">
-            <SmallStat label="统计样本" value={stats.longevity.count} />
-            <SmallStat label="平均寿" value={`${stats.longevity.avg_age} 岁`} />
-            <SmallStat label="男 / 女 均" value={`${stats.longevity.male_avg} / ${stats.longevity.female_avg}`} />
-            <SmallStat label="最长" value={`${stats.longevity.max_age} 岁`} highlight />
-          </div>
-          {stats.longevity.top_longest.length > 0 ? (
-            <ol className="space-y-1.5">
-              {stats.longevity.top_longest.map((p, i) => (
-                <li
-                  key={p.member_id}
-                  className="flex items-center justify-between rounded border border-amber-700/30 bg-stone-950/40 px-3 py-2"
-                >
-                  <span className="flex items-center gap-3">
-                    <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full font-serif text-sm ${
-                      i === 0 ? 'bg-amber-200/90 text-amber-900' :
-                      i === 1 ? 'bg-stone-300/80 text-stone-800' :
-                      i === 2 ? 'bg-amber-700/80 text-amber-50' :
-                      'bg-stone-700/60 text-amber-100/80'
-                    }`}>
-                      {i + 1}
+        <div className="mt-8">
+          <PgSectionHead text="寿 星 榜" />
+          <div className="pg-card p-5">
+            <div className="mb-4 grid gap-2 grid-cols-2 sm:grid-cols-4">
+              <SmallStat label="统计样本" value={stats.longevity.count} />
+              <SmallStat label="平均寿" value={`${stats.longevity.avg_age} 岁`} />
+              <SmallStat label="男 / 女 均" value={`${stats.longevity.male_avg} / ${stats.longevity.female_avg}`} />
+              <SmallStat label="最长" value={`${stats.longevity.max_age} 岁`} highlight />
+            </div>
+            {stats.longevity.top_longest.length > 0 ? (
+              <ol className="space-y-1.5">
+                {stats.longevity.top_longest.map((p, i) => (
+                  <li
+                    key={p.member_id}
+                    className="flex items-center justify-between rounded-lg border px-3 py-2"
+                    style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--muted) / .3)' }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className="pg-seal pg-seal-sm"
+                        style={{
+                          width: 28, height: 28, fontSize: 13,
+                          opacity: i === 0 ? 1 : i === 1 ? 0.85 : i === 2 ? 0.75 : 0.6,
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="text-base" style={{ fontFamily: PG_SERIF }}>{p.name}</span>
+                      <span className="text-xs text-muted-foreground">{p.birth_year}–{p.death_year}</span>
                     </span>
-                    <span className="font-serif text-base text-amber-100">{p.name}</span>
-                    <span className="text-xs text-amber-200/50">{p.birth_year}–{p.death_year}</span>
-                  </span>
-                  <span className="font-serif text-base font-semibold text-rose-300">{p.age} 岁</span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="py-6 text-center text-sm text-amber-200/40">尚无完整生卒记录</p>
-          )}
-        </AncientCard>
+                    <span className="text-base font-semibold" style={{ fontFamily: PG_SERIF, color: PG_RED }}>{p.age} 岁</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="py-6 text-center text-sm text-muted-foreground">尚无完整生卒记录</p>
+            )}
+          </div>
+        </div>
 
-        <p className="text-center text-xs text-amber-200/30">
-          愿家族昌盛，子孙兴旺
+        <p className="mt-8 text-center text-xs text-muted-foreground" style={{ fontFamily: PG_SERIF, letterSpacing: '0.3em' }}>
+          愿家族昌盛 · 子孙兴旺
         </p>
       </div>
-    </div>
+    </Layout>
   )
 }
 
-function KpiPillar({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number | string; color: string }) {
+function KpiPillar({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
   return (
-    <div
-      className="rounded-lg border border-amber-700/30 bg-stone-900/50 p-4 text-center shadow-sm"
-    >
-      <div className="flex items-center justify-center gap-1.5 text-xs text-amber-200/60">
-        <span style={{ color }}>{icon}</span>
-        {label}
-      </div>
-      <div className="mt-2 font-serif text-3xl font-bold" style={{ color }}>
+    <div className="pg-card p-4 text-center">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="pg-title mt-2 text-3xl font-semibold" style={accent ? { color: accent } : undefined}>
         {value}
       </div>
     </div>
@@ -390,26 +369,18 @@ function KpiPillar({ icon, label, value, color }: { icon: React.ReactNode; label
 
 function SmallStat({ label, value, highlight }: { label: string; value: number | string; highlight?: boolean }) {
   return (
-    <div className="rounded border border-amber-700/20 bg-stone-950/30 px-3 py-2 text-center">
-      <div className="text-[11px] text-amber-200/50">{label}</div>
-      <div className={`font-serif text-lg font-semibold ${highlight ? 'text-rose-300' : 'text-amber-100'}`}>{value}</div>
+    <div className="rounded-lg border px-3 py-2 text-center" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--muted) / .3)' }}>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="pg-title text-lg font-semibold" style={highlight ? { color: PG_RED } : undefined}>{value}</div>
     </div>
   )
 }
 
-function AncientCard({ title, icon, color, children }: { title: string; icon?: React.ReactNode; color?: string; children: React.ReactNode }) {
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card className="border-amber-700/30 bg-stone-900/50">
-      <CardContent className="p-5">
-        <h3
-          className="mb-4 flex items-center gap-2 font-serif text-base"
-          style={{ color: color || AMBER }}
-        >
-          {icon}
-          {title}
-        </h3>
-        {children}
-      </CardContent>
-    </Card>
+    <div className="pg-card p-5">
+      <h3 className="pg-title mb-4 text-sm text-muted-foreground">{title}</h3>
+      {children}
+    </div>
   )
 }

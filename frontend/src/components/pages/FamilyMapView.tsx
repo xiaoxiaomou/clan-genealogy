@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap, Circle, Polyline } from 'react-leaflet'
+import { useEffect, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap, Polyline } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Card, CardContent, Input, Label, useToast, Button } from '@/components/ui'
-import { MapPin, Navigation2, X, Search } from 'lucide-react'
+import { Input, Label, useToast, Button } from '@/components/ui'
+import { MapPin, X } from 'lucide-react'
 
 // 修复 Leaflet 默认图标（Vite 环境）
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
@@ -36,7 +36,7 @@ const familyIcon = L.divIcon({
   iconAnchor: [16, 16],
 })
 
-interface PlaceMark {
+export interface PlaceMark {
   name: string
   lat: number
   lng: number
@@ -62,7 +62,7 @@ export default function FamilyMapView({
   onSelect,
   showLines = true,
 }: FamilyMapViewProps) {
-  const { showToast } = useToast()
+
   const [center, setCenter] = useState<[number, number]>(defaultCenter)
   const [zoom, setZoom] = useState(defaultZoom)
 
@@ -210,7 +210,6 @@ interface PlacePickerProps {
 
 export function PlacePicker({ label, lat, lng, placeName, onChange }: PlacePickerProps) {
   const [showMap, setShowMap] = useState(false)
-  const [search, setSearch] = useState('')
   const { showToast } = useToast()
   const hasValue = lat != null && lng != null
 

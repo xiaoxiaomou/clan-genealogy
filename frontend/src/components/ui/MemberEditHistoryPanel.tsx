@@ -59,7 +59,7 @@ export function MemberEditHistoryPanel({ familyId, memberId, canEdit = false, is
       const r = await api.listMemberHistory(familyId, memberId);
       setGroups(r.groups);
       // 默认展开最近 3 条
-      const top3 = new Set(r.groups.slice(0, 3).map((g: HistoryGroup) => g.batch_id));
+      const top3 = new Set<string>(r.groups.slice(0, 3).map((g: HistoryGroup) => g.batch_id));
       setExpanded(top3);
     } catch (e) {
       setMessage({ type: 'err', text: '加载失败：' + (e as Error).message });

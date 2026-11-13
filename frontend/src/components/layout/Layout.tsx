@@ -103,7 +103,7 @@ export function Layout({ children }: LayoutProps) {
 
   const handleMarkRead = async (notificationId: number) => {
     try {
-      await api.markNotificationRead(notificationId)
+      await api.markAsRead(notificationId)
       dispatch(markNotificationRead(notificationId))
       loadUnreadCount()
     } catch (err: any) {
@@ -356,7 +356,7 @@ export function Layout({ children }: LayoutProps) {
                 个人设置
               </button>
               <button
-                onClick={() => dispatch(toggleTheme())}
+                onClick={() => dispatch(setTheme(isDark ? 'light' : 'dark'))}
                 className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 dark:text-gray-200 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
               >
                 {isDark ? <Sun className="h-5 w-5" aria-hidden="true" /> : <Moon className="h-5 w-5" aria-hidden="true" />}

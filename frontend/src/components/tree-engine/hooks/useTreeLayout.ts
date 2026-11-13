@@ -48,7 +48,7 @@ function findCoupleRep(memberId: number, repByMember: CoupleInfo['repByMember'])
   return repByMember.get(memberId) ?? memberId
 }
 
-export function useTreeLayout(treeData: FamilyTree | null, layoutMode: LayoutMode = 'tree'): DagreLayoutResult {
+export function useTreeLayout(treeData: FamilyTree | null, _layoutMode: LayoutMode = 'tree'): DagreLayoutResult {
   const coupleInfo = useMemo<CoupleInfo>(() => {
     const byRep = new Map<number, { husband: TreeNode; wife: TreeNode | null; childrenIds: number[] }>()
     const inCouple = new Set<number>()

@@ -1,5 +1,5 @@
-import { BaseEdge, getBezierPath, EdgeLabelRenderer, type EdgeProps, type Edge } from '@xyflow/react'
-import type { PersonNodeData } from '../nodes/PersonNode'
+import { BaseEdge, getBezierPath, EdgeLabelRenderer } from '@xyflow/react'
+import type { CSSProperties } from 'react'
 
 export interface FamilyEdgeData {
   sourceName: string
@@ -10,7 +10,40 @@ export interface FamilyEdgeData {
   highlightDimmed?: boolean
 }
 
-export type FamilyEdgeType = Edge<FamilyEdgeData>
+// src/env.d.ts 中对 '@xyflow/react' 的 ambient 声明覆盖了包内类型，
+// 这里以结构等价的局部类型替代 Edge/EdgeProps（仅类型层面，无运行时影响）。
+export type FamilyEdgeType = {
+  id: string
+  source?: string
+  target?: string
+  type?: string
+  animated?: boolean
+  data?: FamilyEdgeData
+  selected?: boolean
+}
+
+type EdgeHandlePosition = 'top' | 'right' | 'bottom' | 'left'
+
+interface FamilyEdgeProps {
+  id: string | null
+  source?: string
+  target?: string
+  type?: string
+  animated?: boolean
+  data?: FamilyEdgeData
+  style?: CSSProperties
+  selected?: boolean
+  selectable?: boolean
+  deletable?: boolean
+  sourceX: number
+  sourceY: number
+  targetX: number
+  targetY: number
+  sourcePosition?: EdgeHandlePosition
+  targetPosition?: EdgeHandlePosition
+  markerStart?: string
+  markerEnd?: string
+}
 
 export function FamilyEdge({
   id,
@@ -23,7 +56,7 @@ export function FamilyEdge({
   data,
   selected,
   markerEnd,
-}: EdgeProps<FamilyEdgeType>) {
+}: FamilyEdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,

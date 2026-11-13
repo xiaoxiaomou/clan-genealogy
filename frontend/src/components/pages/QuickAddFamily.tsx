@@ -97,19 +97,19 @@ export default function QuickAddFamily({
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-0.5">
                     <Label className="text-xs">姓名</Label>
-                    <Input size="sm" placeholder="姓名" value={layer.father.name} onChange={(e) => onChangeLayerFather(layerIdx, 'name', e.target.value)} required />
+                    <Input placeholder="姓名" value={layer.father.name} onChange={(e) => onChangeLayerFather(layerIdx, 'name', e.target.value)} required />
                   </div>
                   <div className="space-y-0.5">
                     <Label className="text-xs">出生日期</Label>
-                    <Input type="date" size="sm" value={layer.father.birth_date} onChange={(e) => onChangeLayerFather(layerIdx, 'birth_date', e.target.value)} />
+                    <Input type="date" value={layer.father.birth_date} onChange={(e) => onChangeLayerFather(layerIdx, 'birth_date', e.target.value)} />
                   </div>
                   <div className="space-y-0.5">
                     <Label className="text-xs">辈分</Label>
-                    <Input type="number" size="sm" placeholder="如：1" value={layer.father.generation} onChange={(e) => onChangeLayerFather(layerIdx, 'generation', e.target.value)} />
+                    <Input type="number" placeholder="如：1" value={layer.father.generation} onChange={(e) => onChangeLayerFather(layerIdx, 'generation', e.target.value)} />
                   </div>
                   <div className="space-y-0.5">
                     <Label className="text-xs">辈分名称</Label>
-                    <Input size="sm" placeholder="如：文" value={layer.father.generation_name} onChange={(e) => onChangeLayerFather(layerIdx, 'generation_name', e.target.value)} />
+                    <Input placeholder="如：文" value={layer.father.generation_name} onChange={(e) => onChangeLayerFather(layerIdx, 'generation_name', e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -123,11 +123,11 @@ export default function QuickAddFamily({
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-0.5">
                     <Label className="text-xs">姓名</Label>
-                    <Input size="sm" placeholder="姓名" value={layer.mother.name} onChange={(e) => onChangeLayerMother(layerIdx, 'name', e.target.value)} />
+                    <Input placeholder="姓名" value={layer.mother.name} onChange={(e) => onChangeLayerMother(layerIdx, 'name', e.target.value)} />
                   </div>
                   <div className="space-y-0.5">
                     <Label className="text-xs">出生日期</Label>
-                    <Input type="date" size="sm" value={layer.mother.birth_date} onChange={(e) => onChangeLayerMother(layerIdx, 'birth_date', e.target.value)} />
+                    <Input type="date" value={layer.mother.birth_date} onChange={(e) => onChangeLayerMother(layerIdx, 'birth_date', e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function QuickAddFamily({
                     <div key={childIdx} className="flex items-end gap-1.5 rounded bg-background p-1.5">
                       <div className="flex-1 space-y-0.5">
                         <Label className="text-[10px]">姓名</Label>
-                        <Input size="sm" placeholder={`子女 ${childIdx + 1}`} value={child.name} onChange={(e) => onChangeLayerChild(layerIdx, childIdx, 'name', e.target.value)} className="h-8 text-xs" />
+                        <Input placeholder={`子女 ${childIdx + 1}`} value={child.name} onChange={(e) => onChangeLayerChild(layerIdx, childIdx, 'name', e.target.value)} className="h-8 text-xs" />
                       </div>
                       <div className="w-16 space-y-0.5">
                         <Label className="text-[10px]">性别</Label>

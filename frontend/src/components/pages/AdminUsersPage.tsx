@@ -8,13 +8,12 @@ import {
   useToast,
   AvatarDisplay,
 } from '@/components/ui'
+import { PgPageHead } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import {
   ArrowLeft,
-  Users,
   CheckCircle,
   XCircle,
-  Shield,
   Ban,
   Unlock,
   Clock,
@@ -23,7 +22,7 @@ import {
 type UserTab = 'pending' | 'all' | 'rejected'
 
 const STATUS_LABELS: Record<string, { text: string; color: string; icon: typeof Clock }> = {
-  pending: { text: '待审核', color: 'text-amber-600 bg-amber-50', icon: Clock },
+  pending: { text: '待审核', color: 'text-foreground bg-muted', icon: Clock },
   active: { text: '正常', color: 'text-success bg-success/10', icon: CheckCircle },
   rejected: { text: '已拒绝', color: 'text-destructive bg-destructive/10', icon: XCircle },
 }
@@ -133,9 +132,9 @@ export default function AdminUsersPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="pg-rise mx-auto max-w-3xl px-4 py-8">
         {/* 顶部导航 */}
-        <div className="mb-8 flex items-center gap-4">
+        <div className="mb-5">
           <Button
             variant="ghost"
             size="sm"
@@ -145,16 +144,16 @@ export default function AdminUsersPage() {
             <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
             返回首页
           </Button>
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            <h1 className="text-xl font-semibold text-foreground">
-              用户管理
-            </h1>
-          </div>
         </div>
 
+        <PgPageHead
+          eyebrow="谱 局 · 用 户"
+          title="用户管理"
+          subtitle="注册审核与账号启禁，此为谱局事务"
+        />
+
         {/* 标签页 */}
-        <div className="mb-6 flex gap-1 rounded bg-muted p-1" role="tablist" aria-label="用户状态筛选">
+        <div className="mb-6 flex gap-1 rounded-lg border bg-muted/50 p-1" role="tablist" aria-label="用户状态筛选" style={{ borderColor: 'hsl(var(--border))' }}>
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -178,20 +177,27 @@ export default function AdminUsersPage() {
         </div>
 
         {/* 用户列表 */}
-        <div className="rounded-lg bg-white dark:bg-[#262628] border p-6">
+        <section>
+          <div className="pg-card p-6">
           {isLoading ? (
             <div className="flex h-32 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="flex h-32 flex-col items-center justify-center text-muted-foreground">
-              <Users className="mb-2 h-8 w-8" />
-              <p className="text-sm">
+            <div className="flex h-40 flex-col items-center justify-center text-center text-muted-foreground">
+              <p className="pg-title text-sm" style={{ letterSpacing: '0.1em' }}>
                 {activeTab === 'pending'
-                  ? '暂无待审核用户'
+                  ? '册上无待审之人。'
                   : activeTab === 'rejected'
-                  ? '暂无已拒绝用户'
-                  : '暂无用户'}
+                  ? '册上无已拒之记。'
+                  : '名册尚空。'}
+              </p>
+              <p className="mt-1.5 text-xs">
+                {activeTab === 'pending'
+                  ? '新注册用户经谱局审核后方可登录'
+                  : activeTab === 'rejected'
+                  ? '被拒绝的注册申请会记录在此'
+                  : '用户注册后将出现在这里'}
               </p>
             </div>
           ) : (
@@ -247,7 +253,7 @@ export default function AdminUsersPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1 text-green-600 hover:bg-green-50 hover:text-green-700"
+                            className="gap-1"
                             onClick={() => handleApprove(user.id)}
                             disabled={processingId === user.id}
                             aria-label={`通过 ${user.display_name || user.username} 的注册申请`}
@@ -258,7 +264,7 @@ export default function AdminUsersPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => handleReject(user.id)}
                             disabled={processingId === user.id}
                             aria-label={`拒绝 ${user.display_name || user.username} 的注册申请`}
@@ -276,7 +282,7 @@ export default function AdminUsersPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="gap-1 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                              className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => handleDisable(user.id)}
                               disabled={processingId === user.id}
                               aria-label={`禁用 ${user.display_name || user.username}`}
@@ -288,7 +294,7 @@ export default function AdminUsersPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="gap-1 text-green-600 hover:bg-green-50 hover:text-green-700"
+                              className="gap-1"
                               onClick={() => handleEnable(user.id)}
                               disabled={processingId === user.id}
                               aria-label={`启用 ${user.display_name || user.username}`}
@@ -305,11 +311,12 @@ export default function AdminUsersPage() {
               })}
             </div>
           )}
-        </div>
+          </div>
+        </section>
       </div>
 
       {/* Toast */}
-      
+
     </Layout>
   )
 }

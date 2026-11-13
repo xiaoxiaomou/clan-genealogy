@@ -6,20 +6,18 @@ import {
   Button,
   AvatarDisplay,
   useToast,
-  BorderGlow,
   RichTextRenderer,
 } from '@/components/ui'
 import { Layout } from '@/components/layout/Layout'
 import { MemberEditHistoryPanel } from '@/components/ui/MemberEditHistoryPanel'
+import { PgSectionHead } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
   Edit3,
   User,
   Heart,
-  Baby,
   Calendar,
   MapPin,
-  BookOpen,
   Cross,
   BookText,
   Landmark,
@@ -170,16 +168,7 @@ export default function MemberDetailPage() {
 
   return (
     <Layout>
-      
-
-      <BorderGlow
-        backgroundColor="transparent"
-        className="!bg-transparent border-0 p-0"
-        colors={['#4facfe', '#00f2fe', '#43e97b']}
-        glowIntensity={0.3}
-        edgeSensitivity={35}
-      >
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="pg-rise mx-auto max-w-3xl px-4 py-8">
         {/* 顶部导航 */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -214,7 +203,7 @@ export default function MemberDetailPage() {
         </div>
 
         {/* 基本信息卡片 */}
-        <div className="mb-8 rounded-lg bg-white dark:bg-[#262628] border p-6">
+        <div className="pg-card mb-8 p-6">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
             <AvatarDisplay
               avatar={member.avatar}
@@ -253,11 +242,8 @@ export default function MemberDetailPage() {
 
           {/* 生平简介 - 富文本 */}
           {member.bio && (
-            <div className="mt-6 rounded-lg border bg-white p-6 dark:bg-[#262628]">
-              <div className="mb-3 flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-lg font-medium text-foreground">生平简介</h3>
-              </div>
+            <div className="pg-card-soft mt-6 p-6">
+              <PgSectionHead text="生 平 简 介" />
               <RichTextRenderer html={member.bio} />
             </div>
           )}
@@ -267,11 +253,8 @@ export default function MemberDetailPage() {
         <div className="space-y-6">
           {/* 父母 */}
           {member.parents && member.parents.length > 0 && (
-            <div className="rounded-lg bg-white dark:bg-[#262628] border p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <User className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-lg font-medium text-foreground">父母</h3>
-              </div>
+            <div className="pg-card p-6">
+              <PgSectionHead text="父 母" />
               <div className="grid gap-3 sm:grid-cols-2">
                 {member.parents.map((p) => (
                   <RelationCard key={p.id} m={p} />
@@ -282,11 +265,8 @@ export default function MemberDetailPage() {
 
           {/* 配偶 */}
           {member.spouses && member.spouses.length > 0 && (
-            <div className="rounded-lg bg-white dark:bg-[#262628] border p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <Heart className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-lg font-medium text-foreground">配偶</h3>
-              </div>
+            <div className="pg-card p-6">
+              <PgSectionHead text="配 偶" />
               <div className="grid gap-3 sm:grid-cols-2">
                 {member.spouses.map((s) => (
                   <RelationCard key={s.id} m={s} />
@@ -297,14 +277,15 @@ export default function MemberDetailPage() {
 
           {/* 子女 */}
           {children.length > 0 && (
-            <div className="rounded-lg bg-white dark:bg-[#262628] border p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <Baby className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-lg font-medium text-foreground">子女</h3>
-                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                  {children.length}
-                </span>
-              </div>
+            <div className="pg-card p-6">
+              <PgSectionHead
+                text="子 女"
+                right={
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                    {children.length}
+                  </span>
+                }
+              />
               <div className="grid gap-3 sm:grid-cols-2">
                 {children.map((c) => (
                   <RelationCard key={c.id} m={c} />
@@ -324,7 +305,6 @@ export default function MemberDetailPage() {
           </div>
         </div>
       </div>
-      </BorderGlow>
     </Layout>
   )
 }

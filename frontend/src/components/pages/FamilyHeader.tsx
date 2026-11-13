@@ -23,8 +23,10 @@ import {
   Landmark,
   Network,
   BarChart3,
-  type LucideIcon,
+
 } from 'lucide-react'
+import type { ComponentType, SVGProps } from 'react'
+type LucideIcon = ComponentType<SVGProps<SVGSVGElement>>
 import type { Family } from '@/types'
 
 interface FamilyHeaderProps {

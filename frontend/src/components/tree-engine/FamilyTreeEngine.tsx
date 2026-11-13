@@ -57,12 +57,10 @@ function FlowInit({ onInit }: { onInit: (instance: ReturnType<typeof useReactFlo
 export function FamilyTreeEngine({
   treeData,
   canEdit = false,
-  onMemberClick,
-  highlightedMemberId: externalHighlight,
   familyId,
 }: FamilyTreeEngineProps) {
-  const [hoveredMember, setHoveredMember] = useState<TreeNode | null>(null)
-  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<number>>(new Set())
+  const [, setHoveredMember] = useState<TreeNode | null>(null)
+  const [selectedNodeIds] = useState<Set<number>>(new Set())
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set())
   const reactFlowInstance = useRef<ReturnType<typeof useReactFlow> | null>(null)
   const reactFlowViewport = useViewport()
@@ -208,7 +206,7 @@ export function FamilyTreeEngine({
   }, [dagrePositions, dagreNodeWidthMap, reactFlowViewport])
 
   const search = useTreeSearch({ familyId, onLocate: useCallback(() => {}, []) })
-  const lineage = { mode: 'none' as const, highlight: null, setMode: () => {}, clear: () => {}, loading: false, error: null }
+  const lineage = { mode: 'none' as const, highlight: null, setMode: (_mode?: string) => {}, clear: () => {}, loading: false, error: null }
 
   const handleFlowInit = useCallback((instance: ReturnType<typeof useReactFlow>) => {
     reactFlowInstance.current = instance
@@ -231,7 +229,6 @@ export function FamilyTreeEngine({
           onClear={() => lineage.clear()}
           onOpenSearch={() => search.toggle()}
           loading={lineage.loading}
-          label={null}
           error={lineage.error}
         />
       )}

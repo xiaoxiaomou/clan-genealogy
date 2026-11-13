@@ -10,6 +10,7 @@ import {
 } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useAppSelector } from '@/store'
+import { PgSectionHead } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
   Plus,
@@ -144,25 +145,30 @@ export default function ChatPage() {
           <ArrowLeft className="h-4 w-4" />
           返回
         </button>
-        <h1 className="text-base font-semibold">家族聊天</h1>
+        <h1 className="pg-title text-base font-semibold">家族聊天</h1>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* 左侧聊天组列表 */}
         <div className="w-60 shrink-0 overflow-y-auto border-r border-border">
-          <div className="flex items-center justify-between p-3">
-            <h2 className="text-sm font-semibold">聊天组</h2>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+          <div className="p-3">
+            <PgSectionHead
+              text="聊 天 组"
+              right={
+                <button
+                  onClick={() => setShowCreate(true)}
+                  className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="新建聊天组"
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                </button>
+              }
+            />
           </div>
           {loading && groups.length === 0 ? (
             <p className="p-4 text-xs text-muted-foreground">加载中...</p>
           ) : groups.length === 0 ? (
-            <p className="p-4 text-xs text-muted-foreground">暂无聊天组</p>
+            <p className="pg-title p-4 text-xs text-muted-foreground">暂无聊天组，可点右上角新建</p>
           ) : (
             groups.map((g) => (
               <button
@@ -195,14 +201,17 @@ export default function ChatPage() {
           {activeGroup ? (
             <>
               <div className="border-b border-border p-3">
-                <h2 className="text-sm font-semibold">{activeGroup.name}</h2>
+                <h2 className="pg-title text-sm font-semibold">{activeGroup.name}</h2>
                 <p className="text-xs text-muted-foreground">
                   {activeGroup.member_ids.length} 位成员
                 </p>
               </div>
               <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-4">
                 {messages.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">暂无消息</p>
+                  <div className="py-10 text-center">
+                    <p className="pg-title text-sm text-muted-foreground">尚无消息</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">从一声问候开始吧</p>
+                  </div>
                 ) : (
                   messages.map((m) => {
                     const isMine = m.sender_id === user?.id
@@ -259,8 +268,9 @@ export default function ChatPage() {
           ) : (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
-                <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                <p className="mt-3 text-sm text-muted-foreground">选择左侧聊天组开始对话</p>
+                <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground/30" aria-hidden="true" />
+                <p className="pg-title mt-4 text-base text-muted-foreground">请选择左侧聊天组</p>
+                <p className="mt-1 text-xs text-muted-foreground/80">选定一组，即可与族人叙话</p>
               </div>
             </div>
           )}

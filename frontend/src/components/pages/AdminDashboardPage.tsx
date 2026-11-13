@@ -3,32 +3,32 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { SystemStatus } from '@/types'
 import { Layout } from '@/components/layout/Layout'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
 import { useToast } from '@/components/ui'
+import { PgPageHead, PgSectionHead } from '@/components/ui/pedigree'
 import {
   Users,
   BookOpen,
   UserCircle,
   Settings,
   Activity,
-  Shield,
   Loader2,
   ArrowRight,
-  UserPlus,
   Clock,
+  UserPlus,
 } from 'lucide-react'
 
+/* 分类图记：色彩一律走主题令牌，谱局页面从素 */
 const CATEGORY_INFO = {
-  user: { label: '用户管理', icon: Users, color: '#3b82f6', bgColor: '#eff6ff' },
-  family: { label: '族谱功能', icon: BookOpen, color: '#8b5cf6', bgColor: '#f5f3ff' },
-  content: { label: '家族内容', icon: UserCircle, color: '#10b981', bgColor: '#ecfdf5' },
-  notification: { label: '通知系统', icon: Activity, color: '#f59e0b', bgColor: '#fffbeb' },
-  ui: { label: '界面定制', icon: Settings, color: '#ec4899', bgColor: '#fdf2f8' },
+  user: { label: '用户管理', icon: Users, color: 'hsl(var(--muted-foreground))', bgColor: 'hsl(var(--muted))' },
+  family: { label: '族谱功能', icon: BookOpen, color: 'hsl(var(--muted-foreground))', bgColor: 'hsl(var(--muted))' },
+  content: { label: '家族内容', icon: UserCircle, color: 'hsl(var(--muted-foreground))', bgColor: 'hsl(var(--muted))' },
+  notification: { label: '通知系统', icon: Activity, color: 'hsl(var(--muted-foreground))', bgColor: 'hsl(var(--muted))' },
+  ui: { label: '界面定制', icon: Settings, color: 'hsl(var(--muted-foreground))', bgColor: 'hsl(var(--muted))' },
 }
 
 export function AdminDashboardPage() {
   const navigate = useNavigate()
-  const { toast } = useToast()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<SystemStatus | null>(null)
 
@@ -39,14 +39,10 @@ export function AdminDashboardPage() {
   const fetchStatus = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/admin/system/status')
-      setStatus(res.data)
+      const res = await api.adminSystemStatus()
+      setStatus(res)
     } catch (error) {
-      toast({
-        title: '加载失败',
-        description: '无法获取系统状态',
-        variant: 'destructive',
-      })
+      showToast('加载失败：无法获取系统状态', 'error')
     } finally {
       setLoading(false)
     }
@@ -64,84 +60,47 @@ export function AdminDashboardPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="pg-rise mx-auto max-w-6xl px-6 py-8">
         {/* Header */}
-        <div className="mb-8 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" aria-hidden="true" />
-            <h1 className="text-2xl font-bold text-foreground">管理后台</h1>
-          </div>
-        </div>
+        <PgPageHead
+          eyebrow="谱 局 · 总 览"
+          title="管理后台"
+          subtitle="平台用户、族谱与配置的总体情况"
+        />
 
-        {/* Stats Cards */}
-        <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-l-4 border-l-blue-500">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                用户总数
-              </CardTitle>
-              <Users className="h-4 w-4 text-blue-500" aria-hidden="true" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{status?.users.total || 0}</div>
-              <div className="flex gap-4 text-xs text-muted-foreground">
-                <span className="text-green-600">活跃 {status?.users.active || 0}</span>
-                <span className="text-yellow-600">待审 {status?.users.pending || 0}</span>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Stats Cards — 四柱 */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatusCard icon={Users} label="用户总数" value={status?.users.total || 0}>
+            <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
+              <span className="text-success">活跃 {status?.users.active || 0}</span>
+              <span className="text-primary">待审 {status?.users.pending || 0}</span>
+            </div>
+          </StatusCard>
 
-          <Card className="border-l-4 border-l-purple-500">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                族谱总数
-              </CardTitle>
-              <BookOpen className="h-4 w-4 text-purple-500" aria-hidden="true" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{status?.families.total || 0}</div>
-              <p className="text-xs text-muted-foreground">已创建的族谱数量</p>
-            </CardContent>
-          </Card>
+          <StatusCard icon={BookOpen} label="族谱总数" value={status?.families.total || 0}>
+            <p className="mt-1 text-xs text-muted-foreground">已创建的族谱数量</p>
+          </StatusCard>
 
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                成员总数
-              </CardTitle>
-              <UserCircle className="h-4 w-4 text-green-500" aria-hidden="true" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{status?.members.total || 0}</div>
-              <p className="text-xs text-muted-foreground">所有族谱的成员总数</p>
-            </CardContent>
-          </Card>
+          <StatusCard icon={UserCircle} label="成员总数" value={status?.members.total || 0}>
+            <p className="mt-1 text-xs text-muted-foreground">所有族谱的成员总数</p>
+          </StatusCard>
 
-          <Card className="border-l-4 border-l-orange-500">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                配置总数
-              </CardTitle>
-              <Settings className="h-4 w-4 text-orange-500" aria-hidden="true" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{status?.configs.total || 0}</div>
-              <p className="text-xs text-muted-foreground">系统配置项数量</p>
-            </CardContent>
-          </Card>
+          <StatusCard icon={Settings} label="配置总数" value={status?.configs.total || 0}>
+            <p className="mt-1 text-xs text-muted-foreground">系统配置项数量</p>
+          </StatusCard>
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">快捷操作</h2>
+        <div className="mt-8">
+          <PgSectionHead text="快 捷 操 作" />
           <div className="grid gap-4 md:grid-cols-3">
             <button
               onClick={() => navigate('/admin/users')}
-              className="flex items-center justify-between rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50"
+              className="pg-card flex items-center justify-between p-4 transition-colors hover:border-muted-foreground/40"
             >
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-blue-100 p-2">
-                  <Users className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                <div className="rounded-lg bg-muted p-2">
+                  <Users className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div className="text-left">
                   <p className="font-medium">用户管理</p>
@@ -153,11 +112,11 @@ export function AdminDashboardPage() {
 
             <button
               onClick={() => navigate('/admin/config')}
-              className="flex items-center justify-between rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50"
+              className="pg-card flex items-center justify-between p-4 transition-colors hover:border-muted-foreground/40"
             >
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-purple-100 p-2">
-                  <Settings className="h-5 w-5 text-purple-600" aria-hidden="true" />
+                <div className="rounded-lg bg-muted p-2">
+                  <Settings className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div className="text-left">
                   <p className="font-medium">系统配置</p>
@@ -169,11 +128,11 @@ export function AdminDashboardPage() {
 
             <button
               onClick={() => navigate('/admin/audit-logs')}
-              className="flex items-center justify-between rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50"
+              className="pg-card flex items-center justify-between p-4 transition-colors hover:border-muted-foreground/40"
             >
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-orange-100 p-2">
-                  <Activity className="h-5 w-5 text-orange-600" aria-hidden="true" />
+                <div className="rounded-lg bg-muted p-2">
+                  <Activity className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div className="text-left">
                   <p className="font-medium">审计日志</p>
@@ -186,8 +145,8 @@ export function AdminDashboardPage() {
         </div>
 
         {/* Config Categories */}
-        <div>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">配置分类</h2>
+        <div className="mt-8">
+          <PgSectionHead text="配 置 分 类" />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             {Object.entries(CATEGORY_INFO).map(([key, info]) => {
               const Icon = info.icon
@@ -195,7 +154,7 @@ export function AdminDashboardPage() {
                 <button
                   key={key}
                   onClick={() => navigate(`/admin/config?category=${key}`)}
-                  className="flex flex-col items-center rounded-lg border p-4 transition-colors hover:bg-gray-50"
+                  className="pg-card flex flex-col items-center p-4 transition-colors hover:border-muted-foreground/40"
                 >
                   <div
                     className="mb-3 flex h-12 w-12 items-center justify-center rounded-full"
@@ -213,44 +172,62 @@ export function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Recent Activity Placeholder */}
+        {/* Recent Activity */}
         <div className="mt-8">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">待处理事项</h2>
-          <Card>
-            <CardContent className="p-6">
-              {status && status.users.pending > 0 ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-yellow-100 p-2">
-                      <Clock className="h-5 w-5 text-yellow-600" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <p className="font-medium">有 {status.users.pending} 个用户待审核</p>
-                      <p className="text-sm text-muted-foreground">
-                        新注册用户需要管理员审核后才能登录
-                      </p>
-                    </div>
+          <PgSectionHead text="待 处 理 事 项" />
+          <div className="pg-card p-6">
+            {status && status.users.pending > 0 ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-muted p-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   </div>
-                  <button
-                    onClick={() => navigate('/admin/users?tab=pending')}
-                    className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                  >
-                    去处理
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <div className="rounded-full bg-green-100 p-2">
-                    <UserPlus className="h-5 w-5 text-green-600" aria-hidden="true" />
+                  <div>
+                    <p className="font-medium">有 {status.users.pending} 个用户待审核</p>
+                    <p className="text-sm text-muted-foreground">
+                      新注册用户需要管理员审核后才能登录
+                    </p>
                   </div>
-                  <p>暂无待处理事项</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <button
+                  onClick={() => navigate('/admin/users?tab=pending')}
+                  className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  去处理
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <div className="rounded-lg bg-muted p-2">
+                  <UserPlus className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                </div>
+                <p>暂无待处理事项</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>
   )
 }
+
+function StatusCard({ icon: Icon, label, value, children }: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: number
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="pg-card p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      </div>
+      <div className="pg-title mt-2 text-2xl font-semibold">{value}</div>
+      {children}
+    </div>
+  )
+}
+
+export default AdminDashboardPage

@@ -5,6 +5,7 @@ import { store } from '@/store'
 import App from './App'
 import { ToastProvider } from '@/components/ui'
 import './index.css'
+import './pedigree.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
