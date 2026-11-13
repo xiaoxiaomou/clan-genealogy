@@ -1024,7 +1024,9 @@
   .bottom-safe { bottom: 0.5rem; }
 }
 
-/* 玻璃态底栏（毛玻璃 + 安全区） */
+/* 玻璃态底栏（毛玻璃 + 安全区）——仅移动端（<640px）显示；
+   用宽度媒体查询包裹，避免 display:flex 覆盖组件上 sm:hidden 的桌面隐藏 */
+@media (max-width: 639px) {
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -1047,6 +1049,7 @@
   border-top-color: rgba(180, 160, 130, 0.2);
   box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.4);
 }
+} /* max-width: 639px 底栏作用域结束 */
 
 /* 顶栏适配安全区 */
 .top-nav {
