@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui'
+import { PG_RED } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
   UserPlus,
@@ -6,27 +7,9 @@ import {
   Home,
   Upload,
   Download,
-  Calendar,
-  Image,
-  GitFork,
-  GitCommitHorizontal,
-  BookOpen,
   Settings,
-  History,
-  ScrollText,
-  Award,
-  Heart,
-  Map as MapIcon,
-  Sparkles,
-  MessageSquare,
-  Users,
-  Landmark,
-  Network,
-  BarChart3,
-
+  BookOpenText,
 } from 'lucide-react'
-import type { ComponentType, SVGProps } from 'react'
-type LucideIcon = ComponentType<SVGProps<SVGSVGElement>>
 import type { Family } from '@/types'
 
 interface FamilyHeaderProps {
@@ -69,37 +52,6 @@ function getRoleStyles(role: string): string {
       return 'border-stone-600/40 bg-stone-800/40 text-stone-300'
   }
 }
-
-interface NavItem {
-  path: string
-  label: string
-  title: string
-  icon: LucideIcon
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { path: 'intro', label: '简介', title: '家族简介', icon: BookOpen },
-  { path: 'events', label: '大事记', title: '家族大事', icon: Calendar },
-  { path: 'album', label: '相册', title: '家族相册', icon: Image },
-  { path: 'branches', label: '分支', title: '分支管理', icon: GitFork },
-  { path: 'kinship', label: '关系计算', title: '亲属关系计算', icon: GitCommitHorizontal },
-  { path: 'lineage', label: '世系图', title: '完整世系图（苏/欧/宝塔式）', icon: ScrollText },
-  { path: 'cousin', label: '旁系', title: '旁系族亲图', icon: Network },
-  { path: 'zibei', label: '字辈', title: '字辈诗管理', icon: Sparkles },
-  { path: 'history', label: '历史', title: '历史事实索引', icon: History },
-  { path: 'honors', label: '功德', title: '功德榜 / 荣誉墙', icon: Award },
-  { path: 'memorial', label: '祭日', title: '祭日忌日', icon: Heart },
-  { path: 'map', label: '地理', title: '家族地理', icon: MapIcon },
-  { path: 'feed', label: '动态', title: '家族动态', icon: MessageSquare },
-  { path: 'chat', label: '聊天', title: '家族聊天', icon: Users },
-  { path: 'council', label: '理事会', title: '族委会 / 理事会', icon: Award },
-  { path: 'temple', label: '家庙', title: '家庙', icon: Landmark },
-  { path: 'ocr', label: 'OCR', title: 'AI 智能录入', icon: Sparkles },
-  { path: 'stats', label: '数据', title: '数据看板', icon: BarChart3 },
-  { path: 'gedcom', label: 'GEDCOM', title: '族谱 GEDCOM 互换', icon: GitCommitHorizontal },
-  { path: 'path', label: '关系路径', title: '寻根问祖 · 关系路径', icon: Network },
-  { path: 'icons', label: '墨韵', title: '墨水笔触图标', icon: Sparkles },
-]
 
 export default function FamilyHeader({
   family,
@@ -243,33 +195,23 @@ export default function FamilyHeader({
               <Download className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
-        </div>
-      </div>
 
-      <div
-        className="relative z-10 border-t border-amber-700/20 bg-stone-950/40 px-3 py-2"
-        role="navigation"
-        aria-label="族谱功能导航"
-      >
-        <div className="flex flex-wrap items-center gap-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.path}
-                onClick={() => onNavigate(`/family/${familyId}/${item.path}`)}
-                title={item.title}
-                aria-label={item.title}
-                className="group inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md border border-transparent px-2 text-xs text-amber-200/70 transition-all hover:border-amber-700/40 hover:bg-stone-900/60 hover:text-amber-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/60"
-              >
-                <Icon
-                  className="h-3.5 w-3.5 shrink-0 text-amber-500/70 transition-colors group-hover:text-amber-400"
-                  aria-hidden="true"
-                />
-                <span className="font-serif tracking-wide">{item.label}</span>
-              </button>
-            )
-          })}
+          {/* 功能目录：原页头 21 个导航链接收拢至此页 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onNavigate(`/family/${familyId}/functions`)}
+            className="h-8 gap-1.5 px-2.5 text-xs"
+            style={{
+              borderColor: 'color-mix(in srgb, ' + PG_RED + ' 55%, transparent)',
+              color: PG_RED,
+            }}
+            aria-label="功能目录"
+            title="全部功能目录"
+          >
+            <BookOpenText className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="whitespace-nowrap font-serif tracking-wide">功能目录</span>
+          </Button>
         </div>
       </div>
     </div>
