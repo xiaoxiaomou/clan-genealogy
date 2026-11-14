@@ -53,7 +53,7 @@ function HalfPerson({
       : null
   return (
     <div
-      className="relative flex flex-col items-center px-1 py-0.5 text-center"
+      className="relative flex h-full flex-col items-center justify-center gap-0.5 px-2 pb-0.5 pt-[6px] text-center"
       style={{ minWidth: halfWidth }}
       onMouseEnter={(e) => onHover?.(m, e.clientX, e.clientY)}
       onContextMenu={(e) => {
@@ -67,15 +67,22 @@ function HalfPerson({
         style={{ background: m.gender === 'female' ? GENDER_INK.female : GENDER_INK.male }}
         aria-hidden="true"
       />
-      <AvatarDisplay name={m.name} avatar={m.avatar} size={24} className="flex-shrink-0" />
-      <span
-        className="w-full truncate text-center font-serif text-[13px] font-semibold tracking-wide"
-        style={{ opacity: isDead ? 0.72 : 1 }}
-      >
-        {m.name}
-        {isDead && <span className="ml-0.5 text-[10px] text-muted-foreground">†</span>}
-      </span>
-      {ziLine && <span className="w-full truncate text-[9px] leading-tight text-muted-foreground">{ziLine}</span>}
+      <div className="flex w-full items-center justify-center gap-1.5">
+        <AvatarDisplay name={m.name} avatar={m.avatar} size={22} className="flex-shrink-0" />
+        <span
+          className="w-full truncate text-center font-serif text-[14px] font-semibold tracking-wide"
+          style={{ opacity: isDead ? 0.72 : 1 }}
+        >
+          {m.name}
+          {isDead && <span className="ml-0.5 text-[10px] text-muted-foreground">†</span>}
+        </span>
+      </div>
+      <p className="min-h-[12px] w-full truncate text-[10px] leading-none text-muted-foreground">
+        {ziLine || ' '}
+      </p>
+      <p className="w-full truncate text-[10px] leading-none tracking-wide text-muted-foreground">
+        {m.birth_date ? `${m.birth_date.slice(0, 4)} ~ ${m.death_date?.slice(0, 4) ?? ''}` : ''}
+      </p>
     </div>
   )
 }
@@ -104,7 +111,7 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
     <div
       style={{
         width: data.nodeWidth,
-        height: 106,
+        height: 90,
         opacity: data.isDimmed ? 0.3 : 1,
         transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
         transform: data.isHighlighted ? 'scale(1.05)' : 'scale(1)',

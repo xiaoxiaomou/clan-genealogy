@@ -105,7 +105,7 @@ export function useTreeLayout(treeData: FamilyTree | null, _layoutMode: LayoutMo
       const first = coupleInfo.byRep.get(repId)?.husband
       g.setNode(String(repId), {
         width: dagreNodeWidthMap.get(repId) ?? NODE_WIDTH_MIN * 2,
-        height: NODE_HEIGHT + 16,
+        height: NODE_HEIGHT,
         rank: first?.generation || fallbackRank,
       })
     }

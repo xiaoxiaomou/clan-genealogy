@@ -180,7 +180,7 @@ export function FamilyTreeEngine({
         id: String(repId),
         type: 'couple',
         hidden: hiddenIds.has(repId),
-        position: dragPos.get(String(repId)) ?? (pos ? { x: pos.x - nw / 2, y: pos.y - (NODE_HEIGHT + 16) / 2 } : { x: 0, y: 0 }),
+        position: dragPos.get(String(repId)) ?? (pos ? { x: pos.x - nw / 2, y: pos.y - NODE_HEIGHT / 2 } : { x: 0, y: 0 }),
         data: {
           husband: c.husband,
           wife: c.wife,
