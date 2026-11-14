@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Clock,
   UserPlus,
+  Archive,
 } from 'lucide-react'
 
 /* 分类图记：色彩一律走主题令牌，谱局页面从素 */
@@ -93,7 +94,7 @@ export function AdminDashboardPage() {
         {/* Quick Actions */}
         <div className="mt-8">
           <PgSectionHead text="快 捷 操 作" />
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <button
               onClick={() => navigate('/admin/users')}
               className="pg-card flex items-center justify-between p-4 transition-colors hover:border-muted-foreground/40"
@@ -137,6 +138,22 @@ export function AdminDashboardPage() {
                 <div className="text-left">
                   <p className="font-medium">审计日志</p>
                   <p className="text-sm text-muted-foreground">查看操作记录和变更历史</p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/maintenance')}
+              className="pg-card flex items-center justify-between p-4 transition-colors hover:border-muted-foreground/40"
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-muted p-2">
+                  <Archive className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">数据维护</p>
+                  <p className="text-sm text-muted-foreground">备份、诊察与孤儿文件清理</p>
                 </div>
               </div>
               <ArrowRight className="h-5 w-5 text-muted-foreground" aria-hidden="true" />

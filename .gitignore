@@ -72,3 +72,4 @@ Thumbs.db
 
 # ---------- Local memory / workspace data (not for public repo) ----------
 .workbuddy/
+backups/

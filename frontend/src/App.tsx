@@ -39,6 +39,7 @@ const AdminUsersPage = lazy(() => import('@/components/pages/AdminUsersPage'))
 const AdminDashboardPage = lazy(() => import('@/components/pages/AdminDashboardPage'))
 const AdminConfigPage = lazy(() => import('@/components/pages/AdminConfigPage'))
 const AdminAuditLogsPage = lazy(() => import('@/components/pages/AdminAuditLogsPage'))
+const AdminMaintenancePage = lazy(() => import('@/components/pages/AdminMaintenancePage'))
 const ProfilePage = lazy(() => import('@/components/pages/ProfilePage'))
 const NotFoundPage = lazy(() => import('@/components/pages/NotFoundPage'))
 const MemberBatchPage = lazy(() => import('@/components/pages/MemberBatchPage'))
@@ -395,6 +396,14 @@ function App() {
                 element={
                   <AdminRoute>
                     <AdminAuditLogsPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/maintenance"
+                element={
+                  <AdminRoute>
+                    <AdminMaintenancePage />
                   </AdminRoute>
                 }
               />

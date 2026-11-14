@@ -100,6 +100,7 @@ def create_app(config_name='default'):
     from app.routes.ai import ai_bp
     from app.routes.family_merge import family_merge_bp
     from app.routes.member_history import member_history_bp
+    from app.routes.maintenance import maintenance_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(family_bp, url_prefix='/api/family')
     app.register_blueprint(generation_bp, url_prefix='/api/family')
@@ -131,6 +132,7 @@ def create_app(config_name='default'):
     app.register_blueprint(family_merge_bp, url_prefix='/api/family')
     app.register_blueprint(member_history_bp, url_prefix='/api/family')
     app.register_blueprint(ai_bp, url_prefix='/api/family')
+    app.register_blueprint(maintenance_bp, url_prefix='/api')
 
     # 注册前端路由
     from app.routes.pages import page_bp

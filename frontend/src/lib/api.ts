@@ -700,23 +700,31 @@ export const api = {
   verifyResetToken: (token: string) =>
     request<any>(`/auth/reset-password/verify?token=${encodeURIComponent(token)}`),
 
+  // 数据维护（管理员）
+  adminListBackups: () => request<any>('/admin/maintenance/backups'),
+
   adminCreateBackup: () =>
-    request<any>('/admin/backup/create', { method: 'POST' }),
+    request<any>('/admin/maintenance/backups', { method: 'POST' }),
 
-  adminListBackups: () =>
-    request<any>('/admin/backup'),
+  adminDownloadBackup: async (filename: string) => {
+    const blob = await request<Blob>(
+      `/admin/maintenance/backups/${encodeURIComponent(filename)}/download`,
+      { responseType: 'blob' },
+    )
+    downloadBlob(blob, filename)
+  },
 
-  adminRestoreBackup: (backup_id: number) =>
-    request<any>('/admin/backup/restore', { method: 'POST', body: { backup_id } }),
+  adminDeleteBackup: (filename: string) =>
+    request<any>(`/admin/maintenance/backups/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+    }),
 
-  adminDownloadBackup: (backup_id: number) =>
-    request<any>(`/admin/backup/${backup_id}/download`),
+  adminIntegrityCheck: () => request<any>('/admin/maintenance/integrity'),
 
-  adminDeleteBackup: (backup_id: number) =>
-    request<any>(`/admin/backup/${backup_id}`, { method: 'DELETE' }),
+  adminCleanupOrphans: (target: 'avatars' | 'events' | 'albums') =>
+    request<any>('/admin/maintenance/cleanup', { method: 'POST', body: { target } }),
 
-  adminIntegrityCheck: () =>
-    request<any>('/admin/integrity/check', { method: 'POST' }),
+  adminAllFamilies: () => request<any>('/admin/maintenance/families'),
 
   adminBatchDeleteMembers: (family_id: number, member_ids: number[]) =>
     request<any>(`/family/${family_id}/members/batch-delete`, {
@@ -729,15 +737,6 @@ export const api = {
       method: 'POST',
       body: { member_ids, branch_id },
     }),
-
-  adminListRecycleBin: (family_id?: number) =>
-    request<any>(family_id ? `/family/${family_id}/recycle-bin` : '/admin/recycle-bin'),
-
-  adminRestoreFromRecycle: (recycle_id: number) =>
-    request<any>(`/admin/recycle-bin/${recycle_id}/restore`, { method: 'POST' }),
-
-  adminPurgeRecycle: (recycle_id: number) =>
-    request<any>(`/admin/recycle-bin/${recycle_id}`, { method: 'DELETE' }),
 
   // Memorial (祭日/忌日)
   getTodayMemorial: (familyId: number) =>
