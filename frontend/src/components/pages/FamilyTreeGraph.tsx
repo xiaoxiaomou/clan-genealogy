@@ -121,7 +121,7 @@ const FamilyMemberNodeComponent = memo(function FamilyMemberNodeComponent({ data
         height: NODE_HEIGHT,
         opacity,
         transform: isHighlighted ? 'scale(1.05)' : 'scale(1)',
-        transition: 'all 0.3s ease',
+        transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
         ...(ringStyle || {}),
       }}
       className="relative"
@@ -486,6 +486,7 @@ export default function FamilyTreeGraph({
       return { nodes: [], edges: [] }
     }
 
+    const maxGeneration = treeData.nodes.reduce((mx, n) => Math.max(mx, n.generation || 0), 0)
     const dagreGraph = new dagre.graphlib.Graph()
     dagreGraph.setDefaultEdgeLabel(() => ({}))
     dagreGraph.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 100 })
@@ -580,7 +581,7 @@ export default function FamilyTreeGraph({
         dagreGraph.setNode(nodeData.id, {
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
-          rank: node.generation || 999,
+          rank: node.generation || maxGeneration + 1,
         })
       }
     })
@@ -681,6 +682,16 @@ export default function FamilyTreeGraph({
   const handleFlowInit = useCallback((instance: ReturnType<typeof useReactFlow>) => {
     reactFlowInstance.current = instance
   }, [])
+
+  /* 数据异步到达/变更后重新 fitView */
+  const nodeCount = treeData?.nodes.length ?? 0
+  useEffect(() => {
+    if (!nodeCount) return
+    const doFit = () => reactFlowInstance.current?.fitView({ padding: 0.15 })
+    const raf = requestAnimationFrame(doFit)
+    const t = setTimeout(doFit, 350)
+    return () => { cancelAnimationFrame(raf); clearTimeout(t) }
+  }, [nodeCount])
 
   if (!treeData || treeData.nodes.length === 0) {
     return (
