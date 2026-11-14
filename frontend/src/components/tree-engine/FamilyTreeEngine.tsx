@@ -76,6 +76,10 @@ export function FamilyTreeEngine({
 }: FamilyTreeEngineProps) {
   const [hoveredMember, setHoveredMember] = useState<{ member: TreeNode; x: number; y: number } | null>(null)
   const engineRef = useRef<HTMLDivElement>(null)
+  /* 手动拖拽后的节点位置（受控模式：不记录会被 dagre 位置弹回） */
+  const [dragPos, setDragPos] = useState<Map<string, { x: number; y: number }>>(new Map)
+
+  useEffect(() => { setDragPos(new Map()) }, [treeData])
 
   const handleNodeHover = useCallback((m: TreeNode | null, x?: number, y?: number) => {
     if (m && x !== undefined && y !== undefined) setHoveredMember({ member: m, x, y })
@@ -144,7 +148,7 @@ export function FamilyTreeEngine({
         id: String(node.id),
         type: 'person',
         hidden: hiddenIds.has(node.id),
-        position: pos ? { x: pos.x - nw / 2, y: pos.y - NODE_HEIGHT / 2 } : { x: 0, y: 0 },
+        position: dragPos.get(String(node.id)) ?? (pos ? { x: pos.x - nw / 2, y: pos.y - NODE_HEIGHT / 2 } : { x: 0, y: 0 }),
         data: {
           member: node,
           isHighlighted: false,
@@ -173,7 +177,7 @@ export function FamilyTreeEngine({
         id: String(repId),
         type: 'couple',
         hidden: hiddenIds.has(repId),
-        position: pos ? { x: pos.x - nw / 2, y: pos.y - (NODE_HEIGHT + 16) / 2 } : { x: 0, y: 0 },
+        position: dragPos.get(String(repId)) ?? (pos ? { x: pos.x - nw / 2, y: pos.y - (NODE_HEIGHT + 16) / 2 } : { x: 0, y: 0 }),
         data: {
           husband: c.husband,
           wife: c.wife,
@@ -214,7 +218,7 @@ export function FamilyTreeEngine({
       }))
 
     return { nodes: flowNodes, edges: flowEdges }
-  }, [treeData, dagrePositions, dagreNodeWidthMap, coupleInfo, collapsedIds, selectedNodeIds, toggleCollapse, parentEdges])
+  }, [treeData, dagrePositions, dagreNodeWidthMap, coupleInfo, collapsedIds, selectedNodeIds, toggleCollapse, parentEdges, dragPos])
 
   // 屏幕坐标（世代表尺用）
   const nodeScreenPositions = useMemo(() => {
@@ -314,6 +318,8 @@ export function FamilyTreeEngine({
         }}
         panActivationKeyCode="Space"
         onPaneClick={() => onPaneClick?.()}
+        onNodeDrag={(_e: unknown, node: { id: string; position: { x: number; y: number } }) => setDragPos(prev => new Map(prev).set(String(node.id), { x: node.position.x, y: node.position.y }))}
+        onNodeDragStop={(_e: unknown, node: { id: string; position: { x: number; y: number } }) => setDragPos(prev => new Map(prev).set(String(node.id), { x: node.position.x, y: node.position.y }))}
         onNodeClick={(_: unknown, node: { data: unknown }) => {
           const d = node.data as PersonNodeData | CoupleNodeData
           const m = 'member' in d ? d.member : d.husband
