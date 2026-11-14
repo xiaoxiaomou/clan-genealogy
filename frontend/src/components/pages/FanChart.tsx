@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, AvatarDisplay } from '@/components/ui'
+import { MemberTooltip } from '@/components/tree-engine/nodes/MemberTooltip'
 import { ZoomIn, ZoomOut } from 'lucide-react'
 import type { TreeNode, FamilyTree, Member } from '@/types'
 
@@ -590,46 +591,12 @@ export default function FanChart({
       )}
 
       {hoveredNode && (
-        <div
-          className="pointer-events-none fixed z-50 rounded-md border bg-card p-3 shadow-lg animate-fade-in"
-          style={{
-            left: hoverPosition.x + 15,
-            top: hoverPosition.y + 15,
-            maxWidth: 280,
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <AvatarDisplay
-              avatar={hoveredNode.avatar}
-              name={hoveredNode.name}
-              gender={hoveredNode.gender}
-              size={36}
-            />
-            <div>
-              <h4 className="font-semibold">{hoveredNode.name}</h4>
-              <p className="text-xs text-muted-foreground">
-                {getGenderLabel(hoveredNode.gender)}
-                {hoveredNode.generation_name && ` · ${hoveredNode.generation_name}字辈`}
-                {!hoveredNode.is_alive && ' · 已故'}
-              </p>
-            </div>
-          </div>
-          {hoveredNode.birth_date && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              出生：{hoveredNode.birth_date}
-            </p>
-          )}
-          {hoveredNode.death_date && (
-            <p className="text-xs text-muted-foreground">
-              逝世：{hoveredNode.death_date}
-            </p>
-          )}
-          {hoveredNode.bio && (
-            <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">
-              {hoveredNode.bio}
-            </p>
-          )}
-        </div>
+        <MemberTooltip
+          member={hoveredNode}
+          mouseX={hoverPosition.x}
+          mouseY={hoverPosition.y}
+          containerRect={null}
+        />
       )}
     </div>
   )

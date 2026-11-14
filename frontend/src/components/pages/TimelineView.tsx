@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent } from '@/components/ui'
 import { AvatarDisplay } from '@/components/ui'
-import type { Member } from '@/types'
+import { MemberTooltip } from '@/components/tree-engine/nodes/MemberTooltip'
+import type { TreeNode, Member } from '@/types'
 
 interface TimelineViewProps {
   members: Member[]
@@ -201,46 +202,12 @@ export default function TimelineView({
       </div>
 
       {hoveredMember && (
-        <div
-          className="pointer-events-none fixed z-50 rounded-md border bg-card p-3 shadow-lg animate-fade-in"
-          style={{
-            left: hoveredMember.x + 15,
-            top: hoveredMember.y + 15,
-            maxWidth: 280,
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <AvatarDisplay
-              name={hoveredMember.member.name}
-              avatar={hoveredMember.member.avatar}
-              gender={hoveredMember.member.gender}
-              size={36}
-            />
-            <div>
-              <h4 className="font-semibold">{hoveredMember.member.name}</h4>
-              <p className="text-xs text-muted-foreground">
-                {hoveredMember.member.gender === 'male' ? '男' : hoveredMember.member.gender === 'female' ? '女' : '未知'}
-                {hoveredMember.member.generation_name && ` · ${hoveredMember.member.generation_name}字辈`}
-                {!hoveredMember.member.is_alive && ' · 已故'}
-              </p>
-            </div>
-          </div>
-          {hoveredMember.member.birth_date && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              出生：{hoveredMember.member.birth_date}
-            </p>
-          )}
-          {hoveredMember.member.death_date && (
-            <p className="text-xs text-muted-foreground">
-              逝世：{hoveredMember.member.death_date}
-            </p>
-          )}
-          {hoveredMember.member.bio && (
-            <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">
-              {hoveredMember.member.bio}
-            </p>
-          )}
-        </div>
+        <MemberTooltip
+          member={hoveredMember.member as unknown as TreeNode}
+          mouseX={hoveredMember.x}
+          mouseY={hoveredMember.y}
+          containerRect={null}
+        />
       )}
     </div>
   )

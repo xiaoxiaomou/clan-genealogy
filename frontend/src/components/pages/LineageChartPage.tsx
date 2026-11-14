@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/ui'
+import { MemberTooltip } from '@/components/tree-engine/nodes/MemberTooltip'
+import type { TreeNode } from '@/types'
 import { PgPageHead, PgColophon } from '@/components/ui/pedigree'
 import { SvgZoomPan } from '@/components/ui/SvgZoomPan'
 import { Layout } from '@/components/layout/Layout'
@@ -49,6 +51,20 @@ export default function LineageChartPage() {
 
   const [style, setStyle] = useState<Style>('ou')
   const [data, setData] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null)
+  const [hovered, setHovered] = useState<{ node: Node; x: number; y: number } | null>(null)
+
+  /** 世系图节点字段精简，映射为 TreeNode 供名帖浮层使用 */
+  function toTreeNode(n: Node): TreeNode {
+    return {
+      id: n.id,
+      name: n.name,
+      gender: n.gender,
+      generation: n.generation,
+      is_alive: n.is_alive,
+      birth_date: n.birth_year ? String(n.birth_year) : null,
+      death_date: n.death_year ? String(n.death_year) : null,
+    } as TreeNode
+  }
   const [loading, setLoading] = useState(false)
   const [zoom, setZoom] = useState(1)
   const [familySurname, setFamilySurname] = useState('')
@@ -220,6 +236,8 @@ export default function LineageChartPage() {
                           transform={`translate(${x}, ${y})`}
                           className="cursor-pointer"
                           onClick={() => navigate(`/family/${familyId}/member/${n.id}`)}
+                          onMouseEnter={(e) => setHovered({ node: n, x: e.clientX, y: e.clientY })}
+                          onMouseLeave={() => setHovered(null)}
                         >
                           <rect
                             width={NODE_W}
@@ -255,6 +273,14 @@ export default function LineageChartPage() {
                     })}
                   </SvgZoomPan>
                 </div>
+              )}
+              {hovered && (
+                <MemberTooltip
+                  member={toTreeNode(hovered.node)}
+                  mouseX={hovered.x}
+                  mouseY={hovered.y}
+                  containerRect={null}
+                />
               )}
             </div>
           </div>

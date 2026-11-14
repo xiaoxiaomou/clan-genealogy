@@ -31,13 +31,16 @@ export function MemberTooltip({ member, mouseX, mouseY, containerRect }: MemberT
   const age = member.birth_date ? calcAge(member.birth_date, member.death_date) : null
   const tooltipW = 288
   const pad = 12
+  // 视口坐标 → 容器内坐标（容器模式下需减去容器偏移）
+  const relX = containerRect ? mouseX - containerRect.left : mouseX
+  const relY = containerRect ? mouseY - containerRect.top : mouseY
   const maxX = containerRect ? containerRect.width : window.innerWidth
   const maxY = containerRect ? containerRect.height : window.innerHeight
 
-  let left = mouseX + pad
-  let top = mouseY + pad
-  if (left + tooltipW > maxX - pad) left = mouseX - tooltipW - pad
-  if (top + 240 > maxY - pad) top = mouseY - 240 - pad
+  let left = relX + pad
+  let top = relY + pad
+  if (left + tooltipW > maxX - pad) left = relX - tooltipW - pad
+  if (top + 240 > maxY - pad) top = relY - 240 - pad
   left = Math.max(pad, left)
   top = Math.max(pad, top)
 

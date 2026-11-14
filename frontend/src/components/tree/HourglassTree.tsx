@@ -9,20 +9,14 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
-import { Card, CardContent, AvatarDisplay } from '@/components/ui'
+import { AvatarDisplay } from '@/components/ui'
+import { MemberTooltip } from '@/components/tree-engine/nodes/MemberTooltip'
+import type { TreeNode } from '@/types'
 import { api } from '@/lib/api'
 import { useTreeFocus, useAutoFocusNode } from '@/hooks/useTreeFocus'
 
 const NODE_WIDTH = 160
 const NODE_HEIGHT = 80
-
-function getGenderColor(gender: string): string {
-  switch (gender) {
-    case 'male': return '#2563eb'
-    case 'female': return '#ec4899'
-    default: return '#94a3b8'
-  }
-}
 
 interface HourglassMember {
   id: number
@@ -33,6 +27,7 @@ interface HourglassMember {
 interface HourglassMemberNodeData {
   member: HourglassMember
   gender?: string
+  onHover?: (member: TreeNode | null, x?: number, y?: number) => void
 }
 
 // src/env.d.ts 中对 '@xyflow/react' 的 ambient 声明覆盖了包内类型，
@@ -55,23 +50,48 @@ interface HourglassFlowEdge {
 function HourglassNodeComponent({ data }: { data: HourglassMemberNodeData }) {
   const member = data.member as HourglassMember
   return (
-    <div style={{ width: NODE_WIDTH, height: NODE_HEIGHT }} className="relative">
+    <div
+      style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
+      className="relative touch-manipulation"
+      onMouseEnter={(e) => data.onHover?.(toTreeNode(member, data.gender), e.clientX, e.clientY)}
+      onMouseLeave={() => data.onHover?.(null)}
+    >
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow" style={{ borderColor: getGenderColor('male'), borderWidth: 1 }}>
-        <CardContent className="p-2 flex items-center gap-2">
-          <AvatarDisplay avatar={null} name={member.name} size={32} className="flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-xs truncate">{member.name}</p>
-            <p className="text-[10px] text-muted-foreground">第{member.generation}世</p>
+      <div
+        className="relative h-full w-full cursor-pointer overflow-hidden rounded-[4px] border transition-shadow hover:shadow-lg"
+        style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'hsl(160, 24%, ' + Math.min(30 + (member.generation || 1) * 6, 70) + '%)' }} aria-hidden="true" />
+        <div className="flex h-full flex-col items-center justify-center gap-0.5 px-2 text-center">
+          <div className="flex w-full items-center justify-center gap-1.5">
+            <AvatarDisplay avatar={null} name={member.name} size={24} className="flex-shrink-0" />
+            <span className="truncate font-serif text-[14px] font-semibold tracking-wide">{member.name}</span>
           </div>
-        </CardContent>
-      </Card>
+          <p className="w-full truncate text-[10px] leading-none text-muted-foreground">第{member.generation}世</p>
+        </div>
+      </div>
       <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground !w-2 !h-2" />
     </div>
   )
 }
 
 const nodeTypes = { hourglassMember: HourglassNodeComponent }
+
+/** 沙漏图数据只有 名讳/世代/性别，映射为 TreeNode 供名帖浮层使用 */
+function toTreeNode(m: HourglassMember, gender?: string): TreeNode {
+  return {
+    id: m.id,
+    name: m.name,
+    gender: gender ?? 'unknown',
+    generation: m.generation,
+    is_alive: true,
+    generation_name: null,
+    birth_date: null,
+    death_date: null,
+    avatar: null,
+    bio: null,
+  } as TreeNode
+}
 
 function FlowInit({ onInit }: { onInit: (instance: ReturnType<typeof useReactFlow>) => void }) {
   const instance = useReactFlow()
@@ -87,6 +107,12 @@ interface HourglassTreeProps {
 
 export default function HourglassTree({ familyId, initialMemberId, onMemberClick }: HourglassTreeProps) {
   const [centerMember, setCenterMember] = useState<HourglassMember | null>(null)
+  const [hovered, setHovered] = useState<{ member: TreeNode; x: number; y: number } | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const handleNodeHover = useCallback((m: TreeNode | null, x?: number, y?: number) => {
+    if (m && x !== undefined && y !== undefined) setHovered({ member: m, x, y })
+    else setHovered(null)
+  }, [])
   const [ancestors, setAncestors] = useState<HourglassMember[]>([])
   const [descendants, setDescendants] = useState<HourglassMember[]>([])
   const [siblings, setSiblings] = useState<HourglassMember[]>([])
@@ -170,7 +196,7 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
       id: String(n.id),
       type: 'hourglassMember',
       position: { x: 0, y: 0 },
-      data: { member: n },
+      data: { member: n, onHover: handleNodeHover },
     }))
 
     // Build edges from ancestor_edge_keys and descendant_edge_keys
@@ -227,7 +253,7 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
   }
 
   return (
-    <div className="relative h-[600px] w-full border rounded-lg overflow-hidden">
+    <div ref={containerRef} className="relative h-[600px] w-full border rounded-lg overflow-hidden">
       <div className="absolute top-3 left-3 z-10 bg-background/80 backdrop-blur px-3 py-1.5 rounded-md border shadow-sm text-sm flex items-center gap-3">
         <span className="font-medium">{centerMember.name}</span>
         <span className="text-muted-foreground">第{centerMember.generation}世</span>
@@ -250,6 +276,14 @@ export default function HourglassTree({ familyId, initialMemberId, onMemberClick
         <FlowInit onInit={handleFlowInit} />
         <Controls showZoom showFitView className="!bg-background/80 !backdrop-blur !border" />
         <Background className="!bg-background" gap={20} />
+        {hovered && (
+          <MemberTooltip
+            member={hovered.member}
+            mouseX={hovered.x}
+            mouseY={hovered.y}
+            containerRect={containerRef.current?.getBoundingClientRect() ?? null}
+          />
+        )}
       </ReactFlow>
     </div>
   )
