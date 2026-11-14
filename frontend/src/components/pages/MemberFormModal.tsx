@@ -30,7 +30,6 @@ interface MemberFormModalProps {
   editingMember: Member | null
   formRefAdd: React.RefObject<HTMLFormElement>
   formRefEdit: React.RefObject<HTMLFormElement>
-  saveShortcutKeys: string
   saveShortcutHint: string
   familyId: number
   onChange: (field: string, value: any) => void
@@ -49,7 +48,6 @@ export default function MemberFormModal({
   editingMember,
   formRefAdd,
   formRefEdit,
-  saveShortcutKeys,
   saveShortcutHint,
   familyId,
   onChange,
@@ -299,20 +297,12 @@ export default function MemberFormModal({
   return (
     <>
       {/* 添加成员弹窗 */}
-      <Modal
-        isOpen={showAdd}
-        onClose={onCloseAdd}
-        title={`添加家族成员（保存：${saveShortcutKeys}）`}
-      >
+      <Modal isOpen={showAdd} onClose={onCloseAdd} title="添加家族成员">
         {renderFormFields(formRefAdd, onSubmitAdd, false)}
       </Modal>
 
       {/* 编辑成员弹窗 */}
-      <Modal
-        isOpen={showEdit}
-        onClose={onCloseEdit}
-        title={`编辑成员（保存：${saveShortcutKeys}）`}
-      >
+      <Modal isOpen={showEdit} onClose={onCloseEdit} title="编辑成员">
         {renderFormFields(formRefEdit, onSubmitEdit, true)}
       </Modal>
     </>

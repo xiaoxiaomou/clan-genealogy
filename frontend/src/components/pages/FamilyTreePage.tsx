@@ -1377,7 +1377,6 @@ export default function FamilyTreePage() {
           editingMember={editingMember}
           formRefAdd={addMemberFormRef}
           formRefEdit={editMemberFormRef}
-          saveShortcutKeys={SAVE_SHORTCUT_KEYS}
           saveShortcutHint={SAVE_SHORTCUT_HINT}
           familyId={familyId}
           onChange={handleMemberFormChange}

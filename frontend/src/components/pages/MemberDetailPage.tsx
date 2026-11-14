@@ -439,7 +439,6 @@ export default function MemberDetailPage() {
             editingMember={member}
             formRefAdd={formRefAdd}
             formRefEdit={formRefEdit}
-            saveShortcutKeys={SAVE_SHORTCUT_KEYS}
             saveShortcutHint={`快捷保存：${SAVE_SHORTCUT_KEYS}`}
             familyId={familyId}
             onChange={handleFormChange}
