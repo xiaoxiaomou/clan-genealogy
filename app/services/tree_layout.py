@@ -127,12 +127,12 @@ def _layout_baota(roots, children_of):
     memo = {}
 
     def walk(node_id, depth, anchor):
-        """anchor: 父节点的位置，子节点围绕 anchor 左右展开"""
+        """anchor: 父节点的位置，子节点围绕 anchor 左右展开；返回当前游标 x"""
         size = _subtree_size(children_of, node_id, memo)
         children = sorted(children_of.get(node_id, set()))
         if not children:
             nodes.append({'id': node_id, 'x': anchor, 'y': depth, 'gen': depth})
-            return
+            return anchor
         # 把子树分配到左右两侧
         mid = len(children) // 2
         left = children[:mid]
@@ -147,6 +147,7 @@ def _layout_baota(roots, children_of):
             x = walk(cid, depth + 1, x + size / (2 * (len(right) + 1)))
             edges.append({'from': node_id, 'to': cid})
         nodes.append({'id': node_id, 'x': anchor, 'y': depth, 'gen': depth})
+        return x
 
     x = 0
     for root in roots:

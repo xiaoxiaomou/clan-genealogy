@@ -11,6 +11,13 @@ import re
 export_bp = Blueprint('export', __name__)
 
 
+def _content_disposition(name: str) -> str:
+    """构造含非 ASCII 文件名的下载头（RFC 5987），避免 latin-1 编码崩溃"""
+    from urllib.parse import quote
+    ascii_name = name.encode('ascii', 'ignore').decode() or 'download'
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(name)}"
+
+
 @export_bp.route('/<int:family_id>/export/pdf', methods=['GET'])
 @jwt_required()
 @family_permission_required('viewer')
@@ -28,7 +35,7 @@ def export_family_pdf(family_id):
 
     response = make_response(pdf_data)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename={family.name}.pdf'
+    response.headers['Content-Disposition'] = _content_disposition(f'{family.name}.pdf')
     return response
 
 
@@ -115,7 +122,7 @@ def export_members_csv(family_id):
     output.seek(0)
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv;charset=utf-8-sig'
-    response.headers['Content-Disposition'] = f'attachment; filename={family.name}_members.csv'
+    response.headers['Content-Disposition'] = _content_disposition(f'{family.name}_members.csv')
     return response
 
 
@@ -183,7 +190,7 @@ def export_members_excel(family_id):
 
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    response.headers['Content-Disposition'] = f'attachment; filename={family.name}_members.xlsx'
+    response.headers['Content-Disposition'] = _content_disposition(f'{family.name}_members.xlsx')
     return response
 
 
