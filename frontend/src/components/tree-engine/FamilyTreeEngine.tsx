@@ -56,6 +56,8 @@ export interface FamilyTreeEngineProps {
   onPaneClick?: () => void
   /** 拖拽连线：source=拖拽起点成员（长辈侧），target=落点成员 */
   onCreateRelationship?: (sourceMemberId: number, targetMemberId: number) => void
+  /** 右键连线（管理员删除关系） */
+  onEdgeContextMenu?: (edge: { id: number; type: string; sourceName: string; targetName: string }, x: number, y: number) => void
 }
 
 function FlowInit({ onInit }: { onInit: (instance: ReturnType<typeof useReactFlow>) => void }) {
@@ -73,6 +75,7 @@ export function FamilyTreeEngine({
   onCanvasDoubleClick,
   onPaneClick,
   onCreateRelationship,
+  onEdgeContextMenu,
 }: FamilyTreeEngineProps) {
   const [hoveredMember, setHoveredMember] = useState<{ member: TreeNode; x: number; y: number } | null>(null)
   const engineRef = useRef<HTMLDivElement>(null)
@@ -214,6 +217,8 @@ export function FamilyTreeEngine({
           targetName: nodeById.get(e.target)?.name ?? '',
           isSelected: false,
           isHighlighted: false,
+          relationshipId: e.id,
+          relationshipType: e.type,
         } satisfies FamilyEdgeData,
       }))
 
@@ -318,6 +323,18 @@ export function FamilyTreeEngine({
         }}
         panActivationKeyCode="Space"
         onPaneClick={() => onPaneClick?.()}
+        onEdgeContextMenu={(e: React.MouseEvent, edge: { data?: { relationshipId?: number; relationshipType?: string; sourceName?: string; targetName?: string } }) => {
+          e.preventDefault()
+          const d = edge.data
+          if (d?.relationshipId && onEdgeContextMenu) {
+            onEdgeContextMenu({
+              id: d.relationshipId,
+              type: d.relationshipType ?? '',
+              sourceName: d.sourceName ?? '',
+              targetName: d.targetName ?? '',
+            }, e.clientX, e.clientY)
+          }
+        }}
         onNodeDrag={(_e: unknown, node: { id: string; position: { x: number; y: number } }) => setDragPos(prev => new Map(prev).set(String(node.id), { x: node.position.x, y: node.position.y }))}
         onNodeDragStop={(_e: unknown, node: { id: string; position: { x: number; y: number } }) => setDragPos(prev => new Map(prev).set(String(node.id), { x: node.position.x, y: node.position.y }))}
         onNodeClick={(_: unknown, node: { data: unknown }) => {

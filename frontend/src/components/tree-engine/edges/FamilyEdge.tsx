@@ -8,6 +8,9 @@ export interface FamilyEdgeData {
   isHighlighted: boolean
   highlightColor?: string
   highlightDimmed?: boolean
+  /** 关系记录 id（右键删除连线用） */
+  relationshipId?: number
+  relationshipType?: string
 }
 
 // src/env.d.ts 中对 '@xyflow/react' 的 ambient 声明覆盖了包内类型，

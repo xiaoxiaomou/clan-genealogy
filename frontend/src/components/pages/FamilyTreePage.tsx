@@ -113,6 +113,16 @@ export default function FamilyTreePage() {
   /* 拖拽连线确认：source=拖拽起点（长辈侧），target=落点 */
   const [connectDialog, setConnectDialog] = useState<{ sourceId: number; targetId: number } | null>(null)
   const [connectType, setConnectType] = useState<'parent' | 'spouse' | 'sibling'>('parent')
+  /* 谱牒确认弹窗（替代原生 confirm） */
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string
+    description: string
+    danger?: boolean
+    onConfirm: () => void
+  } | null>(null)
+  const [edgeContextMenu, setEdgeContextMenu] = useState<
+    { id: number; type: string; sourceName: string; targetName: string; x: number; y: number } | null
+  >(null)
   /** 切换视图并同步 ?view= 参数（默认视图不占参数，刷新/直达均可还原） */
   const setTreeViewType = useCallback((v: typeof VIEW_KEYS[number]) => {
     setTreeViewTypeState(v)
@@ -544,8 +554,18 @@ export default function FamilyTreePage() {
     }
   }
 
-  const handleDeleteMember = async (memberId: number) => {
-    if (!confirm('确定要删除此成员吗？相关关系也会被删除。')) return
+  /** 打开删除成员确认弹窗（旧调用方沿用此名） */
+  const handleDeleteMember = (memberId: number) => {
+    const m = members.find((x) => x.id === memberId)
+    setConfirmDialog({
+      title: '删除成员',
+      description: `确定删除「${m?.name ?? `#${memberId}`}」吗？相关关系也会一并删除。`,
+      danger: true,
+      onConfirm: () => actuallyDeleteMember(memberId),
+    })
+  }
+
+  const actuallyDeleteMember = async (memberId: number) => {
     try {
       await api.deleteMember(familyId, memberId)
       showToast('成员已删除', 'success')
@@ -785,13 +805,16 @@ export default function FamilyTreePage() {
                   onNodeContextMenu={(m, x, y) => {
                     if (canEdit) setTreeContextMenu({ member: m, x, y })
                   }}
-                  onPaneClick={() => setTreeContextMenu(null)}
+                  onPaneClick={() => { setTreeContextMenu(null); setEdgeContextMenu(null) }}
                   onCanvasDoubleClick={() => {
                     if (canEdit) openAddMemberWith({ generation: '1' }, null)
                   }}
                   onCreateRelationship={(sourceId, targetId) => {
                     setConnectType('parent')
                     setConnectDialog({ sourceId, targetId })
+                  }}
+                  onEdgeContextMenu={(edge, x, y) => {
+                    if (canEdit) setEdgeContextMenu({ ...edge, x, y })
                   }}
                 />
               </ReactFlowProvider>
@@ -1759,6 +1782,90 @@ export default function FamilyTreePage() {
         )
       })()}
 
+      {/* 谱牒确认弹窗：替代原生 confirm */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            onClick={() => setConfirmDialog(null)}
+          />
+          <div
+            className="relative z-10 w-full max-w-sm rounded-[4px] border p-5 shadow-xl"
+            style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}
+          >
+            <h3 className="font-serif text-base font-semibold" style={confirmDialog.danger ? { color: '#A63A2E' } : undefined}>
+              {confirmDialog.title}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{confirmDialog.description}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDialog(null)}>
+                取消
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => { const fn = confirmDialog.onConfirm; setConfirmDialog(null); fn() }}
+                className={confirmDialog.danger ? 'text-white' : undefined}
+                style={confirmDialog.danger ? { backgroundColor: '#A63A2E', borderColor: '#A63A2E' } : undefined}
+              >
+                确认
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 连线右键菜单：删除关系 */}
+      {edgeContextMenu && (() => {
+        const typeLabel = { parent: '父母子女', spouse: '配偶', sibling: '兄弟姐妹' }[
+          edgeContextMenu.type as 'parent' | 'spouse' | 'sibling'
+        ] || edgeContextMenu.type
+        const removeEdge = async () => {
+          try {
+            await api.deleteRelationship(familyId, edgeContextMenu.id)
+            showToast('连线已删除', 'success')
+            setEdgeContextMenu(null)
+            loadData()
+          } catch (err: any) {
+            showToast(err.message || '删除失败', 'error')
+          }
+        }
+        setEdgeContextMenu(null)
+        setConfirmDialog({
+          title: '删除连线',
+          description: `确定删除「${edgeContextMenu.sourceName} — ${edgeContextMenu.targetName}」的${typeLabel}关系吗？`,
+          danger: true,
+          onConfirm: removeEdge,
+        })
+        return (
+          <>
+            <div
+              className="fixed inset-0 z-[60]"
+              onClick={() => setEdgeContextMenu(null)}
+              onContextMenu={(e) => { e.preventDefault(); setEdgeContextMenu(null) }}
+            />
+            <div
+              className="fixed z-[61] w-52 overflow-hidden rounded-[4px] border bg-card py-1 shadow-xl"
+              style={{
+                left: Math.min(edgeContextMenu.x, window.innerWidth - 230),
+                top: Math.min(edgeContextMenu.y, window.innerHeight - 120),
+                borderColor: 'hsl(var(--border))',
+              }}
+            >
+              <p className="mb-1 border-b px-3 py-1.5 text-xs text-muted-foreground" style={{ borderColor: 'hsl(var(--border))' }}>
+                {edgeContextMenu.sourceName} — {edgeContextMenu.targetName}
+                <span className="ml-1 text-[10px]">（{typeLabel}）</span>
+              </p>
+              <button
+                onClick={removeEdge}
+                className="block w-full px-3 py-1.5 text-left text-xs text-destructive transition-colors hover:bg-destructive/10"
+              >
+                删除连线
+              </button>
+            </div>
+          </>
+        )
+      })()}
+
       {/* 树上右键菜单：管理员添加子女/配偶/父母、连线既有成员、编辑/删除 */}
       {treeContextMenu && (() => {
         const m = treeContextMenu.member
@@ -1804,14 +1911,26 @@ export default function FamilyTreePage() {
             },
           },
           { label: '编辑成员', action: () => openEditMember(m as unknown as Member) },
-          { label: '删除成员', action: () => handleDeleteMember(m.id), danger: true },
+          {
+            label: '删除成员',
+            action: () => {
+              setTreeContextMenu(null)
+              setConfirmDialog({
+                title: '删除成员',
+                description: `确定删除「${m.name}」吗？相关关系也会一并删除。`,
+                danger: true,
+                onConfirm: () => actuallyDeleteMember(m.id),
+              })
+            },
+            danger: true,
+          },
         ]
         return (
           <>
             <div
               className="fixed inset-0 z-[60]"
-              onClick={() => setTreeContextMenu(null)}
-              onContextMenu={(e) => { e.preventDefault(); setTreeContextMenu(null) }}
+              onClick={() => { setTreeContextMenu(null); setEdgeContextMenu(null) }}
+              onContextMenu={(e) => { e.preventDefault(); setTreeContextMenu(null); setEdgeContextMenu(null) }}
             />
             <div
               className="fixed z-[61] w-44 overflow-hidden rounded-[4px] border bg-card py-1 shadow-xl"
