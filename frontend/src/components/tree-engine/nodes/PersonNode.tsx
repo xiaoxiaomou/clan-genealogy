@@ -40,6 +40,8 @@ export interface PersonNodeData {
   onHover: ((member: TreeNode | null, x?: number, y?: number) => void) | null
   /** 右键节点（管理员添加子女/配偶/连线等） */
   onNodeContextMenu?: (member: TreeNode, x: number, y: number) => void
+  /** 管理员模式：连线锚点加大并可拖拽 */
+  interactive?: boolean
 }
 
 /** memo：拖拽/点选等任何上层状态变化时，未受影响节点不再重渲染 */
@@ -83,7 +85,14 @@ export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeD
         data.onNodeContextMenu?.(m, e.clientX, e.clientY)
       }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className={data.interactive
+          ? '!z-20 !w-3.5 !h-3.5 !border-2 !border-background !bg-primary/70 hover:!bg-primary cursor-crosshair'
+          : '!z-20 !bg-muted-foreground !w-2 !h-2'}
+        title={data.interactive ? '拖到目标成员上建立关系' : undefined}
+      />
 
       {/* 谱牒纸牌 */}
       <div
@@ -96,18 +105,18 @@ export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeD
         }}
       >
         <div
-          className="absolute inset-x-0 top-0 h-[3px]"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[3px]"
           style={{ background: getGenerationColor(m.generation) }}
           aria-hidden="true"
         />
         <div
-          className="absolute bottom-0 left-0 top-[3px] w-[3px]"
+          className="pointer-events-none absolute bottom-0 left-0 top-[3px] w-[3px]"
           style={{ background: m.gender === 'female' ? GENDER_INK.female : GENDER_INK.male }}
           aria-hidden="true"
         />
         {m.generation_name && (
           <div
-            className="absolute right-1.5 top-2 h-[17px] w-[17px] rounded-[3px] text-center font-serif text-[11px] leading-[17px] text-white"
+            className="pointer-events-none absolute right-1.5 top-2 h-[17px] w-[17px] rounded-[3px] text-center font-serif text-[11px] leading-[17px] text-white"
             style={{ backgroundColor: PG_RED }}
             title={`字辈：${m.generation_name}`}
             aria-hidden="true"
@@ -117,7 +126,7 @@ export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeD
         )}
         {data.highlightRole === 'path' && (
           <div
-            className="absolute left-1/2 top-0 -translate-x-1/2 rounded-b px-1.5 py-px text-[9px] leading-none text-white"
+            className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded-b px-1.5 py-px text-[9px] leading-none text-white"
             style={{ backgroundColor: PG_RED, letterSpacing: '0.2em' }}
             aria-hidden="true"
           >
@@ -164,7 +173,14 @@ export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeD
           +{data.hiddenDescendantCount}
         </div>
       )}
-      <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground !w-2 !h-2" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className={data.interactive
+          ? '!z-20 !w-3.5 !h-3.5 !border-2 !border-background !bg-primary/70 hover:!bg-primary cursor-crosshair'
+          : '!z-20 !bg-muted-foreground !w-2 !h-2'}
+        title={data.interactive ? '从此处拖到目标成员上建立关系' : undefined}
+      />
     </div>
   )
 })

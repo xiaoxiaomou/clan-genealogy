@@ -54,6 +54,8 @@ export interface FamilyTreeEngineProps {
   onCanvasDoubleClick?: () => void
   /** 单击画布空白处（关闭菜单等） */
   onPaneClick?: () => void
+  /** 拖拽连线：source=拖拽起点成员（长辈侧），target=落点成员 */
+  onCreateRelationship?: (sourceMemberId: number, targetMemberId: number) => void
 }
 
 function FlowInit({ onInit }: { onInit: (instance: ReturnType<typeof useReactFlow>) => void }) {
@@ -70,6 +72,7 @@ export function FamilyTreeEngine({
   onNodeContextMenu,
   onCanvasDoubleClick,
   onPaneClick,
+  onCreateRelationship,
 }: FamilyTreeEngineProps) {
   const [hoveredMember, setHoveredMember] = useState<{ member: TreeNode; x: number; y: number } | null>(null)
   const engineRef = useRef<HTMLDivElement>(null)
@@ -155,6 +158,7 @@ export function FamilyTreeEngine({
           onToggleCollapse: toggleCollapse,
           onHover: handleNodeHover,
           onNodeContextMenu,
+          interactive: canEdit,
         } satisfies PersonNodeData,
       })
     }
@@ -184,6 +188,7 @@ export function FamilyTreeEngine({
           onToggleCollapse: toggleCollapse,
           onHover: handleNodeHover,
           onNodeContextMenu,
+          interactive: canEdit,
         } satisfies CoupleNodeData,
       })
     }
@@ -302,7 +307,11 @@ export function FamilyTreeEngine({
         maxZoom={2.5}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         nodesDraggable={canEdit}
-        nodesConnectable={false}
+        nodesConnectable={canEdit}
+        onConnect={(c: { source?: string | null; target?: string | null }) => {
+          if (!c.source || !c.target || c.source === c.target) return
+          onCreateRelationship?.(Number(c.source), Number(c.target))
+        }}
         panActivationKeyCode="Space"
         onPaneClick={() => onPaneClick?.()}
         onNodeClick={(_: unknown, node: { data: unknown }) => {

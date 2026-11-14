@@ -110,6 +110,9 @@ export default function FamilyTreePage() {
     | { kind: 'parent-of'; childId: number }
     | null
   >(null)
+  /* 拖拽连线确认：source=拖拽起点（长辈侧），target=落点 */
+  const [connectDialog, setConnectDialog] = useState<{ sourceId: number; targetId: number } | null>(null)
+  const [connectType, setConnectType] = useState<'parent' | 'spouse' | 'sibling'>('parent')
   /** 切换视图并同步 ?view= 参数（默认视图不占参数，刷新/直达均可还原） */
   const setTreeViewType = useCallback((v: typeof VIEW_KEYS[number]) => {
     setTreeViewTypeState(v)
@@ -785,6 +788,10 @@ export default function FamilyTreePage() {
                   onPaneClick={() => setTreeContextMenu(null)}
                   onCanvasDoubleClick={() => {
                     if (canEdit) openAddMemberWith({ generation: '1' }, null)
+                  }}
+                  onCreateRelationship={(sourceId, targetId) => {
+                    setConnectType('parent')
+                    setConnectDialog({ sourceId, targetId })
                   }}
                 />
               </ReactFlowProvider>
@@ -1693,6 +1700,65 @@ export default function FamilyTreePage() {
           return true;
         }}
       />
+
+      {/* 拖拽连线确认：A → B 选关系类型后建立真实关系 */}
+      {connectDialog && (() => {
+        const a = members.find((m) => m.id === connectDialog.sourceId)
+        const b = members.find((m) => m.id === connectDialog.targetId)
+        const confirmConnect = async () => {
+          try {
+            if (connectType === 'parent') {
+              // parent 语义：member_id=子女，related_member_id=父/母（拖拽起点为长辈）
+              await api.addRelationship(familyId, connectDialog.targetId, connectDialog.sourceId, 'parent')
+            } else {
+              await api.addRelationship(familyId, connectDialog.sourceId, connectDialog.targetId, connectType)
+            }
+            showToast('连线成功，关系已建立', 'success')
+            setConnectDialog(null)
+            loadData()
+          } catch (err: any) {
+            showToast(err.message || '建立关系失败', 'error')
+          }
+        }
+        return (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setConnectDialog(null)} />
+            <div
+              className="relative z-10 w-full max-w-sm rounded-[4px] border p-5 shadow-xl"
+              style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}
+            >
+              <h3 className="font-serif text-base font-semibold">确认连线</h3>
+              <p className="mt-3 flex items-center gap-2 text-sm">
+                <b className="font-serif">{a?.name || `#${connectDialog.sourceId}`}</b>
+                <span className="text-muted-foreground">—→</span>
+                <b className="font-serif">{b?.name || `#${connectDialog.targetId}`}</b>
+              </p>
+              <div className="mt-3 space-y-2">
+                <Label>关系类型</Label>
+                <select
+                  value={connectType}
+                  onChange={(e) => setConnectType(e.target.value as 'parent' | 'spouse' | 'sibling')}
+                  className="flex h-9 w-full rounded-md border bg-background px-3 text-sm shadow-sm"
+                  style={{ borderColor: 'hsl(var(--border))' }}
+                >
+                  <option value="parent">父母子女（{a?.name || '起点'} 为长辈）</option>
+                  <option value="spouse">配偶（夫妻）</option>
+                  <option value="sibling">兄弟姐妹</option>
+                </select>
+                <p className="text-xs text-muted-foreground">连线方向即辈分方向：从长辈拖到晚辈。</p>
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setConnectDialog(null)}>
+                  取消
+                </Button>
+                <Button size="sm" onClick={confirmConnect}>
+                  建立连线
+                </Button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* 树上右键菜单：管理员添加子女/配偶/父母、连线既有成员、编辑/删除 */}
       {treeContextMenu && (() => {

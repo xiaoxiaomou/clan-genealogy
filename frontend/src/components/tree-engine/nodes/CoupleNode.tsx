@@ -29,6 +29,8 @@ export interface CoupleNodeData {
   onHover?: ((member: TreeNode | null, x?: number, y?: number) => void) | null
   /** 右键节点（管理员添加子女/配偶/连线等） */
   onNodeContextMenu?: (member: TreeNode, x: number, y: number) => void
+  /** 管理员模式：连线锚点加大并可拖拽 */
+  interactive?: boolean
 }
 
 function HalfPerson({
@@ -61,7 +63,7 @@ function HalfPerson({
       }}
     >
       <div
-        className="absolute bottom-0 left-0 top-0 w-[3px]"
+        className="pointer-events-none absolute bottom-0 left-0 top-0 w-[3px]"
         style={{ background: m.gender === 'female' ? GENDER_INK.female : GENDER_INK.male }}
         aria-hidden="true"
       />
@@ -82,6 +84,10 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
   const h = data.husband
   const w = data.wife
   const { onHover, onNodeContextMenu } = data
+  const handleCls = data.interactive
+    ? '!z-20 !w-3.5 !h-3.5 !border-2 !border-background !bg-primary/70 hover:!bg-primary cursor-crosshair'
+    : '!z-20 !bg-muted-foreground !w-2 !h-2'
+  const handleTitle = data.interactive ? '拖到目标成员上建立关系' : undefined
   const roleColor =
     data.highlightRole === 'up' ? HIGHLIGHT.up
     : data.highlightRole === 'down' ? HIGHLIGHT.down
@@ -107,7 +113,7 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
       }}
       className="relative touch-manipulation"
     >
-      <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
+      <Handle type="target" position={Position.Top} className={handleCls} title={handleTitle} />
 
       {/* 合牌：一张纸牌，中缝细分隔 */}
       <div
@@ -125,7 +131,7 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
           aria-hidden="true"
         />
         <div
-          className="absolute left-1/2 top-[3px] h-[16px] w-[20px] -translate-x-1/2 rounded-b-[3px] text-center font-serif text-[10px] leading-[16px] text-white"
+          className="pointer-events-none absolute left-1/2 top-[3px] h-[16px] w-[20px] -translate-x-1/2 rounded-b-[3px] text-center font-serif text-[10px] leading-[16px] text-white"
           style={{ backgroundColor: PG_RED, marginTop: 0 }}
           aria-hidden="true"
         >
@@ -137,6 +143,7 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
           onMouseLeave={() => onHover?.(null)}
         >
           <HalfPerson m={h} halfWidth={halfWidth} onHover={onHover ?? undefined} onNodeContextMenu={onNodeContextMenu} />
+      {/* gen 条装饰已在容器层 */}
           <div className="w-px flex-shrink-0" style={{ background: 'hsl(var(--border))' }} aria-hidden="true" />
           {w ? (
             <HalfPerson m={w} halfWidth={halfWidth} onHover={onHover ?? undefined} onNodeContextMenu={onNodeContextMenu} />
@@ -166,7 +173,7 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
         </div>
       )}
       {/* 源锚点：合牌底部中央 */}
-      <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground !w-2 !h-2" />
+      <Handle type="source" position={Position.Bottom} className={handleCls} title={handleTitle} />
     </div>
   )
 }
