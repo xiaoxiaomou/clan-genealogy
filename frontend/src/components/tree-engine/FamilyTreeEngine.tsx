@@ -14,6 +14,7 @@ import { TreeSearchPalette } from '@/components/tree/TreeSearchPalette'
 import { PersonNode, type PersonNodeData } from './nodes/PersonNode'
 import { CoupleNode, type CoupleNodeData } from './nodes/CoupleNode'
 import { FamilyEdge, type FamilyEdgeData } from './edges/FamilyEdge'
+import { MemberTooltip } from './nodes/MemberTooltip'
 import { useTreeLayout, NODE_HEIGHT } from './hooks/useTreeLayout'
 import './FamilyTreeEngine.css'
 
@@ -59,7 +60,13 @@ export function FamilyTreeEngine({
   canEdit = false,
   familyId,
 }: FamilyTreeEngineProps) {
-  const [, setHoveredMember] = useState<TreeNode | null>(null)
+  const [hoveredMember, setHoveredMember] = useState<{ member: TreeNode; x: number; y: number } | null>(null)
+  const engineRef = useRef<HTMLDivElement>(null)
+
+  const handleNodeHover = useCallback((m: TreeNode | null, x?: number, y?: number) => {
+    if (m && x !== undefined && y !== undefined) setHoveredMember({ member: m, x, y })
+    else setHoveredMember(null)
+  }, [])
   const [selectedNodeIds] = useState<Set<number>>(new Set())
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set())
   const reactFlowInstance = useRef<ReturnType<typeof useReactFlow> | null>(null)
@@ -134,7 +141,7 @@ export function FamilyTreeEngine({
           isSelectedNode: selectedNodeIds.has(node.id),
           nodeWidth: nw,
           onToggleCollapse: toggleCollapse,
-          onHover: setHoveredMember,
+          onHover: handleNodeHover,
         } satisfies PersonNodeData,
       })
     }
@@ -162,6 +169,7 @@ export function FamilyTreeEngine({
           isSelectedNode: selectedNodeIds.has(repId),
           nodeWidth: nw,
           onToggleCollapse: toggleCollapse,
+          onHover: handleNodeHover,
         } satisfies CoupleNodeData,
       })
     }
@@ -213,7 +221,7 @@ export function FamilyTreeEngine({
   }, [])
 
   return (
-    <div className="relative h-64 md:h-[600px] w-full border rounded-lg overflow-hidden">
+    <div ref={engineRef} className="relative h-64 md:h-[600px] w-full border rounded-lg overflow-hidden">
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
           <marker id="edge-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -268,6 +276,15 @@ export function FamilyTreeEngine({
         <Controls showZoom showFitView showInteractive={canEdit} className="!bg-background/80 !backdrop-blur !border" />
         <Background className="!bg-background" gap={20} />
       </ReactFlow>
+
+      {hoveredMember && (
+        <MemberTooltip
+          member={hoveredMember.member}
+          mouseX={hoveredMember.x}
+          mouseY={hoveredMember.y}
+          containerRect={engineRef.current?.getBoundingClientRect() ?? null}
+        />
+      )}
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import { AvatarDisplay } from '@/components/ui'
+import { MemberTooltip } from '@/components/tree-engine/nodes/MemberTooltip'
 import type { TreeNode, FamilyTree } from '@/types'
 import type { ManualEdge, EditingMode, AddingState, DragHandle, HistoryState } from '@/types/manualEdge'
 import { ManualEdgeToolbar, EdgeCreationDialog, ManualEdgeComponent } from '@/components/manual-edge'
@@ -774,46 +775,12 @@ export default function FamilyTreeGraph({
       </ReactFlow>
 
       {hoveredNode && (
-        <div
-          className="pointer-events-none fixed z-50 rounded-md border bg-card p-3 shadow-lg animate-fade-in"
-          style={{
-            left: hoveredNode.x + 15,
-            top: hoveredNode.y + 15,
-            maxWidth: 280,
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <AvatarDisplay
-              name={hoveredNode.member.name}
-              avatar={hoveredNode.member.avatar}
-              gender={hoveredNode.member.gender}
-              size={36}
-            />
-            <div>
-              <h4 className="font-semibold">{hoveredNode.member.name}</h4>
-              <p className="text-xs text-muted-foreground">
-                {hoveredNode.member.gender === 'male' ? '男' : hoveredNode.member.gender === 'female' ? '女' : '未知'}
-                {hoveredNode.member.generation_name && ` · ${hoveredNode.member.generation_name}字辈`}
-                {!hoveredNode.member.is_alive && ' · 已故'}
-              </p>
-            </div>
-          </div>
-          {hoveredNode.member.birth_date && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              出生：{hoveredNode.member.birth_date}
-            </p>
-          )}
-          {hoveredNode.member.death_date && (
-            <p className="text-xs text-muted-foreground">
-              逝世：{hoveredNode.member.death_date}
-            </p>
-          )}
-          {hoveredNode.member.bio && (
-            <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">
-              {hoveredNode.member.bio}
-            </p>
-          )}
-        </div>
+        <MemberTooltip
+          member={hoveredNode.member}
+          mouseX={hoveredNode.x}
+          mouseY={hoveredNode.y}
+          containerRect={null}
+        />
       )}
 
       {selectedEdge && selectedEdge.edge && (

@@ -37,7 +37,7 @@ export interface PersonNodeData {
   isSelectedNode: boolean
   nodeWidth: number
   onToggleCollapse: (id: number) => void
-  onHover: ((member: TreeNode | null) => void) | null
+  onHover: ((member: TreeNode | null, x?: number, y?: number) => void) | null
 }
 
 /** memo：拖拽/点选等任何上层状态变化时，未受影响节点不再重渲染 */
@@ -74,7 +74,7 @@ export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeD
         animation: isPulsing ? 'lineage-pulse 1.4s ease-out infinite' : undefined,
       }}
       className="relative touch-manipulation"
-      onMouseEnter={() => data.onHover?.(m)}
+      onMouseEnter={(e) => data.onHover?.(m, e.clientX, e.clientY)}
       onMouseLeave={() => data.onHover?.(null)}
     >
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />

@@ -26,9 +26,18 @@ export interface CoupleNodeData {
   isSelectedNode: boolean
   nodeWidth: number
   onToggleCollapse: (id: number) => void
+  onHover?: ((member: TreeNode | null, x?: number, y?: number) => void) | null
 }
 
-function HalfPerson({ m, halfWidth }: { m: TreeNode; halfWidth: number }) {
+function HalfPerson({
+  m,
+  halfWidth,
+  onHover,
+}: {
+  m: TreeNode
+  halfWidth: number
+  onHover?: (member: TreeNode | null, x?: number, y?: number) => void
+}) {
   const isDead = !m.is_alive
   const ziLine =
     m.courtesy_name || m.art_name
@@ -37,7 +46,11 @@ function HalfPerson({ m, halfWidth }: { m: TreeNode; halfWidth: number }) {
           .join('　')
       : null
   return (
-    <div className="relative flex flex-col items-center px-1 py-0.5 text-center" style={{ minWidth: halfWidth }}>
+    <div
+      className="relative flex flex-col items-center px-1 py-0.5 text-center"
+      style={{ minWidth: halfWidth }}
+      onMouseEnter={(e) => onHover?.(m, e.clientX, e.clientY)}
+    >
       <div
         className="absolute bottom-0 left-0 top-0 w-[3px]"
         style={{ background: m.gender === 'female' ? GENDER_INK.female : GENDER_INK.male }}
@@ -59,6 +72,7 @@ function HalfPerson({ m, halfWidth }: { m: TreeNode; halfWidth: number }) {
 export function CoupleNode({ data }: { data: CoupleNodeData }) {
   const h = data.husband
   const w = data.wife
+  const { onHover } = data
   const roleColor =
     data.highlightRole === 'up' ? HIGHLIGHT.up
     : data.highlightRole === 'down' ? HIGHLIGHT.down
@@ -109,11 +123,14 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
           合
         </div>
 
-        <div className="flex h-full items-stretch pt-[3px]">
-          <HalfPerson m={h} halfWidth={halfWidth} />
+        <div
+          className="flex h-full items-stretch pt-[3px]"
+          onMouseLeave={() => onHover?.(null)}
+        >
+          <HalfPerson m={h} halfWidth={halfWidth} onHover={onHover ?? undefined} />
           <div className="w-px flex-shrink-0" style={{ background: 'hsl(var(--border))' }} aria-hidden="true" />
           {w ? (
-            <HalfPerson m={w} halfWidth={halfWidth} />
+            <HalfPerson m={w} halfWidth={halfWidth} onHover={onHover ?? undefined} />
           ) : (
             <div className="flex flex-1 items-center justify-center">
               <span className="text-xs text-muted-foreground">待配</span>
