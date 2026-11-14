@@ -42,7 +42,6 @@ def list_events(family_id):
 
 @events_bp.route('/<int:family_id>/events', methods=['POST'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def create_event(family_id):
     """创建家族事件"""
@@ -98,7 +97,6 @@ def get_event(family_id, event_id):
 
 @events_bp.route('/<int:family_id>/events/<int:event_id>', methods=['PUT'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def update_event(family_id, event_id):
     """更新事件"""
@@ -147,7 +145,6 @@ def update_event(family_id, event_id):
 
 @events_bp.route('/<int:family_id>/events/<int:event_id>', methods=['DELETE'])
 @jwt_required()
-@admin_required
 @family_permission_required('admin')
 def delete_event(family_id, event_id):
     """删除事件"""
@@ -172,7 +169,6 @@ def delete_event(family_id, event_id):
 
 @events_bp.route('/<int:family_id>/events/upload-image', methods=['POST'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def upload_event_image(family_id):
     """上传事件图片"""

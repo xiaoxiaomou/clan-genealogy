@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.services.family_service import FamilyService
-from app.utils.decorators import family_permission_required, admin_required
+from app.utils.decorators import family_permission_required, admin_required, login_required
 from app.utils.html_utils import sanitize_html
 from app.models.user import User
 from app.models.member import Member
@@ -62,9 +62,9 @@ def get_my_role(family_id):
 
 @family_bp.route('/', methods=['POST'])
 @jwt_required()
-@admin_required
+@login_required
 def create_family():
-    """创建族谱（仅管理员）"""
+    """创建族谱（任何登录用户，创建者自动成为 owner）"""
     user_id = int(get_jwt_identity())
 
     data = request.get_json()

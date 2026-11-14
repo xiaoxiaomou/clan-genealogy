@@ -219,7 +219,6 @@ def export_gedcom(family_id):
 
 @export_bp.route('/<int:family_id>/import/gedcom', methods=['POST'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def import_gedcom(family_id):
     """从 GEDCOM 格式导入族谱"""

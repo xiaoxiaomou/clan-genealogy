@@ -68,7 +68,6 @@ def list_albums(family_id):
 
 @album_bp.route('/<int:family_id>/albums', methods=['POST'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def create_album(family_id):
     """创建相册"""
@@ -124,7 +123,6 @@ def get_album(family_id, album_id):
 
 @album_bp.route('/<int:family_id>/albums/<int:album_id>', methods=['PUT'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def update_album(family_id, album_id):
     """更新相册信息"""
@@ -165,7 +163,6 @@ def update_album(family_id, album_id):
 
 @album_bp.route('/<int:family_id>/albums/<int:album_id>', methods=['DELETE'])
 @jwt_required()
-@admin_required
 @family_permission_required('admin')
 def delete_album(family_id, album_id):
     """删除相册（同时删除其中的照片文件）"""
@@ -225,7 +222,6 @@ def list_photos(family_id, album_id):
 
 @album_bp.route('/<int:family_id>/albums/<int:album_id>/photos', methods=['POST'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def upload_photo(family_id, album_id):
     """上传照片到相册"""
@@ -296,7 +292,6 @@ def upload_photo(family_id, album_id):
 
 @album_bp.route('/<int:family_id>/albums/<int:album_id>/photos/<int:photo_id>', methods=['DELETE'])
 @jwt_required()
-@admin_required
 @family_permission_required('editor')
 def delete_photo(family_id, album_id, photo_id):
     """删除照片（同时删除文件）"""
