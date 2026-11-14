@@ -47,15 +47,35 @@ export function AvatarUploader({
     // 读取文件用于裁剪
     const reader = new FileReader()
     reader.onload = () => {
-      setImageSrc(reader.result as string)
-      setCropModal(true)
-      setZoom(1)
+      const src = reader.result as string
+      // 浏览器能解码才进裁剪；不能预览的格式（如 Chrome 下的 HEIC/TIFF）直接传原图，由后端转 JPEG
+      const probe = new Image()
+      probe.onload = () => {
+        setImageSrc(src)
+        setCropModal(true)
+        setZoom(1)
+      }
+      probe.onerror = () => uploadOriginal(file)
+      probe.src = src
     }
     reader.readAsDataURL(file)
 
     // 重置 input
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+  }
+
+  const uploadOriginal = async (file: File) => {
+    setIsUploading(true)
+    try {
+      const result = await api.uploadAvatar(file)
+      onUpload(result.url)
+      setImageSrc(null)
+    } catch (err: any) {
+      alert(err.message || '上传失败')
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -114,7 +134,7 @@ export function AvatarUploader({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/avif,image/tiff,image/heic,image/heif"
           className="hidden"
           onChange={handleFileSelect}
           disabled={disabled || isUploading}

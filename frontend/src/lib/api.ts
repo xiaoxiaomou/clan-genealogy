@@ -565,7 +565,12 @@ export const api = {
   // Upload
   uploadAvatar: async (file: File | Blob): Promise<any> => {
     const formData = new FormData();
-    formData.append('file', file);
+    // 裁剪输出的是无名 JPEG Blob，后端按扩展名/MIME 校验，需包装为带文件名的 File
+    const payload =
+      file instanceof File
+        ? file
+        : new File([file], 'avatar.jpg', { type: file.type || 'image/jpeg' });
+    formData.append('file', payload);
     return request<any>('/upload/avatar', { method: 'POST', formData });
   },
 

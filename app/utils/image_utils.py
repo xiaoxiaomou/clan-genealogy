@@ -4,8 +4,24 @@ import uuid
 import time
 from typing import Optional
 
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
-ALLOWED_MIMES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff', 'avif', 'heic', 'heif'}
+ALLOWED_MIMES = {
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'image/bmp', 'image/tiff', 'image/avif', 'image/heic', 'image/heif',
+}
+# Pillow 内部格式名，作为最终权威校验
+ALLOWED_PIL_FORMATS = {'JPEG', 'PNG', 'GIF', 'WEBP', 'BMP', 'TIFF', 'AVIF', 'HEIF', 'HEIC'}
+
+# 注册 AVIF/HEIC 解码器（插件缺失时降级为不支持对应格式）
+try:
+    import pillow_avif  # noqa: F401
+except ImportError:
+    pass
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
 
 
 def allowed_file(filename: str) -> bool:
@@ -18,19 +34,23 @@ def validate_image(file_storage) -> Optional[str]:
     if not file_storage or file_storage.filename == '':
         return '未选择文件'
 
-    if not allowed_file(file_storage.filename):
-        return '不支持的文件格式，仅支持 JPG/PNG/GIF/WebP'
+    filename = file_storage.filename
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    mime = file_storage.mimetype or ''
 
-    # 检查 MIME 类型
-    mime = file_storage.mimetype
-    if mime and mime not in ALLOWED_MIMES:
+    # 扩展名或 MIME 至少其一像图片；无扩展名（如裁剪输出的 blob）时靠 MIME
+    if ext and ext not in ALLOWED_EXTENSIONS:
+        return '不支持的文件格式，仅支持 JPG/PNG/GIF/WebP/BMP/TIFF/AVIF/HEIC'
+    if not ext and mime and mime not in ALLOWED_MIMES:
         return '文件类型不合法'
 
-    # 用 Pillow 验证是否为有效图片
+    # 用 Pillow 验证并嗅探真实格式（最终权威）
     try:
         from PIL import Image
         file_storage.seek(0)
         img = Image.open(file_storage)
+        if (img.format or '') not in ALLOWED_PIL_FORMATS:
+            return '不支持的文件格式，仅支持 JPG/PNG/GIF/WebP/BMP/TIFF/AVIF/HEIC'
         img.verify()
         file_storage.seek(0)
     except Exception:
