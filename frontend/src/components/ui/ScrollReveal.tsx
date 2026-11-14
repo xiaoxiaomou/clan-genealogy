@@ -1,21 +1,33 @@
 // ScrollReveal.tsx - 卷轴展开动画
-// 启动时从顶部展开古风卷轴，4 秒内揭开显示内容
+// 每次会话首次进入族谱页时短暂展开古风卷轴（约 1.8 秒），
+// 之后本会话内不再播放；开启「减弱动效」时直接跳过。
 import { useEffect, useState } from 'react';
+
+const SESSION_KEY = 'zupu-scroll-intro-played';
 
 export function ScrollReveal({ children, duration = 4500 }: { children: React.ReactNode; duration?: number }) {
   const [opened, setOpened] = useState(false);
-  const [closed, setClosed] = useState(false);
+  const [closed, setClosed] = useState(() => {
+    try { return sessionStorage.getItem(SESSION_KEY) === '1'; } catch { return false; }
+  });
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || closed) {
       setOpened(true);
       setClosed(true);
+      try { sessionStorage.setItem(SESSION_KEY, '1'); } catch { /* ignore */ }
       return;
     }
-    const t1 = setTimeout(() => setOpened(true), duration);
-    const t2 = setTimeout(() => setClosed(true), duration + 200);
+    // 封面展示时长收窄：最长 1 秒后开始展开，1 秒后收起
+    const openDelay = Math.min(duration, 1000);
+    const t1 = setTimeout(() => setOpened(true), openDelay);
+    const t2 = setTimeout(() => {
+      setClosed(true);
+      try { sessionStorage.setItem(SESSION_KEY, '1'); } catch { /* ignore */ }
+    }, openDelay + 900);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [duration]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (closed) return <>{children}</>;
 
@@ -27,7 +39,7 @@ export function ScrollReveal({ children, duration = 4500 }: { children: React.Re
           className="absolute inset-y-0 left-0 transition-transform"
           style={{
             transform: opened ? 'translateX(-100%)' : 'translateX(0)',
-            transitionDuration: '1500ms',
+            transitionDuration: '900ms',
             transitionTimingFunction: 'cubic-bezier(0.65, 0, 0.35, 1)',
             width: '50%',
           }}
@@ -39,7 +51,7 @@ export function ScrollReveal({ children, duration = 4500 }: { children: React.Re
           className="absolute inset-y-0 right-0 transition-transform"
           style={{
             transform: opened ? 'translateX(100%)' : 'translateX(0)',
-            transitionDuration: '1500ms',
+            transitionDuration: '900ms',
             transitionTimingFunction: 'cubic-bezier(0.65, 0, 0.35, 1)',
             width: '50%',
           }}
@@ -51,7 +63,7 @@ export function ScrollReveal({ children, duration = 4500 }: { children: React.Re
           className="absolute inset-0 flex items-center justify-center"
           style={{
             opacity: opened ? 0 : 1,
-            transition: 'opacity 800ms ease-out 800ms',
+            transition: 'opacity 500ms ease-out 300ms',
           }}
         >
           <h1 className="font-serif text-4xl font-bold text-amber-100 sm:text-6xl">
