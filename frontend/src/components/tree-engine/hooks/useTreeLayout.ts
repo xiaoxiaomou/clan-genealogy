@@ -90,12 +90,15 @@ export function useTreeLayout(treeData: FamilyTree | null, _layoutMode: LayoutMo
     g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 120 })
 
     const parentEdges = treeData.edges.filter(e => e.type === 'parent')
+    // 缺世代的成员排在最后一代之后，而不是第 999 层（会把整棵树拉到几万像素深）
+    const maxGen = treeData.nodes.reduce((mx, n) => Math.max(mx, n.generation || 0), 0)
+    const fallbackRank = maxGen + 1
     for (const node of treeData.nodes) {
       if (coupleInfo.inCouple.has(node.id)) continue
       g.setNode(String(node.id), {
         width: dagreNodeWidthMap.get(node.id) ?? NODE_WIDTH_MIN,
         height: NODE_HEIGHT,
-        rank: node.generation || 999,
+        rank: node.generation || fallbackRank,
       })
     }
     for (const repId of coupleInfo.byRep.keys()) {
@@ -103,7 +106,7 @@ export function useTreeLayout(treeData: FamilyTree | null, _layoutMode: LayoutMo
       g.setNode(String(repId), {
         width: dagreNodeWidthMap.get(repId) ?? NODE_WIDTH_MIN * 2,
         height: NODE_HEIGHT + 16,
-        rank: first?.generation || 999,
+        rank: first?.generation || fallbackRank,
       })
     }
     for (const edge of parentEdges) {

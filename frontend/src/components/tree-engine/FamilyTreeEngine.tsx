@@ -6,6 +6,7 @@ import {
   useReactFlow,
   useViewport,
 } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import type { TreeNode, FamilyTree } from '@/types'
 import { useTreeSearch } from '@/hooks/useTreeSearch'
 import { GenerationRuler } from '@/components/tree/GenerationRuler'
@@ -47,6 +48,12 @@ export interface FamilyTreeEngineProps {
   onMemberClick?: (member: TreeNode) => void
   highlightedMemberId?: number | null
   familyId?: number
+  /** 右键成员节点（管理员上下文菜单） */
+  onNodeContextMenu?: (member: TreeNode, x: number, y: number) => void
+  /** 双击画布空白处（快捷添加成员） */
+  onCanvasDoubleClick?: () => void
+  /** 单击画布空白处（关闭菜单等） */
+  onPaneClick?: () => void
 }
 
 function FlowInit({ onInit }: { onInit: (instance: ReturnType<typeof useReactFlow>) => void }) {
@@ -59,6 +66,10 @@ export function FamilyTreeEngine({
   treeData,
   canEdit = false,
   familyId,
+  onMemberClick,
+  onNodeContextMenu,
+  onCanvasDoubleClick,
+  onPaneClick,
 }: FamilyTreeEngineProps) {
   const [hoveredMember, setHoveredMember] = useState<{ member: TreeNode; x: number; y: number } | null>(null)
   const engineRef = useRef<HTMLDivElement>(null)
@@ -70,6 +81,7 @@ export function FamilyTreeEngine({
   const [selectedNodeIds] = useState<Set<number>>(new Set())
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set())
   const reactFlowInstance = useRef<ReturnType<typeof useReactFlow> | null>(null)
+  const flowApi = useReactFlow()
   const reactFlowViewport = useViewport()
   const { dagrePositions, dagreNodeWidthMap, coupleInfo } = useTreeLayout(treeData)
 
@@ -142,6 +154,7 @@ export function FamilyTreeEngine({
           nodeWidth: nw,
           onToggleCollapse: toggleCollapse,
           onHover: handleNodeHover,
+          onNodeContextMenu,
         } satisfies PersonNodeData,
       })
     }
@@ -170,6 +183,7 @@ export function FamilyTreeEngine({
           nodeWidth: nw,
           onToggleCollapse: toggleCollapse,
           onHover: handleNodeHover,
+          onNodeContextMenu,
         } satisfies CoupleNodeData,
       })
     }
@@ -220,8 +234,27 @@ export function FamilyTreeEngine({
     reactFlowInstance.current = instance
   }, [])
 
+  /* 数据异步到达/变更后重新 fitView（mount 时的 fitView 常跑在数据到达之前） */
+  const nodeCount = treeData?.nodes.length ?? 0
+  useEffect(() => {
+    if (!nodeCount) return
+    const doFit = () => flowApi.current?.fitView({ padding: 0.15 })
+    const raf = requestAnimationFrame(doFit)
+    const t = setTimeout(doFit, 350)
+    return () => { cancelAnimationFrame(raf); clearTimeout(t) }
+  }, [nodeCount])
+
   return (
-    <div ref={engineRef} className="relative h-64 md:h-[600px] w-full border rounded-lg overflow-hidden">
+    <div
+      ref={engineRef}
+      className="relative h-64 md:h-[600px] w-full border rounded-lg overflow-hidden"
+      onDoubleClick={(e) => {
+        const t = e.target as Element
+        if (!t.closest('.react-flow__node') && !t.closest('.react-flow__edge') && !t.closest('.react-flow__controls')) {
+          onCanvasDoubleClick?.()
+        }
+      }}
+    >
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <defs>
           <marker id="edge-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -271,6 +304,12 @@ export function FamilyTreeEngine({
         nodesDraggable={canEdit}
         nodesConnectable={false}
         panActivationKeyCode="Space"
+        onPaneClick={() => onPaneClick?.()}
+        onNodeClick={(_: unknown, node: { data: unknown }) => {
+          const d = node.data as PersonNodeData | CoupleNodeData
+          const m = 'member' in d ? d.member : d.husband
+          if (m) onMemberClick?.(m)
+        }}
       >
         <FlowInit onInit={handleFlowInit} />
         <Controls showZoom showFitView showInteractive={canEdit} className="!bg-background/80 !backdrop-blur !border" />

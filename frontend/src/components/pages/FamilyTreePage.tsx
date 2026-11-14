@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
-import type { Family, FamilyTree, Member, GenerationRule, FamilyBranch } from '@/types'
+import type { Family, FamilyTree, Member, GenerationRule, FamilyBranch, TreeNode } from '@/types'
 import { Button, Modal, Input, Label, useToast, ScrollReveal, TimeMachinePanel } from '@/components/ui'
 import { ReactFlowProvider } from '@xyflow/react'
 import GenerationStats from '@/components/tree/GenerationStats'
@@ -102,6 +102,14 @@ export default function FamilyTreePage() {
     const v = searchParams.get('view')
     return (VIEW_KEYS as readonly string[]).includes(v ?? '') ? (v as typeof VIEW_KEYS[number]) : 'graph'
   })
+  /* 管理员树上操作：右键菜单 + 待自动建立的关系 */
+  const [treeContextMenu, setTreeContextMenu] = useState<{ member: TreeNode; x: number; y: number } | null>(null)
+  const [pendingRelation, setPendingRelation] = useState<
+    | { kind: 'child-of'; parentId: number }
+    | { kind: 'spouse-of'; memberId: number }
+    | { kind: 'parent-of'; childId: number }
+    | null
+  >(null)
   /** 切换视图并同步 ?view= 参数（默认视图不占参数，刷新/直达均可还原） */
   const setTreeViewType = useCallback((v: typeof VIEW_KEYS[number]) => {
     setTreeViewTypeState(v)
@@ -416,7 +424,7 @@ export default function FamilyTreePage() {
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await api.addMember(familyId, {
+      const res = await api.addMember(familyId, {
         name: memberForm.name,
         gender: memberForm.gender as 'male' | 'female' | 'unknown',
         birth_date: memberForm.birth_date || undefined,
@@ -435,11 +443,38 @@ export default function FamilyTreePage() {
         privacy_level: memberForm.privacy_level,
       })
       showToast('成员添加成功', 'success')
+      // 右键菜单发起的添加：自动建立关系（节点 + 连线一步完成）
+      const newId = res?.member?.id
+      if (newId && pendingRelation) {
+        try {
+          if (pendingRelation.kind === 'child-of') {
+            // parent 语义：member_id=子女，related_member_id=父/母
+            await api.addRelationship(familyId, newId, pendingRelation.parentId, 'parent')
+          } else if (pendingRelation.kind === 'spouse-of') {
+            await api.addRelationship(familyId, pendingRelation.memberId, newId, 'spouse')
+          } else {
+            await api.addRelationship(familyId, pendingRelation.childId, newId, 'parent')
+          }
+        } catch (relErr: any) {
+          showToast(relErr.message || '成员已添加，但自动建立关系失败', 'error')
+        }
+        setPendingRelation(null)
+      }
       closeAddMemberModal()
       loadData()
     } catch (err: any) {
       showToast(err.message || '添加失败', 'error')
     }
+  }
+
+  /** 右键菜单：带预填与待建关系地打开添加成员弹窗 */
+  const openAddMemberWith = (
+    prefill: Partial<MemberFormData>,
+    pending: NonNullable<typeof pendingRelation> | null,
+  ) => {
+    setPendingRelation(pending)
+    setMemberForm({ ...defaultMemberForm, ...prefill })
+    setShowAddMember(true)
   }
 
   const handleAdvancedSearch = async () => {
@@ -744,6 +779,13 @@ export default function FamilyTreePage() {
                   }}
                   highlightedMemberId={highlightedMemberId}
                   familyId={familyId}
+                  onNodeContextMenu={(m, x, y) => {
+                    if (canEdit) setTreeContextMenu({ member: m, x, y })
+                  }}
+                  onPaneClick={() => setTreeContextMenu(null)}
+                  onCanvasDoubleClick={() => {
+                    if (canEdit) openAddMemberWith({ generation: '1' }, null)
+                  }}
                 />
               </ReactFlowProvider>
             )}
@@ -1651,6 +1693,87 @@ export default function FamilyTreePage() {
           return true;
         }}
       />
+
+      {/* 树上右键菜单：管理员添加子女/配偶/父母、连线既有成员、编辑/删除 */}
+      {treeContextMenu && (() => {
+        const m = treeContextMenu.member
+        const items: Array<{ label: string; action: () => void; danger?: boolean }> = [
+          {
+            label: '添加子女',
+            action: () => {
+              setPendingRelation({ kind: 'child-of', parentId: m.id })
+              setMemberForm({ ...defaultMemberForm, generation: String((m.generation || 1) + 1), is_alive: true })
+              setShowAddMember(true)
+            },
+          },
+          {
+            label: '添加配偶',
+            action: () => {
+              setPendingRelation({ kind: 'spouse-of', memberId: m.id })
+              setMemberForm({
+                ...defaultMemberForm,
+                generation: String(m.generation || 1),
+                gender: m.gender === 'male' ? 'female' : 'male',
+                is_alive: true,
+              })
+              setShowAddMember(true)
+            },
+          },
+          {
+            label: '添加父母',
+            action: () => {
+              setPendingRelation({ kind: 'parent-of', childId: m.id })
+              setMemberForm({
+                ...defaultMemberForm,
+                generation: String(Math.max(1, (m.generation || 2) - 1)),
+                is_alive: false,
+              })
+              setShowAddMember(true)
+            },
+          },
+          {
+            label: '连接到…（既有成员）',
+            action: () => {
+              setRelationForm((p) => ({ ...p, member_id: m.id }))
+              setShowAddRelation(true)
+            },
+          },
+          { label: '编辑成员', action: () => openEditMember(m as unknown as Member) },
+          { label: '删除成员', action: () => handleDeleteMember(m.id), danger: true },
+        ]
+        return (
+          <>
+            <div
+              className="fixed inset-0 z-[60]"
+              onClick={() => setTreeContextMenu(null)}
+              onContextMenu={(e) => { e.preventDefault(); setTreeContextMenu(null) }}
+            />
+            <div
+              className="fixed z-[61] w-44 overflow-hidden rounded-[4px] border bg-card py-1 shadow-xl"
+              style={{
+                left: Math.min(treeContextMenu.x, window.innerWidth - 190),
+                top: Math.min(treeContextMenu.y, window.innerHeight - 250),
+                borderColor: 'hsl(var(--border))',
+              }}
+            >
+              <p className="mb-1 border-b px-3 py-1.5 font-serif text-xs text-muted-foreground" style={{ borderColor: 'hsl(var(--border))' }}>
+                {m.name}
+              </p>
+              {items.map((it) => (
+                <button
+                  key={it.label}
+                  onClick={() => { setTreeContextMenu(null); it.action() }}
+                  className={`block w-full px-3 py-1.5 text-left text-xs transition-colors hover:bg-muted ${
+                    it.danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground'
+                  }`}
+                >
+                  {it.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )
+      })()}
     </div>
     </ScrollReveal>
   )

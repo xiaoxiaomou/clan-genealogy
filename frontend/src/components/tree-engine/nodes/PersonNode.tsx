@@ -38,6 +38,8 @@ export interface PersonNodeData {
   nodeWidth: number
   onToggleCollapse: (id: number) => void
   onHover: ((member: TreeNode | null, x?: number, y?: number) => void) | null
+  /** 右键节点（管理员添加子女/配偶/连线等） */
+  onNodeContextMenu?: (member: TreeNode, x: number, y: number) => void
 }
 
 /** memo：拖拽/点选等任何上层状态变化时，未受影响节点不再重渲染 */
@@ -68,7 +70,7 @@ export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeD
         width: data.nodeWidth,
         height: 90,
         opacity: data.isDimmed ? 0.3 : 1,
-        transition: 'all 0.3s ease',
+        transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
         transform: data.isHighlighted ? 'scale(1.05)' : 'scale(1)',
         boxShadow: isPulsing ? '0 0 0 0 rgba(166, 58, 46, 0.5)' : undefined,
         animation: isPulsing ? 'lineage-pulse 1.4s ease-out infinite' : undefined,
@@ -76,6 +78,10 @@ export const PersonNode = memo(function PersonNode({ data }: { data: PersonNodeD
       className="relative touch-manipulation"
       onMouseEnter={(e) => data.onHover?.(m, e.clientX, e.clientY)}
       onMouseLeave={() => data.onHover?.(null)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        data.onNodeContextMenu?.(m, e.clientX, e.clientY)
+      }}
     >
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
 

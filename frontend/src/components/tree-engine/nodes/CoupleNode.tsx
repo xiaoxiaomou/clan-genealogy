@@ -27,16 +27,20 @@ export interface CoupleNodeData {
   nodeWidth: number
   onToggleCollapse: (id: number) => void
   onHover?: ((member: TreeNode | null, x?: number, y?: number) => void) | null
+  /** 右键节点（管理员添加子女/配偶/连线等） */
+  onNodeContextMenu?: (member: TreeNode, x: number, y: number) => void
 }
 
 function HalfPerson({
   m,
   halfWidth,
   onHover,
+  onNodeContextMenu,
 }: {
   m: TreeNode
   halfWidth: number
   onHover?: (member: TreeNode | null, x?: number, y?: number) => void
+  onNodeContextMenu?: (member: TreeNode, x: number, y: number) => void
 }) {
   const isDead = !m.is_alive
   const ziLine =
@@ -50,6 +54,11 @@ function HalfPerson({
       className="relative flex flex-col items-center px-1 py-0.5 text-center"
       style={{ minWidth: halfWidth }}
       onMouseEnter={(e) => onHover?.(m, e.clientX, e.clientY)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onNodeContextMenu?.(m, e.clientX, e.clientY)
+      }}
     >
       <div
         className="absolute bottom-0 left-0 top-0 w-[3px]"
@@ -72,7 +81,7 @@ function HalfPerson({
 export function CoupleNode({ data }: { data: CoupleNodeData }) {
   const h = data.husband
   const w = data.wife
-  const { onHover } = data
+  const { onHover, onNodeContextMenu } = data
   const roleColor =
     data.highlightRole === 'up' ? HIGHLIGHT.up
     : data.highlightRole === 'down' ? HIGHLIGHT.down
@@ -91,7 +100,7 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
         width: data.nodeWidth,
         height: 106,
         opacity: data.isDimmed ? 0.3 : 1,
-        transition: 'all 0.3s ease',
+        transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
         transform: data.isHighlighted ? 'scale(1.05)' : 'scale(1)',
         boxShadow: isPulsing ? '0 0 0 0 rgba(166, 58, 46, 0.5)' : undefined,
         animation: isPulsing ? 'lineage-pulse 1.4s ease-out infinite' : undefined,
@@ -127,10 +136,10 @@ export function CoupleNode({ data }: { data: CoupleNodeData }) {
           className="flex h-full items-stretch pt-[3px]"
           onMouseLeave={() => onHover?.(null)}
         >
-          <HalfPerson m={h} halfWidth={halfWidth} onHover={onHover ?? undefined} />
+          <HalfPerson m={h} halfWidth={halfWidth} onHover={onHover ?? undefined} onNodeContextMenu={onNodeContextMenu} />
           <div className="w-px flex-shrink-0" style={{ background: 'hsl(var(--border))' }} aria-hidden="true" />
           {w ? (
-            <HalfPerson m={w} halfWidth={halfWidth} onHover={onHover ?? undefined} />
+            <HalfPerson m={w} halfWidth={halfWidth} onHover={onHover ?? undefined} onNodeContextMenu={onNodeContextMenu} />
           ) : (
             <div className="flex flex-1 items-center justify-center">
               <span className="text-xs text-muted-foreground">待配</span>
