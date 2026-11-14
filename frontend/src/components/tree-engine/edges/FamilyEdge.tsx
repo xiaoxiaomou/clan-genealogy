@@ -1,4 +1,4 @@
-import { BaseEdge, getBezierPath, EdgeLabelRenderer } from '@xyflow/react'
+import { BaseEdge, getSmoothStepPath, EdgeLabelRenderer } from '@xyflow/react'
 import type { CSSProperties } from 'react'
 
 export interface FamilyEdgeData {
@@ -45,6 +45,11 @@ interface FamilyEdgeProps {
   markerEnd?: string
 }
 
+/* ═══ 谱牒化连线：墨色细线为常，描金为引，朱红为选 ═══ */
+const PG_RED = '#A63A2E'
+const EDGE_INK = 'hsl(var(--muted-foreground))'
+const GOLD = '#B8963F'
+
 export function FamilyEdge({
   id,
   sourceX,
@@ -57,9 +62,14 @@ export function FamilyEdge({
   selected,
   markerEnd,
 }: FamilyEdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    borderRadius: 14,
   })
 
   const edgeData = data
@@ -69,14 +79,14 @@ export function FamilyEdge({
   const isDimmed = edgeData?.highlightDimmed
 
   const strokeColor = isSelected
-    ? '#2563eb'
+    ? PG_RED
     : highlightColor
     ? highlightColor
     : isHighlighted
-    ? '#c9a84c'
-    : '#94a3b8'
-  const strokeWidth = isSelected ? 4 : (highlightColor || isHighlighted) ? 3 : 2
-  const opacity = isDimmed ? 0.3 : 1
+    ? GOLD
+    : EDGE_INK
+  const strokeWidth = isSelected ? 2.5 : (highlightColor || isHighlighted) ? 2.2 : 1.5
+  const opacity = isDimmed ? 0.3 : isHighlighted || highlightColor ? 1 : 0.85
 
   return (
     <>
@@ -97,7 +107,16 @@ export function FamilyEdge({
             className="absolute pointer-events-all cursor-pointer nodrag nopan"
             style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
           >
-            <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-lg font-medium whitespace-nowrap">
+            <div
+              className="px-2 py-0.5 text-xs shadow-lg"
+              style={{
+                backgroundColor: PG_RED,
+                color: '#fff',
+                fontFamily: "'Noto Serif SC', 'STSong', 'KaiTi', serif",
+                letterSpacing: '0.08em',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {edgeData?.sourceName} → {edgeData?.targetName}
             </div>
           </div>

@@ -21,8 +21,8 @@ function getNodeWidth(member: TreeNode): number {
 export function getGenerationColor(generation: number | null): string {
   const gen = generation || 1
   const step = 6
-  const lightness = Math.min(30 + gen * step, 85)
-  return `hsl(145, 45%, ${lightness}%)`
+  const lightness = Math.min(30 + gen * step, 70)
+  return `hsl(160, 24%, ${lightness}%)`
 }
 
 function getCoupleNodeWidth(husband: TreeNode, wife: TreeNode | null): number {

@@ -7,12 +7,11 @@ import {
   Position,
   BaseEdge,
   EdgeLabelRenderer,
-  getBezierPath,
+  getSmoothStepPath,
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
-import { Card, CardContent } from '@/components/ui'
 import { AvatarDisplay } from '@/components/ui'
 import type { TreeNode, FamilyTree } from '@/types'
 import type { ManualEdge, EditingMode, AddingState, DragHandle, HistoryState } from '@/types/manualEdge'
@@ -23,12 +22,12 @@ import { useTreeSearch } from '@/hooks/useTreeSearch'
 import { LineageToolbar } from '@/components/tree/LineageToolbar'
 import { TreeSearchPalette } from '@/components/tree/TreeSearchPalette'
 
-// 高亮配色（A1 金线 / A2 路径）
+// 高亮配色（A1 金线 / A2 路径）—— 谱牒化：描金/墨绿/朱红
 const HIGHLIGHT_COLORS = {
-  up: '#b08d57',
-  down: '#7ba17b',
-  path: '#c08494',
-  pulse: '#c9a84c',
+  up: '#B8963F',
+  down: '#5F8A5F',
+  path: '#A63A2E',
+  pulse: '#A63A2E',
   dimmed: 0.3,
 }
 
@@ -48,23 +47,29 @@ interface SelectedEdgeInfo {
 const NODE_WIDTH = 160
 const NODE_HEIGHT = 80
 
-const UNIFIED_BASE_COLOR = { h: 145, s: 45, l: 30 }
+/* ═══ 谱牒化：朱印红唯一强调色，其余走主题令牌/墨调语义色 ═══ */
+const PG_RED = '#A63A2E'
+const GENDER_INK = { male: '#5B7A95', female: '#A76A8C' } as const
+const EDGE_INK = 'hsl(var(--muted-foreground))'
+
+/* 世代条：墨青调，深浅示辈分 */
+const GEN_BASE_COLOR = { h: 160, s: 24, l: 30 }
 
 function getGenerationColor(generation: number | null): string {
   const gen = generation || 1
   const step = 6
-  const lightness = Math.min(UNIFIED_BASE_COLOR.l + gen * step, 85)
-  return `hsl(${UNIFIED_BASE_COLOR.h}, ${UNIFIED_BASE_COLOR.s}%, ${lightness}%)`
+  const lightness = Math.min(GEN_BASE_COLOR.l + gen * step, 70)
+  return `hsl(${GEN_BASE_COLOR.h}, ${GEN_BASE_COLOR.s}%, ${lightness}%)`
 }
 
 function getGenderColor(gender: string): string {
   switch (gender) {
     case 'male':
-      return '#2563eb'
+      return GENDER_INK.male
     case 'female':
-      return '#ec4899'
+      return GENDER_INK.female
     default:
-      return '#94a3b8'
+      return EDGE_INK
   }
 }
 
@@ -91,10 +96,16 @@ const FamilyMemberNodeComponent = memo(function FamilyMemberNodeComponent({ data
     highlightRole === 'path' ? HIGHLIGHT_COLORS.path :
     highlightRole === 'pulse' ? HIGHLIGHT_COLORS.pulse :
     null
-  const borderColor = roleColor || (isHighlighted ? '#c9a84c' : getGenderColor(member.gender))
-  const bgColor = getGenerationColor(member.generation)
+  const borderColor = roleColor || (isHighlighted ? HIGHLIGHT_COLORS.up : 'hsl(var(--border))')
   const opacity = isDimmed ? HIGHLIGHT_COLORS.dimmed : 1
   const isPulsing = highlightRole === 'pulse'
+  const isDead = !member.is_alive
+  const ziLine =
+    member.courtesy_name || member.art_name
+      ? [member.courtesy_name && `字${member.courtesy_name}`, member.art_name && `号${member.art_name}`]
+          .filter(Boolean)
+          .join('　')
+      : null
   const ringStyle = isPulsing
     ? {
         boxShadow: `0 0 0 0 ${HIGHLIGHT_COLORS.pulse}80`,
@@ -122,37 +133,69 @@ const FamilyMemberNodeComponent = memo(function FamilyMemberNodeComponent({ data
         className="!bg-muted-foreground !w-2 !h-2"
       />
 
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-shadow"
+      {/* 谱牒纸牌：纸面随主题，顶部世代条，左缘性别条，右上字辈朱印 */}
+      <div
+        className="relative h-full w-full cursor-pointer overflow-hidden rounded-[4px] border transition-shadow hover:shadow-lg"
         style={{
-          borderColor: borderColor,
-          borderWidth: roleColor || isHighlighted ? 2 : 1,
-          background: bgColor,
+          borderColor,
+          borderWidth: roleColor || isHighlighted ? 1.5 : 1,
+          background: isDead ? 'hsl(var(--muted) / 0.55)' : 'hsl(var(--card))',
         }}
       >
-        <CardContent className="p-2 flex items-center gap-2">
-          <AvatarDisplay
-            name={member.name}
-            avatar={member.avatar}
-            size={32}
-            className="flex-shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-xs truncate">
-              {member.name}
-              {!member.is_alive && <span className="ml-1 text-muted-foreground">†</span>}
-            </p>
-            {member.generation_name && (
-              <p className="text-[10px] text-muted-foreground">{member.generation_name}字</p>
-            )}
-            {member.birth_date && (
-              <p className="text-[10px] text-muted-foreground truncate">
-                {member.birth_date} {member.death_date ? `- ${member.death_date}` : ''}
-              </p>
-            )}
+        <div
+          className="absolute inset-x-0 top-0 h-[3px]"
+          style={{ background: getGenerationColor(member.generation) }}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute bottom-0 left-0 top-[3px] w-[3px]"
+          style={{ background: getGenderColor(member.gender) }}
+          aria-hidden="true"
+        />
+        {member.generation_name && (
+          <div
+            className="absolute right-1.5 top-2 h-[17px] w-[17px] rounded-[3px] text-center font-serif text-[11px] leading-[17px] text-white"
+            style={{ backgroundColor: PG_RED }}
+            title={`字辈：${member.generation_name}`}
+            aria-hidden="true"
+          >
+            {member.generation_name.charAt(0)}
           </div>
-        </CardContent>
-      </Card>
+        )}
+        {highlightRole === 'path' && (
+          <div
+            className="absolute left-1/2 top-0 -translate-x-1/2 rounded-b px-1.5 py-px text-[9px] leading-none text-white"
+            style={{ backgroundColor: PG_RED, letterSpacing: '0.2em' }}
+            aria-hidden="true"
+          >
+            路径
+          </div>
+        )}
+
+        <div className="flex h-full flex-col items-center justify-center gap-0.5 px-2.5 pb-0.5 pt-[7px] text-center">
+          <div className="flex w-full items-center justify-center gap-1.5">
+            <AvatarDisplay
+              name={member.name}
+              avatar={member.avatar}
+              size={24}
+              className="flex-shrink-0"
+            />
+            <span
+              className="truncate font-serif text-[15px] font-semibold tracking-wide"
+              style={{ opacity: isDead ? 0.72 : 1 }}
+            >
+              {member.name}
+              {!member.is_alive && <span className="ml-0.5 text-[11px] text-muted-foreground">†</span>}
+            </span>
+          </div>
+          <p className="min-h-[12px] w-full truncate text-[10px] leading-none text-muted-foreground">
+            {ziLine || '\u00A0'}
+          </p>
+          <p className="w-full truncate text-[10px] leading-none tracking-wide text-muted-foreground">
+            {member.birth_date ? `${member.birth_date.slice(0, 4)} ~ ${member.death_date?.slice(0, 4) ?? ''}` : ''}
+          </p>
+        </div>
+      </div>
 
       <Handle
         type="source"
@@ -207,24 +250,25 @@ function FamilyEdgeComponent({
   const highlightColor = edgeData?.highlightColor
   const isDimmed = edgeData?.highlightDimmed
 
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
+    borderRadius: 14,
   })
 
   const strokeColor = isSelected
-    ? '#2563eb'
+    ? PG_RED
     : highlightColor
     ? highlightColor
     : isHighlighted
-    ? '#c9a84c'
-    : '#94a3b8'
-  const strokeWidth = isSelected ? 4 : (highlightColor || isHighlighted) ? 3 : 2
-  const opacity = isDimmed ? HIGHLIGHT_COLORS.dimmed : 1
+    ? HIGHLIGHT_COLORS.up
+    : EDGE_INK
+  const strokeWidth = isSelected ? 2.5 : (highlightColor || isHighlighted) ? 2.2 : 1.5
+  const opacity = isDimmed ? HIGHLIGHT_COLORS.dimmed : isHighlighted || highlightColor ? 1 : 0.85
 
   return (
     <>
@@ -247,7 +291,10 @@ function FamilyEdgeComponent({
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             }}
           >
-            <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-lg font-medium">
+            <div
+              className="px-2 py-0.5 text-xs shadow-lg"
+              style={{ backgroundColor: PG_RED, color: '#fff', fontFamily: "'Noto Serif SC', 'STSong', 'KaiTi', serif", letterSpacing: '0.08em' }}
+            >
               父子关系
             </div>
           </div>

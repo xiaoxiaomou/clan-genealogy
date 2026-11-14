@@ -1167,7 +1167,7 @@
 
 /* === Lineage highlight (A1/A2/A7) === */
 @keyframes lineage-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.55); }
-  70%  { box-shadow: 0 0 0 14px rgba(201, 168, 76, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(166, 58, 46, 0.5); }
+  70%  { box-shadow: 0 0 0 14px rgba(166, 58, 46, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(166, 58, 46, 0); }
 }
