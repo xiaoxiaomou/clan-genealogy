@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Member, Family, FamilyTree } from '@/types'
@@ -23,6 +23,31 @@ import {
   Landmark,
   Footprints,
 } from 'lucide-react'
+import type { MemberFormData } from './MemberFormModal'
+
+const MemberFormModal = lazy(() => import('./MemberFormModal'))
+
+const SAVE_SHORTCUT_KEYS = 'Ctrl+S / Ctrl+Enter'
+
+const defaultMemberForm: MemberFormData = {
+  name: '',
+  gender: 'male',
+  birth_date: '',
+  death_date: '',
+  generation: '',
+  generation_name: '',
+  bio: '',
+  avatar: '',
+  is_alive: true,
+  courtesy_name: '',
+  art_name: '',
+  posthumous_name: '',
+  burial_place: '',
+  migration_note: '',
+  spouse_family_name: '',
+  privacy_level: 'public',
+  privacy_override: false,
+}
 
 export default function MemberDetailPage() {
   const { id, memberId } = useParams<{ id: string; memberId: string }>()
@@ -36,6 +61,105 @@ export default function MemberDetailPage() {
   const [treeData, setTreeData] = useState<FamilyTree | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [canEdit, setCanEdit] = useState(false)
+
+  /* 编辑弹窗（原地编辑，不再跳回族谱页） */
+  const [showEdit, setShowEdit] = useState(false)
+  const [memberForm, setMemberForm] = useState<MemberFormData>({ ...defaultMemberForm })
+  const [generationSuggestion, setGenerationSuggestion] = useState<string | null>(null)
+  const formRefEdit = useRef<HTMLFormElement>(null!)
+  const formRefAdd = useRef<HTMLFormElement>(null!)
+
+  const openEdit = () => {
+    if (!member) return
+    setMemberForm({
+      name: member.name,
+      gender: member.gender,
+      birth_date: member.birth_date || '',
+      death_date: member.death_date || '',
+      generation: member.generation?.toString() || '',
+      generation_name: member.generation_name || '',
+      bio: member.bio || '',
+      avatar: member.avatar || '',
+      is_alive: member.is_alive,
+      courtesy_name: member.courtesy_name || '',
+      art_name: member.art_name || '',
+      posthumous_name: member.posthumous_name || '',
+      burial_place: member.burial_place || '',
+      migration_note: member.migration_note || '',
+      spouse_family_name: member.spouse_family_name || '',
+      privacy_level: member.privacy_level || 'public',
+      privacy_override: member.privacy_override || false,
+    })
+    setShowEdit(true)
+  }
+
+  const handleFormChange = useCallback(async (field: string, value: any) => {
+    setMemberForm((prev) => ({ ...prev, [field]: value }))
+    if (field === 'generation' && value) {
+      const genNum = Number(value)
+      if (!isNaN(genNum)) {
+        try {
+          const res = await api.suggestGeneration(familyId, genNum)
+          setGenerationSuggestion(res.has_rule && res.character ? res.character : null)
+        } catch {
+          setGenerationSuggestion(null)
+        }
+      }
+    } else if (field === 'generation') {
+      setGenerationSuggestion(null)
+    }
+  }, [familyId])
+
+  const applyGenerationSuggestion = () => {
+    if (generationSuggestion) {
+      setMemberForm((prev) => ({ ...prev, generation_name: generationSuggestion }))
+      setGenerationSuggestion(null)
+    }
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!member) return
+    try {
+      await api.updateMember(familyId, member.id, {
+        name: memberForm.name,
+        gender: memberForm.gender as 'male' | 'female' | 'unknown',
+        birth_date: memberForm.birth_date || undefined,
+        death_date: memberForm.death_date || undefined,
+        generation: memberForm.generation ? Number(memberForm.generation) : undefined,
+        generation_name: memberForm.generation_name || undefined,
+        bio: memberForm.bio || undefined,
+        avatar: memberForm.avatar || undefined,
+        is_alive: memberForm.is_alive,
+        courtesy_name: memberForm.courtesy_name || undefined,
+        art_name: memberForm.art_name || undefined,
+        posthumous_name: memberForm.posthumous_name || undefined,
+        burial_place: memberForm.burial_place || undefined,
+        migration_note: memberForm.migration_note || undefined,
+        spouse_family_name: memberForm.spouse_family_name || undefined,
+        privacy_level: memberForm.privacy_level,
+        privacy_override: memberForm.privacy_override,
+      })
+      showToast('成员信息已更新', 'success')
+      setShowEdit(false)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message || '更新失败', 'error')
+    }
+  }
+
+  /* Ctrl+S / Ctrl+Enter 快捷保存 */
+  useEffect(() => {
+    if (!showEdit) return
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.key === 'Enter')) {
+        e.preventDefault()
+        formRefEdit.current?.requestSubmit()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [showEdit])
 
   useEffect(() => {
     if (familyId && mId) {
@@ -182,7 +306,7 @@ export default function MemberDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/family/${familyId}`, { state: { editMemberId: member.id } })}
+              onClick={openEdit}
               className="gap-1"
               aria-label="编辑成员信息"
             >
@@ -305,6 +429,29 @@ export default function MemberDetailPage() {
           </div>
         </div>
       </div>
+
+      {canEdit && member && (
+        <Suspense fallback={null}>
+          <MemberFormModal
+            showAdd={false}
+            showEdit={showEdit}
+            formData={memberForm}
+            editingMember={member}
+            formRefAdd={formRefAdd}
+            formRefEdit={formRefEdit}
+            saveShortcutKeys={SAVE_SHORTCUT_KEYS}
+            saveShortcutHint={`快捷保存：${SAVE_SHORTCUT_KEYS}`}
+            familyId={familyId}
+            onChange={handleFormChange}
+            onCloseAdd={() => {}}
+            onCloseEdit={() => setShowEdit(false)}
+            onSubmitAdd={(e) => e.preventDefault()}
+            onSubmitEdit={handleEditSubmit}
+            generationSuggestion={generationSuggestion}
+            onApplySuggestion={applyGenerationSuggestion}
+          />
+        </Suspense>
+      )}
     </Layout>
   )
 }
