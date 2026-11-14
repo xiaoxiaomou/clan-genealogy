@@ -75,7 +75,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         ref={modalRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={cn("w-full max-w-lg rounded-xl border bg-card p-6 shadow-apple-card animate-scale-in", className)}
+        className={cn("flex max-h-[88vh] w-full max-w-lg flex-col rounded-xl border bg-card p-6 shadow-apple-card animate-scale-in", className)}
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 id="modal-title" className="text-lg font-semibold tracking-tight">{title}</h2>
@@ -87,7 +87,9 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
             <X className="h-4 w-4" />
           </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   )
