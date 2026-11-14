@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Family, FamilyTree, Member, GenerationRule, FamilyBranch } from '@/types'
 import { Button, Modal, Input, Label, useToast, ScrollReveal, TimeMachinePanel } from '@/components/ui'
@@ -96,7 +96,20 @@ export default function FamilyTreePage() {
     relationships: { parent: number; spouse: number; sibling: number };
   } | null>(null)
   const [activeTab, setActiveTab] = useState<'tree' | 'members' | 'relations' | 'stats'>('tree')
-  const [treeViewType, setTreeViewType] = useState<'tree' | 'fan' | 'hanging' | 'graph' | 'timeline' | '3d' | 'hourglass'>('graph')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const VIEW_KEYS = ['tree', 'fan', 'hanging', 'graph', 'timeline', '3d', 'hourglass'] as const
+  const [treeViewType, setTreeViewTypeState] = useState<'tree' | 'fan' | 'hanging' | 'graph' | 'timeline' | '3d' | 'hourglass'>(() => {
+    const v = searchParams.get('view')
+    return (VIEW_KEYS as readonly string[]).includes(v ?? '') ? (v as typeof VIEW_KEYS[number]) : 'graph'
+  })
+  /** 切换视图并同步 ?view= 参数（默认视图不占参数，刷新/直达均可还原） */
+  const setTreeViewType = useCallback((v: typeof VIEW_KEYS[number]) => {
+    setTreeViewTypeState(v)
+    const params = new URLSearchParams(searchParams)
+    if (v === 'graph') params.delete('view')
+    else params.set('view', v)
+    setSearchParams(params, { replace: true })
+  }, [searchParams, setSearchParams])
 
   // 权限状态
   const [canEdit, setCanEdit] = useState(false)

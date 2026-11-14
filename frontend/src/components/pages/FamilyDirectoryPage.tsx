@@ -10,6 +10,7 @@ import {
   Image,
   GitFork,
   GitCommitHorizontal,
+  GitCommitVertical,
   History,
   ScrollText,
   Award,
@@ -23,6 +24,12 @@ import {
   BarChart3,
   Upload,
   ChevronRight,
+  ListTree,
+  Workflow,
+  PieChart,
+  Hourglass,
+  CalendarClock,
+  Box,
 } from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
 type LucideIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -38,6 +45,8 @@ interface NavItem {
   label: string
   desc: string
   icon: LucideIcon
+  /** 附加查询参数（如谱图视图 ?view=fan） */
+  query?: string
 }
 
 interface NavSection {
@@ -60,6 +69,19 @@ const SECTIONS: NavSection[] = [
   },
   {
     no: '卷二',
+    title: '谱 图 诸 式',
+    items: [
+      { path: '', query: 'tree', label: '树形图', desc: '夫妻合牌 · 层叠展谱', icon: ListTree },
+      { path: '', query: 'graph', label: '交互图', desc: '可拖拽 · 高亮溯源', icon: Workflow },
+      { path: '', query: 'fan', label: '扇形图', desc: '环形放射观世代', icon: PieChart },
+      { path: '', query: 'hanging', label: '吊线图', desc: '一线垂训 · 竖列世系', icon: GitCommitVertical },
+      { path: '', query: 'hourglass', label: '沙漏图', desc: '双向沙漏 · 上下世代', icon: Hourglass },
+      { path: '', query: 'timeline', label: '时间线', desc: '按年代纵览族人', icon: CalendarClock },
+      { path: '', query: '3d', label: '3D视图', desc: '立体族谱空间', icon: Box },
+    ],
+  },
+  {
+    no: '卷三',
     title: '谱 系 图 表',
     items: [
       { path: 'lineage', label: '世系图', desc: '完整世系图（苏/欧/宝塔式）', icon: ScrollText },
@@ -70,7 +92,7 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
-    no: '卷三',
+    no: '卷四',
     title: '祠 堂 联 谊',
     items: [
       { path: 'feed', label: '动态', desc: '家族动态', icon: MessageSquare },
@@ -81,7 +103,7 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
-    no: '卷四',
+    no: '卷五',
     title: '影 像 地 理',
     items: [
       { path: 'album', label: '相册', desc: '家族相册', icon: Image },
@@ -90,7 +112,7 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
-    no: '卷五',
+    no: '卷六',
     title: '录 入 导 出',
     items: [
       { path: 'batch', label: '批量导入', desc: 'Excel / CSV 成员导入', icon: Upload },
@@ -144,8 +166,14 @@ export default function FamilyDirectoryPage() {
                 const Icon = item.icon
                 return (
                   <button
-                    key={item.path}
-                    onClick={() => navigate(`/family/${familyId}/${item.path}`)}
+                    key={`${item.path}-${item.query ?? ''}`}
+                    onClick={() =>
+                      navigate(
+                        item.query
+                          ? `/family/${familyId}?view=${item.query}`
+                          : `/family/${familyId}/${item.path}`,
+                      )
+                    }
                     title={item.desc}
                     aria-label={item.label}
                     className="pg-card group flex items-center gap-3 p-4 text-left transition-all hover:-translate-y-0.5"
