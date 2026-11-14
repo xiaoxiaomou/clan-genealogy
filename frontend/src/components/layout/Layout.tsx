@@ -22,7 +22,7 @@ import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { FamilySwitcher } from '@/components/layout/FamilySwitcher'
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts'
 import { ShortcutHelp } from '@/hooks/ShortcutHelp'
-import { TreePine, LogOut, Home, Bell, Sun, Moon, Menu, X, Search, Keyboard } from 'lucide-react'
+import { TreePine, LogOut, Home, Bell, Sun, Moon, Menu, X, Search, Keyboard, ArrowLeft } from 'lucide-react'
 import type { ThemeMode } from '@/store/slices/appSlice'
 
 interface LayoutProps {
@@ -124,6 +124,30 @@ export function Layout({ children }: LayoutProps) {
 
   const isHome = location.pathname === '/'
 
+  // 逻辑上一级：族谱子页→族谱主页；族谱主页/个人设置/管理页→工作台；管理子页→管理首页
+  const pathname = location.pathname
+  const familyMatch = pathname.match(/^\/family\/([^/]+)(\/.+)?$/)
+  let backTo: string | null = null
+  let backLabel = '返回'
+  if (familyMatch) {
+    if (familyMatch[2]) {
+      backTo = `/family/${familyMatch[1]}`
+      backLabel = '返回族谱'
+    } else {
+      backTo = '/'
+      backLabel = '返回工作台'
+    }
+  } else if (pathname === '/admin') {
+    backTo = '/'
+    backLabel = '返回工作台'
+  } else if (pathname.startsWith('/admin/')) {
+    backTo = '/admin'
+    backLabel = '返回管理'
+  } else if (!isHome) {
+    backTo = '/'
+    backLabel = '返回工作台'
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <SkipLink />
@@ -131,6 +155,17 @@ export function Layout({ children }: LayoutProps) {
       <header className="sticky top-0 z-50 glass-nav text-foreground border-b border-border/20" role="banner">
         <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-6">
+            {backTo && (
+              <button
+                onClick={() => navigate(backTo)}
+                className="flex h-8 items-center gap-1.5 rounded-lg border border-border/40 bg-foreground/3 px-2.5 text-xs text-muted-foreground transition-all hover:border-border/60 hover:bg-foreground/6 hover:text-foreground active:scale-95"
+                aria-label={backLabel}
+                title={backLabel}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="hidden md:inline">{backLabel}</span>
+              </button>
+            )}
             <button
               onClick={() => navigate('/')}
               className="flex items-center gap-2 transition-opacity hover:opacity-80 active:opacity-60"
