@@ -297,7 +297,6 @@ class ConfigService:
         log = AuditLog(
             user_id=user_id,
             action=f'config_{action}',
-            target_type=target_type,
             entity_id=target_id,
             entity_type=target_type,
             description=reason or f"修改配置 {config_key}",

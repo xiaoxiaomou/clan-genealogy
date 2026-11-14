@@ -162,7 +162,7 @@ def get_audit_logs():
     if user_id:
         query = query.filter_by(user_id=user_id)
     if target_type:
-        query = query.filter_by(target_type=target_type)
+        query = query.filter_by(entity_type=target_type)
 
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
@@ -204,7 +204,7 @@ def export_audit_logs():
 
         for log in logs:
             writer.writerow([
-                log.id, log.user_id, log.action, log.target_type,
+                log.id, log.user_id, log.action, log.entity_type,
                 log.entity_id, log.description, log.ip_address, log.created_at
             ])
 
