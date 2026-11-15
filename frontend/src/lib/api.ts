@@ -538,6 +538,12 @@ export const api = {
   enableUser: (userId: number) =>
     request<any>(`/auth/admin/users/${userId}/enable`, { method: 'PUT' }),
 
+  adminDeleteUser: (userId: number) =>
+    request<any>(`/auth/admin/users/${userId}`, { method: 'DELETE' }),
+
+  adminResetPassword: (userId: number, password: string) =>
+    request<any>(`/auth/admin/users/${userId}/reset-password`, { method: 'PUT', body: { password } }),
+
   getAuditLogs: (familyId?: number, page?: number, perPage?: number) => {
     const params = new URLSearchParams()
     if (page !== undefined) params.set('page', String(page))

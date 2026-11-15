@@ -160,6 +160,77 @@ class AuthService:
         return True, None
 
     @staticmethod
+    def admin_reset_password(user_id, new_password):
+        """管理员重置用户密码"""
+        user = db.session.get(User, user_id)
+        if not user:
+            return False, '用户不存在'
+        if len(new_password) < 6:
+            return False, '新密码至少 6 位'
+        user.set_password(new_password)
+        db.session.commit()
+        return True, None
+
+    @staticmethod
+    def delete_user(user_id):
+        """删除用户：连带清理其聊天、帖子、通知与家族关联"""
+        import json as _json
+        from app.models.chat import ChatGroup, ChatMessage
+        from app.models.post import Post, PostComment, PostLike
+        from app.models.notification import Notification
+        from app.models.family import FamilyMember
+
+        user = db.session.get(User, user_id)
+        if not user:
+            return False, '用户不存在'
+        if user.is_admin:
+            admins = User.query.filter_by(is_admin=True).count()
+            if admins <= 1:
+                return False, '不能删除最后一个管理员账号'
+
+        # 个人互动数据
+        ChatMessage.query.filter_by(sender_id=user_id).delete()
+        PostLike.query.filter_by(user_id=user_id).delete()
+        PostComment.query.filter_by(author_id=user_id).delete()
+        Post.query.filter_by(author_id=user_id).delete()
+        Notification.query.filter_by(user_id=user_id).delete()
+        FamilyMember.query.filter_by(user_id=user_id).delete()
+
+        # 聊天群：本人创建的私聊群整组删除；其余群摘除其成员 id
+        for g in ChatGroup.query.filter_by(created_by=user_id).all():
+            if g.type == 'dm':
+                ChatMessage.query.filter_by(group_id=g.id).delete()
+                db.session.delete(g)
+            else:
+                try:
+                    ids = _json.loads(g.member_ids or '[]')
+                except Exception:
+                    ids = []
+                if user_id in ids:
+                    ids.remove(user_id)
+                    g.member_ids = _json.dumps(ids)
+        for g in ChatGroup.query.all():
+            try:
+                ids = _json.loads(g.member_ids or '[]')
+            except Exception:
+                continue
+            if user_id in ids:
+                ids.remove(user_id)
+                g.member_ids = _json.dumps(ids)
+
+        # 头像文件
+        if user.avatar:
+            try:
+                from flask import current_app
+                delete_avatar_file(user.avatar, current_app.config['UPLOAD_FOLDER'])
+            except Exception:
+                pass
+
+        db.session.delete(user)
+        db.session.commit()
+        return True, None
+
+    @staticmethod
     def enable_user(user_id):
         """启用用户"""
         user = db.session.get(User, user_id)

@@ -5,6 +5,9 @@ import type { User } from '@/types'
 import { formatRelativeTime } from '@/lib/date'
 import {
   Button,
+  Modal,
+  Input,
+  Label,
   useToast,
   AvatarDisplay,
 } from '@/components/ui'
@@ -17,6 +20,8 @@ import {
   Ban,
   Unlock,
   Clock,
+  KeyRound,
+  Trash2,
 } from 'lucide-react'
 
 type UserTab = 'pending' | 'all' | 'rejected'
@@ -33,6 +38,9 @@ export default function AdminUsersPage() {
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [processingId, setProcessingId] = useState<number | null>(null)
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [resetPw, setResetPw] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [activeTab, setActiveTab] = useState<UserTab>('pending')
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
@@ -119,6 +127,40 @@ export default function AdminUsersPage() {
       loadUsers()
     } catch (err: any) {
       showToast(err.message || '操作失败', 'error')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetTarget) return
+    if (resetPw.length < 6) {
+      showToast('新密码至少 6 位', 'error')
+      return
+    }
+    setProcessingId(resetTarget.id)
+    try {
+      await api.adminResetPassword(resetTarget.id, resetPw)
+      showToast(`已将 ${resetTarget.display_name || resetTarget.username} 的密码重置`, 'success')
+      setResetTarget(null)
+      setResetPw('')
+    } catch (err: any) {
+      showToast(err.message || '重置失败', 'error')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return
+    setProcessingId(deleteTarget.id)
+    try {
+      await api.adminDeleteUser(deleteTarget.id)
+      showToast('用户已删除', 'success')
+      setDeleteTarget(null)
+      loadUsers()
+    } catch (err: any) {
+      showToast(err.message || '删除失败', 'error')
     } finally {
       setProcessingId(null)
     }
@@ -303,6 +345,30 @@ export default function AdminUsersPage() {
                               启用
                             </Button>
                           )}
+
+                          {/* 重置密码 / 删除用户 */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => { setResetTarget(user); setResetPw('') }}
+                            disabled={processingId === user.id}
+                            aria-label={`重置 ${user.display_name || user.username} 的密码`}
+                          >
+                            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+                            重置密码
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setDeleteTarget(user)}
+                            disabled={processingId === user.id}
+                            aria-label={`删除 ${user.display_name || user.username}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            删除
+                          </Button>
                         </>
                       )}
                     </div>
@@ -314,6 +380,63 @@ export default function AdminUsersPage() {
           </div>
         </section>
       </div>
+
+      {/* 重置密码弹窗 */}
+      {resetTarget && (
+        <Modal
+          isOpen={!!resetTarget}
+          onClose={() => setResetTarget(null)}
+          title={`重置密码 — ${resetTarget.display_name || resetTarget.username}`}
+        >
+          <div className="space-y-4">
+            <div>
+              <Label>新密码</Label>
+              <Input
+                value={resetPw}
+                onChange={(e) => setResetPw(e.target.value)}
+                placeholder="至少 6 位，请告知用户后提醒其登录修改"
+                autoFocus
+              />
+              {resetPw.length > 0 && resetPw.length < 6 && (
+                <p className="mt-1.5 text-xs text-destructive">至少 6 位</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setResetTarget(null)}>取消</Button>
+              <Button onClick={handleResetPassword} disabled={resetPw.length < 6 || processingId === resetTarget.id}>
+                确认重置
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 删除用户确认弹窗 */}
+      {deleteTarget && (
+        <Modal
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          title="删除用户"
+        >
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              确定删除 <b className="text-foreground">{deleteTarget.display_name || deleteTarget.username}</b> 吗？
+              其聊天、帖子、通知与家族关联将一并清除，此操作不可恢复。
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>取消</Button>
+              <Button
+                onClick={handleDeleteUser}
+                disabled={processingId === deleteTarget.id}
+                className="text-white"
+                style={{ backgroundColor: '#A63A2E', borderColor: '#A63A2E' }}
+              >
+                确认删除
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Toast */}
 

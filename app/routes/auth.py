@@ -249,3 +249,30 @@ def enable_user(user_id):
     if not success:
         return jsonify({'error': error}), 400
     return jsonify({'message': '用户已启用'})
+
+
+@auth_bp.route('/admin/users/<int:user_id>/reset-password', methods=['PUT'])
+@admin_required
+def admin_reset_password(user_id):
+    """管理员重置用户密码"""
+    data = request.get_json() or {}
+    password = data.get('password') or ''
+    if len(password) < 6:
+        return jsonify({'error': '新密码至少 6 位'}), 400
+    success, error = AuthService.admin_reset_password(user_id, password)
+    if not success:
+        return jsonify({'error': error}), 400
+    return jsonify({'message': '密码已重置'})
+
+
+@auth_bp.route('/admin/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_user(user_id):
+    """删除用户（连带清理其聊天、帖子、通知与家族关联）"""
+    me = int(get_jwt_identity())
+    if me == user_id:
+        return jsonify({'error': '不能删除当前登录的账号'}), 400
+    success, error = AuthService.delete_user(user_id)
+    if not success:
+        return jsonify({'error': error}), 400
+    return jsonify({'message': '用户已删除'})
