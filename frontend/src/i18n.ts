@@ -1,10 +1,10 @@
 // i18n.ts - 轻量国际化（无外部依赖）
-// 支持 zh-CN / en-US；持久化到 localStorage；订阅切换
+// 支持 zh-CN / zh-TW / en-US；持久化到 localStorage；订阅切换
 import { useSyncExternalStore } from 'react';
 
-export type Locale = 'zh-CN' | 'en-US';
+export type Locale = 'zh-CN' | 'zh-TW' | 'en-US';
 const STORAGE_KEY = 'app_locale';
-const SUPPORTED: Locale[] = ['zh-CN', 'en-US'];
+const SUPPORTED: Locale[] = ['zh-CN', 'zh-TW', 'en-US'];
 
 type Dict = Record<string, string>;
 type Bundle = Record<Locale, Dict>;
@@ -17,6 +17,7 @@ function detectInitial(): Locale {
   if (stored && SUPPORTED.includes(stored)) return stored;
   const nav = (navigator.language || 'zh-CN').toLowerCase();
   if (nav.startsWith('en')) return 'en-US';
+  if (nav.startsWith('zh-tw') || nav.startsWith('zh-hk') || nav.startsWith('zh-mo')) return 'zh-TW';
   return 'zh-CN';
 }
 
@@ -100,6 +101,66 @@ const BUNDLE: Bundle = {
     'reminder.month': '未来 30 天',
     'reminder.ahead': '更远',
   },
+  'zh-TW': {
+    'app.name': '家族譜牒',
+    'app.tagline': '傳承家族記憶',
+    'common.search': '搜尋',
+    'common.cancel': '取消',
+    'common.confirm': '確認',
+    'common.save': '儲存',
+    'common.delete': '刪除',
+    'common.edit': '編輯',
+    'common.create': '建立',
+    'common.back': '返回',
+    'common.next': '下一步',
+    'common.submit': '提交',
+    'common.loading': '載入中…',
+    'common.empty': '暫無資料',
+    'common.error': '出錯了',
+    'common.success': '操作成功',
+    'common.yes': '是',
+    'common.no': '否',
+    'nav.feed': '動態',
+    'nav.tree': '譜系',
+    'nav.stats': '統計',
+    'nav.memorial': '忌日',
+    'nav.settings': '設定',
+    'nav.album': '相簿',
+    'nav.wufu': '五服',
+    'auth.login': '登入',
+    'auth.logout': '登出',
+    'auth.register': '註冊',
+    'auth.username': '使用者名稱',
+    'auth.password': '密碼',
+    'auth.email': '信箱',
+    'auth.login.success': '登入成功',
+    'auth.login.failed': '登入失敗',
+    'family.create': '建立家族',
+    'family.merge': '家族合併',
+    'family.settings': '家族設定',
+    'family.share': '公開分享',
+    'family.batch': '批次操作',
+    'member.add': '新增成員',
+    'member.edit': '編輯成員',
+    'member.history': '編輯歷史',
+    'post.like': '按讚',
+    'post.comment': '評論',
+    'post.share': '分享',
+    'post.new': '發佈動態',
+    'post.placeholder': '分享家族新鮮事… 輸入 @ 提及成員',
+    'post.delete.confirm': '確認刪除這則動態？',
+    'notification.empty': '暫無通知',
+    'language.zh-CN': '簡體中文',
+    'language.zh-TW': '繁體中文',
+    'language.en-US': 'English',
+    'shortcut.help': '鍵盤快捷鍵',
+    'search.command': '命令面板',
+    'shortcut.command_palette': '搜尋 / 命令',
+    'reminder.today': '今天',
+    'reminder.week': '未來 7 天',
+    'reminder.month': '未來 30 天',
+    'reminder.ahead': '更遠',
+  },
   'en-US': {
     'app.name': 'Family Tree',
     'app.tagline': 'Preserve Family Memories',
@@ -163,7 +224,7 @@ const BUNDLE: Bundle = {
 
 export function t(key: string, fallback?: string): string {
   const dict = BUNDLE[currentLocale] || BUNDLE['zh-CN'];
-  return dict[key] || fallback || key;
+  return dict[key] || BUNDLE['zh-CN'][key] || fallback || key;
 }
 
 export function useT() {
