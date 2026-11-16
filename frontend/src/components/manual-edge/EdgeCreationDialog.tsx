@@ -8,7 +8,7 @@ import { LINE_COLORS, LINE_STYLES } from '@/types/manualEdge'
 interface EdgeCreationDialogProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (edge: ManualEdge) => void
+  onConfirm: (edge: ManualEdge, realRelation?: 'parent' | 'spouse' | 'sibling') => void
   sourceName: string
   targetName: string
   mode: 'create' | 'edit'
@@ -25,6 +25,7 @@ export function EdgeCreationDialog({
   initialData,
 }: EdgeCreationDialogProps) {
   const [label, setLabel] = useState(initialData?.label || '')
+  const [realRelation, setRealRelation] = useState<'none' | 'parent' | 'spouse' | 'sibling'>('none')
   const [color, setColor] = useState(initialData?.color || LINE_COLORS[0].value)
   const [lineStyle, setLineStyle] = useState<ManualEdge['lineStyle']>(initialData?.lineStyle || 'dashed')
 
@@ -49,7 +50,7 @@ export function EdgeCreationDialog({
       lineStyle,
     }
 
-    onConfirm(edge)
+    onConfirm(edge, realRelation === 'none' ? undefined : realRelation)
     onClose()
   }
 
@@ -87,6 +88,32 @@ export function EdgeCreationDialog({
             autoFocus
           />
         </div>
+
+        {mode === 'create' && (
+          <div>
+            <label className="block text-sm font-medium mb-1.5">同时登记为家族真实关系</label>
+            <div className="flex gap-2">
+              {([['none', '仅作标注'], ['parent', '父母子女'], ['spouse', '配偶'], ['sibling', '兄弟姐妹']] as const).map(([v, l]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setRealRelation(v)}
+                  className={cn(
+                    'flex-1 px-2 py-2 rounded-lg border text-xs font-medium transition-colors',
+                    realRelation === v
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted hover:bg-muted/80 border-transparent'
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            {realRelation !== 'none' && (
+              <p className="mt-1.5 text-xs text-muted-foreground">起点为长辈（父母子女时），将在族谱中登记真实关系。</p>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium mb-1.5">连线颜色</label>

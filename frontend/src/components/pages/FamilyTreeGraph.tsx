@@ -13,6 +13,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import { AvatarDisplay } from '@/components/ui'
+import { api } from '@/lib/api'
 import { MemberTooltip } from '@/components/tree-engine/nodes/MemberTooltip'
 import type { TreeNode, FamilyTree } from '@/types'
 import type { ManualEdge, EditingMode, AddingState, DragHandle, HistoryState } from '@/types/manualEdge'
@@ -648,17 +649,41 @@ export default function FamilyTreeGraph({
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedEdge && selectedEdge.edge) {
+      // 若连线登记过真实关系，一并删除
+      const relId = selectedEdge.edge.relationshipId
+      if (relId && familyId) {
+        api.deleteRelationship(familyId, relId).catch(() => {})
+      }
       setHistoryState(prev => historyManager.deleteEdge(prev, selectedEdge.edge))
       setSelectedEdge(null)
     }
-  }, [selectedEdge, historyManager])
+  }, [selectedEdge, historyManager, familyId])
 
-  const handleDialogConfirm = useCallback((edge: ManualEdge) => {
+  const handleDialogConfirm = useCallback((edge: ManualEdge, realRelation?: 'parent' | 'spouse' | 'sibling') => {
     if (dialogState.mode === 'create') {
       const newEdge = {
         ...edge,
         source: addingState.sourceId!,
         target: addingState.targetId!,
+      }
+      // 同步登记真实关系：拖拽起点为长辈（parent：member_id=子女/related=长辈）
+      if (realRelation && familyId) {
+        const sid = Number(newEdge.source)
+        const tid = Number(newEdge.target)
+        const payload = realRelation === 'parent'
+          ? { member_id: tid, related_member_id: sid, relationship_type: 'parent' }
+          : { member_id: sid, related_member_id: tid, relationship_type: realRelation }
+        api.createRelationship(familyId, payload)
+          .then((r) => {
+            newEdge.relationshipId = r?.relationship?.id
+            setHistoryState(prev => historyManager.addEdge(prev, newEdge))
+          })
+          .catch(() => {
+            // 关系已存在等场景：仍添加视觉连线
+            setHistoryState(prev => historyManager.addEdge(prev, newEdge))
+          })
+        setAddingState({ step: 'select-source', sourceId: null, sourceName: null, targetId: null, targetName: null })
+        return
       }
       setHistoryState(prev => historyManager.addEdge(prev, newEdge))
       setAddingState({ step: 'select-source', sourceId: null, sourceName: null, targetId: null, targetName: null })

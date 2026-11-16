@@ -5,6 +5,8 @@ export interface ManualEdge {
   label: string
   color: string
   lineStyle: 'solid' | 'dashed' | 'dotted'
+  /** 同步建立的真实关系 id（删除连线时连带删除） */
+  relationshipId?: number
 }
 
 export interface ManualEdgeData {
