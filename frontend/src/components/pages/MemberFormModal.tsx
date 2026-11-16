@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Modal, Input, Label, AvatarUploader, RichTextEditor } from '@/components/ui'
+import { api } from '@/lib/api'
 import { Sparkles, Check, X as XIcon, Loader2 } from 'lucide-react'
 import type { Member } from '@/types'
 
@@ -60,6 +61,26 @@ export default function MemberFormModal({
 }: MemberFormModalProps) {
   const [compliance, setCompliance] = useState<{ match: boolean; reason: string; zibei_char: string | null; actual_zibei_char: string | null } | null>(null)
   const [checking, setChecking] = useState(false)
+  const [aiBioLoading, setAiBioLoading] = useState(false)
+
+  /* AI 草拟小传：据成员资料生成初稿填入（编辑模式，静默降级） */
+  const handleAiBio = async () => {
+    if (!editingMember) return
+    setAiBioLoading(true)
+    try {
+      const r = await api.aiDraft(familyId, { kind: 'bio', member_id: editingMember.id })
+      const html = (r.text || '')
+        .split(/\n+/)
+        .filter(Boolean)
+        .map((p) => `<p>${p}</p>`)
+        .join('')
+      onChange('bio', html)
+    } catch (err: any) {
+      console.warn('AI 小传草拟失败', err?.message)
+    } finally {
+      setAiBioLoading(false)
+    }
+  }
 
   useEffect(() => {
     setCompliance(null)
@@ -230,7 +251,21 @@ export default function MemberFormModal({
         </div>
       </div>
       <div className="space-y-2">
-        <Label>生平简介（支持富文本）</Label>
+        <div className="flex items-center justify-between">
+          <Label>生平简介（支持富文本）</Label>
+          {isEdit && editingMember && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAiBio}
+              disabled={aiBioLoading}
+              className="gap-1 h-7 text-xs"
+            >
+              {aiBioLoading ? '撰写中…' : 'AI 草拟小传'}
+            </Button>
+          )}
+        </div>
         <RichTextEditor
           value={formData.bio || ''}
           onChange={(html) => onChange('bio', html)}

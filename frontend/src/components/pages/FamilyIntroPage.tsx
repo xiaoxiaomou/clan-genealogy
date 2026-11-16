@@ -41,6 +41,7 @@ export default function FamilyIntroPage() {
   const [loading, setLoading] = useState(true)
   const [canEdit, setCanEdit] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [aiDrafting, setAiDrafting] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
 
   // Edit state
@@ -81,6 +82,19 @@ export default function FamilyIntroPage() {
       showToast(err.message || '加载失败', 'error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAiDraft = async () => {
+    setAiDrafting(true)
+    try {
+      const r = await api.aiDraft(familyId, { kind: 'preface' })
+      setEditIntro(r.text)
+      showToast('谱序已草拟，可自行润色后保存', 'success')
+    } catch (err: any) {
+      showToast(err.message || '草拟失败', 'error')
+    } finally {
+      setAiDrafting(false)
     }
   }
 
@@ -408,6 +422,15 @@ export default function FamilyIntroPage() {
                 className="w-full min-h-[120px] rounded-lg border bg-card p-3 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-ring"
                 placeholder="记述家族源流、迁徙与世系……"
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAiDraft}
+                disabled={aiDrafting}
+                className="gap-1"
+              >
+                {aiDrafting ? 'AI 撰写中…' : 'AI 草拟谱序'}
+              </Button>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">族训（竖排展示）</span>
                 <Input

@@ -960,6 +960,9 @@ export const api = {
       { method: 'POST', body: { question } }
     ),
 
+  aiDraft: (familyId: number, data: { kind: 'preface' | 'bio'; member_id?: number }) =>
+    request<{ text: string; mode: string }>(`/family/${familyId}/ai/draft`, { method: 'POST', body: data }),
+
   // 示例数据集
   listSampleDatasets: () =>
     request<{ datasets: Array<{ key: string; name: string; description: string; surname: string; origin: string; member_count: number; generation_count: number }> }>('/family/sample-datasets'),

@@ -168,3 +168,127 @@ def _offline_answer(question: str, family_id: int) -> str:
             return '，'.join(parts) + '。'
 
     return '抱歉，未配置 LLM 密钥，无法深入理解您的问题。请尝试：人数 / 代数 / 起源 / 家训 / 成员姓名。'
+
+
+@ai_bp.route('/<int:family_id>/ai/draft', methods=['POST'])
+@jwt_required()
+@family_permission_required('editor')
+def ai_draft(family_id):
+    """AI 草拟：kind=preface 谱序 / kind=bio 成员小传（需 member_id）
+
+    离线模式返回按字段拼接的模板文本；配置 LLM_API_KEY 后走在线生成。
+    """
+    data = request.get_json(silent=True) or {}
+    kind = data.get('kind')
+    member_id = data.get('member_id')
+    if kind not in ('preface', 'bio'):
+        return jsonify({'error': 'kind 必须是 preface 或 bio'}), 400
+
+    family = Family.query.get(family_id)
+    if not family:
+        return jsonify({'error': '族谱不存在'}), 404
+
+    api_key = os.environ.get('LLM_API_KEY') or os.environ.get('OPENAI_API_KEY')
+    base_url = os.environ.get('LLM_BASE_URL', 'https://api.openai.com/v1')
+    model = os.environ.get('LLM_MODEL', 'gpt-4o-mini')
+
+    if kind == 'bio':
+        member = Member.query.get(member_id) if member_id else None
+        if not member or member.family_id != family_id:
+            return jsonify({'error': '成员不存在'}), 404
+        context = json.dumps({
+            'name': member.name,
+            'gender': member.gender,
+            'generation': member.generation,
+            'generation_name': member.generation_name,
+            'courtesy_name': member.courtesy_name,
+            'art_name': member.art_name,
+            'birth_date': member.birth_date,
+            'death_date': member.death_date,
+            'birth_place': member.birth_place,
+            'burial_place': member.burial_place,
+            'migration_note': member.migration_note,
+            'spouse_family_name': member.spouse_family_name,
+            'bio': (member.bio or '')[:300],
+        }, ensure_ascii=False)
+        system = ('你是谱牒文书专家，根据成员资料撰写一则人物小传，文言与白话相间的谱牒文风，'
+                  '150 字以内，只输出正文，不要标题与解释。资料不足处从略，不要编造。')
+        user_prompt = f'成员资料：\n{context}\n\n请撰写人物小传。'
+        offline = _offline_bio(member)
+    else:
+        members = Member.query.filter_by(family_id=family_id).all()
+        context = summarize_family(family_id)
+        gens = sorted({m.generation for m in members if m.generation})
+        system = ('你是谱牒文书专家，为族谱撰写一篇谱序。文言雅正、300 字以内，'
+                  '涵盖修谱缘由、家族源流概述与后昆期许，落款「{surname}氏阖族谨识」。'
+                  '只输出正文。')
+        system = system.replace('{surname}', family.surname or '')
+        user_prompt = (f'家族数据：\n{context}\n\n世代范围：{gens[0] if gens else "?"} 至 '
+                       f'{gens[-1] if gens else "?"} 代，共 {len(members)} 位族人。\n\n请撰写谱序。')
+        offline = _offline_preface(family, len(members), gens)
+
+    if not api_key:
+        return jsonify({'text': offline, 'mode': 'offline', 'model': 'local-template'})
+
+    try:
+        r = requests.post(
+            f"{base_url.rstrip('/')}/chat/completions",
+            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+            json={
+                'model': model,
+                'messages': [
+                    {'role': 'system', 'content': system},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                'temperature': 0.5,
+                'max_tokens': 800,
+            },
+            timeout=40,
+        )
+        if r.status_code != 200:
+            logger.error(f'LLM API error: {r.status_code} {r.text[:200]}')
+            return jsonify({'text': offline, 'mode': 'offline', 'model': 'local-template'})
+        answer = r.json().get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+        return jsonify({'text': answer or offline, 'mode': 'online', 'model': model})
+    except requests.RequestException as e:
+        logger.error(f'LLM request failed: {e}')
+        return jsonify({'text': offline, 'mode': 'offline', 'model': 'local-template'})
+
+
+def _offline_preface(family, member_count: int, gens: list) -> str:
+    gens_text = f'{gens[0] if gens else 1} 至 {gens[-1] if gens else 1} 代'
+    created = family.created_at.strftime('%Y') if family.created_at else '——'
+    return (
+        f'盖闻木有本而枝繁，水有源而流远。{family.name}自{created_year_text(created)}年肇立，'
+        f'绵延至今，凡{gens_text}，谱系井然，{member_count}位族人昭穆有序。'
+        f'今族人同心，协修此谱，汇世系、字辈、行传于一编，以垂永久。'
+        f'愿后之览者，知源流之所自，感先人之所创，敦亲睦族，永葆家风。'
+        f'是为序。'
+    )
+
+
+def _created_year_text(created):
+    return created
+
+
+def _offline_bio(m: Member) -> str:
+    parts = [f'{m.name}']
+    if m.generation_name:
+        parts.append(f'字辈「{m.generation_name}」')
+    if m.courtesy_name:
+        parts.append(f'字{m.courtesy_name}')
+    if m.birth_date:
+        parts.append(f'生于{str(m.birth_date)[:10]}')
+    if m.death_date:
+        parts.append(f'卒于{str(m.death_date)[:10]}')
+    if m.birth_place:
+        parts.append(f'籍{m.birth_place}')
+    text = '，'.join(parts) + '。'
+    if m.bio:
+        text += strip_html_tags(m.bio)
+    return text
+
+
+def strip_html_tags(html: str) -> str:
+    import re as _re
+    return _re.sub(r'<[^>]+>', '', html or '').strip()
