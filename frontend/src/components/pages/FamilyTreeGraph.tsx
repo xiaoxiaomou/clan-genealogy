@@ -321,6 +321,8 @@ interface FamilyTreeGraphProps {
   highlightedMemberId?: number | null
   canEdit?: boolean
   familyId?: number
+  /** 清除按钮同时清空外部选中态（父级高亮成员） */
+  onClearSelection?: () => void
 }
 
 export default function FamilyTreeGraph({
@@ -328,6 +330,7 @@ export default function FamilyTreeGraph({
   canEdit = false,
   onMemberClick,
   highlightedMemberId,
+  onClearSelection,
   familyId,
 }: FamilyTreeGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<HoverInfo | null>(null)
@@ -721,7 +724,11 @@ export default function FamilyTreeGraph({
         <LineageToolbar
           mode={lineage.mode}
           onChange={(m) => lineage.setMode(m)}
-          onClear={() => lineage.clear()}
+          onClear={() => {
+            lineage.clear()
+            setSelectedEdge(null)
+            onClearSelection?.()
+          }}
           onOpenSearch={() => search.toggle()}
           loading={lineage.loading}
           label={lineage.highlight?.label}

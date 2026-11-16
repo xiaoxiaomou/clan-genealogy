@@ -858,6 +858,7 @@ export default function FamilyTreePage() {
                     setHighlightedMemberId(member.id)
                   }}
                   highlightedMemberId={highlightedMemberId}
+                  onClearSelection={() => setHighlightedMemberId(null)}
                   familyId={familyId}
                 />
                 </ReactFlowProvider>
