@@ -11,7 +11,7 @@ import {
 } from '@/components/ui'
 import { Layout } from '@/components/layout/Layout'
 import { MemberEditHistoryPanel } from '@/components/ui/MemberEditHistoryPanel'
-import { PgSectionHead } from '@/components/ui/pedigree'
+import { PgSectionHead, PG_RED } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
   Edit3,
@@ -62,6 +62,8 @@ export default function MemberDetailPage() {
   const [treeData, setTreeData] = useState<FamilyTree | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [canEdit, setCanEdit] = useState(false)
+  const [honors, setHonors] = useState<any[]>([])
+  const [familyEvents, setFamilyEvents] = useState<any[]>([])
 
   /* 编辑弹窗（原地编辑，不再跳回族谱页） */
   const [showEdit, setShowEdit] = useState(false)
@@ -171,22 +173,57 @@ export default function MemberDetailPage() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [familyRes, memberRes, treeRes, roleRes] = await Promise.all([
+      const [familyRes, memberRes, treeRes, roleRes, honorsRes, eventsRes] = await Promise.all([
         api.getFamily(familyId),
         api.getMember(familyId, mId),
         api.getFamilyTree(familyId),
         api.getMyRole(familyId),
+        api.listHonors(familyId).catch(() => ({ honors: [] })),
+        api.getEvents(familyId).catch(() => ({ events: [] })),
       ])
       setFamily(familyRes.family)
       setMember(memberRes.member)
       setTreeData(treeRes)
       setCanEdit(roleRes.can_edit)
+      setHonors(honorsRes.honors || [])
+      setFamilyEvents(eventsRes.events || [])
     } catch (err: any) {
       showToast(err.message || '加载失败', 'error')
     } finally {
       setIsLoading(false)
     }
   }
+
+  /* 生平年表：出生 → 荣誉 → 在世期间家族大事 → 逝世，按时间排序 */
+  const timelineEntries = (() => {
+    if (!member) return []
+    const entries: Array<{ sortKey: string; dateLabel: string; label: string; major?: boolean }> = []
+    if (member.birth_date) {
+      entries.push({ sortKey: String(member.birth_date), dateLabel: String(member.birth_date), label: '出生', major: true })
+    }
+    for (const h of honors) {
+      if (h.member_id !== member.id) continue
+      entries.push({
+        sortKey: h.year ? `${h.year}` : '',
+        dateLabel: h.year ? `${h.year} 年` : '年份不详',
+        label: `获「${h.title}」${h.awarder ? ` · ${h.awarder}` : ''}`,
+        major: true,
+      })
+    }
+    const birth = member.birth_date ? String(member.birth_date) : null
+    const death = member.death_date ? String(member.death_date) : null
+    for (const ev of familyEvents) {
+      if (!ev.event_date) continue
+      if (birth && ev.event_date < birth) continue
+      if (death && ev.event_date > death) continue
+      entries.push({ sortKey: ev.event_date, dateLabel: String(ev.event_date), label: `家族大事 · ${ev.title}` })
+    }
+    if (member.death_date) {
+      entries.push({ sortKey: String(member.death_date), dateLabel: String(member.death_date), label: '逝世', major: true })
+    }
+    entries.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0))
+    return entries
+  })()
 
   // 从 treeData 中计算子女
   const getChildren = (): Member[] => {
@@ -364,6 +401,34 @@ export default function MemberDetailPage() {
             <InfoItem icon={Heart} label="适（夫家姓氏）" value={member.spouse_family_name ?? null} />
             <InfoItem icon={Footprints} label="迁徙" value={member.migration_note ?? null} />
           </div>
+
+          {/* 生平年表 */}
+          {timelineEntries.length > 0 && (
+            <div className="pg-card mb-8 p-6">
+              <PgSectionHead text="生 平 年 表" />
+              <div className="mt-5 border-l-2 pl-6" style={{ borderColor: 'hsl(var(--border))' }}>
+                {timelineEntries.map((e, i) => (
+                  <div key={i} className="relative pb-5 last:pb-0">
+                    <span
+                      className="absolute -left-[31px] top-1 h-2.5 w-2.5 rounded-full"
+                      style={{
+                        backgroundColor: e.major ? PG_RED : 'hsl(var(--muted-foreground))',
+                        boxShadow: e.major ? '0 0 0 3px color-mix(in srgb, #A63A2E 15%, transparent)' : undefined,
+                      }}
+                      aria-hidden="true"
+                    />
+                    <p className="text-xs text-muted-foreground">{e.dateLabel}</p>
+                    <p
+                      className="mt-0.5 text-sm"
+                      style={e.major ? { fontFamily: "'Noto Serif SC', 'STSong', 'KaiTi', serif", fontWeight: 600 } : undefined}
+                    >
+                      {e.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 生平简介 - 富文本 */}
           {member.bio && (
