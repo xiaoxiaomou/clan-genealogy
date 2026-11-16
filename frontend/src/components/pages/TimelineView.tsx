@@ -1,19 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui'
 import { AvatarDisplay } from '@/components/ui'
-import { MemberTooltip } from '@/components/tree-engine/nodes/MemberTooltip'
-import type { TreeNode, Member } from '@/types'
+import type { Member } from '@/types'
 
 interface TimelineViewProps {
   members: Member[]
   onMemberClick?: (member: Member) => void
   highlightedMemberId?: number | null
-}
-
-interface HoverInfo {
-  member: Member
-  x: number
-  y: number
 }
 
 function getGenderColor(gender: string): string {
@@ -38,7 +31,6 @@ export default function TimelineView({
   onMemberClick,
   highlightedMemberId,
 }: TimelineViewProps) {
-  const [hoveredMember, setHoveredMember] = useState<HoverInfo | null>(null)
   const sortedMembers = useMemo(() => {
     return [...members].sort((a, b) => {
       const yearA = a.birth_date ? new Date(a.birth_date).getFullYear() : 0
@@ -136,7 +128,7 @@ export default function TimelineView({
                       return (
                         <Card
                           key={member.id}
-                          className={`cursor-pointer transition-all hover:shadow-md ${
+                          className={`cursor-pointer transition-[box-shadow] hover:shadow-md ${
                             isHighlighted ? 'ring-2 ring-yellow-500' : ''
                           } ${isDimmed ? 'opacity-40' : ''}`}
                           style={{
@@ -146,10 +138,6 @@ export default function TimelineView({
                             borderWidth: isHighlighted ? 2 : 1,
                           }}
                           onClick={() => onMemberClick?.(member)}
-                          onMouseEnter={(e) => {
-                            setHoveredMember({ member, x: e.clientX, y: e.clientY })
-                          }}
-                          onMouseLeave={() => setHoveredMember(null)}
                         >
                           <CardContent className="p-3">
                             <div className="flex items-center gap-2">
@@ -201,14 +189,6 @@ export default function TimelineView({
         </div>
       </div>
 
-      {hoveredMember && (
-        <MemberTooltip
-          member={hoveredMember.member as unknown as TreeNode}
-          mouseX={hoveredMember.x}
-          mouseY={hoveredMember.y}
-          containerRect={null}
-        />
-      )}
     </div>
   )
 }
