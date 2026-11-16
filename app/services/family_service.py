@@ -93,6 +93,46 @@ class FamilyService:
     ]
 
     @staticmethod
+    @staticmethod
+    def find_duplicate_groups(family_id):
+        """疑似重复成员分组：同名且（生年相同 或 同世代）视为疑似同一人"""
+        members = FamilyService.get_family_members(family_id)
+        by_name = {}
+        for m in members:
+            by_name.setdefault(m.name, []).append(m)
+
+        groups = []
+        for name, ms in by_name.items():
+            if len(ms) < 2:
+                continue
+            strong_pairs = False
+            ms_sorted = sorted(ms, key=lambda x: (x.birth_date or '', x.id))
+            items = []
+            for m in ms_sorted:
+                birth_year = str(m.birth_date)[:4] if m.birth_date else None
+                items.append({
+                    'id': m.id,
+                    'name': m.name,
+                    'birth_date': str(m.birth_date) if m.birth_date else None,
+                    'death_date': str(m.death_date) if m.death_date else None,
+                    'generation': m.generation,
+                    'is_alive': m.is_alive,
+                })
+            # 强信号：同名且生年相同
+            births = [str(m.birth_date)[:4] for m in ms if m.birth_date]
+            if len(births) != len(set(births)):
+                strong_pairs = True
+            gens = [m.generation for m in ms if m.generation]
+            if len(gens) != len(set(gens)):
+                strong_pairs = True
+            groups.append({
+                'name': name,
+                'strong': strong_pairs,
+                'members': items,
+            })
+        groups.sort(key=lambda g: (not g['strong'], g['name']))
+        return groups
+
     def add_member(family_id, **kwargs):
         """添加家族成员"""
         member = Member(family_id=family_id, name=kwargs.get('name'))

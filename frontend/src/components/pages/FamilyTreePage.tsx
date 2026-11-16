@@ -21,6 +21,7 @@ import {
   Filter,
   X,
   Clock,
+  AlertCircle,
 } from 'lucide-react'
 import {
   PieChart,
@@ -123,6 +124,11 @@ export default function FamilyTreePage() {
   const [edgeContextMenu, setEdgeContextMenu] = useState<
     { id: number; type: string; sourceName: string; targetName: string; x: number; y: number } | null
   >(null)
+  const [dupGroups, setDupGroups] = useState<Array<{
+    name: string
+    strong: boolean
+    members: Array<{ id: number; name: string; birth_date: string | null; generation: number | null }>
+  }>>([])
   /** 切换视图并同步 ?view= 参数（默认视图不占参数，刷新/直达均可还原） */
   const setTreeViewType = useCallback((v: typeof VIEW_KEYS[number]) => {
     setTreeViewTypeState(v)
@@ -434,6 +440,15 @@ export default function FamilyTreePage() {
     }
   }
 
+  // 成员列表 tab 激活时拉取疑似重复分组
+  useEffect(() => {
+    if (activeTab === 'members' && familyId) {
+      api.getMemberDuplicates(familyId)
+        .then((r) => setDupGroups(r.groups || []))
+        .catch(() => setDupGroups([]))
+    }
+  }, [activeTab, familyId, members.length])
+
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -456,6 +471,8 @@ export default function FamilyTreePage() {
         privacy_level: memberForm.privacy_level,
       })
       showToast('成员添加成功', 'success')
+      // 智能线索：疑似同一人提示
+      for (const w of (res.warnings || []) as string[]) showToast(w, 'error')
       // 右键菜单发起的添加：自动建立关系（节点 + 连线一步完成）
       const newId = res?.member?.id
       if (newId && pendingRelation) {
@@ -929,6 +946,46 @@ export default function FamilyTreePage() {
               </div>
             ) : (
               <>
+                {/* 疑似重复成员提示 */}
+                {dupGroups.length > 0 && (
+                  <div
+                    className="mb-3 rounded-md border p-3"
+                    style={{
+                      borderColor: `color-mix(in srgb, ${PG_RED} 35%, transparent)`,
+                      background: `color-mix(in srgb, ${PG_RED} 6%, transparent)`,
+                    }}
+                  >
+                    <p className="mb-2 flex items-center gap-2 text-xs font-semibold" style={{ color: PG_RED }}>
+                      <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                      发现 {dupGroups.length} 组疑似重复成员（同名且生年相同/同世代）
+                    </p>
+                    <div className="space-y-1.5">
+                      {dupGroups.map((g) => (
+                        <div key={g.name} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                          <span className="text-muted-foreground">
+                            {g.name}（{g.members.length} 人）
+                            {g.strong && <b className="ml-1" style={{ color: PG_RED }}>高度疑似</b>}
+                          </span>
+                          {g.members.map((m) => (
+                            <button
+                              key={m.id}
+                              onClick={() => navigate(`/family/${familyId}/member/${m.id}`)}
+                              className="rounded border px-1.5 py-0.5 transition-colors hover:text-foreground"
+                              style={{ borderColor: 'hsl(var(--border))' }}
+                              title="查看成员详情"
+                            >
+                              {m.name}
+                              {m.birth_date ? `（${String(m.birth_date).slice(0, 4)}）` : ''}
+                              {m.generation ? `·${m.generation}代` : ''}
+                            </button>
+                          ))}
+                          <span className="text-[10px] text-muted-foreground">核对后可用族谱合并处理</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* 搜索和高级筛选 */}
                 <div className="space-y-3">
                   <div className="flex gap-2">

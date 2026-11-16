@@ -645,6 +645,9 @@ export const api = {
   rsvpActivity: (familyId: number, id: number, data: { status: string; guests?: number; note?: string }) =>
     request<any>(`/family/${familyId}/activities/${id}/rsvp`, { method: 'POST', body: data }),
 
+  getMemberDuplicates: (familyId: number) =>
+    request<any>(`/family/${familyId}/members/duplicates`),
+
   exportMembersCsv: async (familyId: number): Promise<void> => {
     const blob = await request<Blob>(`/export/${familyId}/export/members/csv`, { responseType: 'blob' })
     downloadBlob(blob, 'members.csv')

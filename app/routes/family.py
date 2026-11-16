@@ -160,6 +160,14 @@ def list_members(family_id):
     })
 
 
+@family_bp.route('/<int:family_id>/members/duplicates', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_member_duplicates(family_id):
+    """疑似重复成员分组（录入去重提示）"""
+    return jsonify({'groups': FamilyService.find_duplicate_groups(family_id)})
+
+
 @family_bp.route('/<int:family_id>/members', methods=['POST'])
 @jwt_required()
 @family_permission_required('editor')
@@ -200,9 +208,20 @@ def add_member(family_id):
     if is_living_protected(member):
         member.privacy_level = 'private'
         db.session.commit()
+    # 智能线索：同名且生年相同/缺失的疑似同一人
+    warnings = []
+    for other in FamilyService.get_family_members(family_id):
+        if other.id == member.id or other.name != member.name:
+            continue
+        if member.birth_date and other.birth_date and str(member.birth_date)[:4] != str(other.birth_date)[:4]:
+            continue
+        warnings.append(
+            f'疑似与「{other.name}（{str(other.birth_date)[:4] if other.birth_date else "生年不详"}）」为同一人，可在关系管理中核对合并'
+        )
     return jsonify({
         'message': '成员添加成功',
-        'member': member.to_dict()
+        'member': member.to_dict(),
+        'warnings': warnings,
     }), 201
 
 
