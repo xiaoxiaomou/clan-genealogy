@@ -4,8 +4,9 @@ import { useToast } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Flame } from 'lucide-react'
 import { formatPoem } from '@/lib/zibei'
+import { RitualModal } from './MemorialPage'
 
 interface TempleData {
   family: any
@@ -27,6 +28,18 @@ export default function TemplePage() {
 
   const [data, setData] = useState<TempleData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [deceased, setDeceased] = useState<Array<{ id: number; name: string; avatar: string | null; death_year: string | null }>>([])
+  const [ritualMember, setRitualMember] = useState<{
+    member_id: number
+    member_name: string
+    avatar: string | null
+    death_date_solar: string
+    death_date_lunar: string
+    year_ganzhi: string
+    shengxiao: string
+    lunar_month: number
+    lunar_day: number
+  } | null>(null)
 
   useEffect(() => {
     load()
@@ -35,8 +48,21 @@ export default function TemplePage() {
   async function load() {
     setLoading(true)
     try {
-      const d = await api.getTemple(familyId)
+      const [d, membersRes] = await Promise.all([
+        api.getTemple(familyId),
+        api.getMembers(familyId).catch(() => ({ members: [] })),
+      ])
       setData(d)
+      setDeceased(
+        (membersRes.members || [])
+          .filter((m: any) => m.is_alive === false)
+          .map((m: any) => ({
+            id: m.id,
+            name: m.name,
+            avatar: m.avatar || null,
+            death_year: m.death_date ? String(m.death_date).slice(0, 4) : null,
+          })),
+      )
     } catch (err: any) {
       showToast(err.message || '加载失败', 'error')
     } finally {
@@ -184,12 +210,83 @@ export default function TemplePage() {
           </div>
         )}
 
+        {/* 排位墙：已故族人 · 线上祭祀 */}
+        {deceased.length > 0 && (
+          <div>
+            <PgSectionHead text="排 位 · 线 上 祭 祀" />
+            <div className="pg-card p-6">
+              <p className="mb-4 text-xs text-muted-foreground">
+                点击牌位可献花、点烛、上香、叩首，并留下追思留言。
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {deceased.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() =>
+                      setRitualMember({
+                        member_id: m.id,
+                        member_name: m.name,
+                        avatar: m.avatar,
+                        death_date_solar: '',
+                        death_date_lunar: m.death_year ? `${m.death_year} 年卒` : '',
+                        year_ganzhi: '',
+                        shengxiao: '',
+                        lunar_month: 0,
+                        lunar_day: 0,
+                      })
+                    }
+                    className="group flex flex-col items-center gap-2 rounded-[4px] border px-3 py-4 transition-all hover:-translate-y-0.5"
+                    style={{
+                      borderColor: `color-mix(in srgb, ${PG_RED} 25%, transparent)`,
+                      background: 'hsl(var(--card))',
+                    }}
+                    aria-label={`祭拜 ${m.name}`}
+                  >
+                    <div
+                      className="flex h-14 w-11 items-start justify-center rounded-t-[2px] pt-2"
+                      style={{
+                        background: `color-mix(in srgb, ${PG_RED} 10%, transparent)`,
+                        borderTop: `3px solid ${PG_RED}`,
+                      }}
+                    >
+                      <span
+                        className="text-lg"
+                        style={{ fontFamily: PG_SERIF, writingMode: 'vertical-rl', color: PG_RED, letterSpacing: '0.2em' }}
+                      >
+                        {m.name}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {m.death_year ? `${m.death_year} 年卒` : '在册'}
+                    </div>
+                    <div
+                      className="flex items-center gap-1 text-[10px] opacity-0 transition-opacity group-hover:opacity-100"
+                      style={{ color: PG_RED }}
+                      aria-hidden="true"
+                    >
+                      <Flame className="h-3 w-3" /> 祭拜
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         <p
           className="text-center text-xs text-muted-foreground"
           style={{ fontFamily: PG_SERIF, letterSpacing: '0.3em' }}
         >
           愿家族昌盛 · 子孙兴旺
         </p>
+
+      {ritualMember && (
+        <RitualModal
+          familyId={familyId}
+          member={ritualMember}
+          onClose={() => setRitualMember(null)}
+        />
+      )}
       </div>
     </Layout>
   )

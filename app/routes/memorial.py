@@ -14,6 +14,10 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services.family_service import FamilyService
+from app import db
+from app.models.user import User
+from app.models.memorial import MemorialRitual, MemorialMessage
+from app.utils.decorators import login_required, admin_required
 from app.utils.decorators import family_permission_required
 from app.utils.lunar_utils import (
     solar_to_lunar, find_next_memorial_date, parse_date_string, get_year_ganzhi
@@ -171,3 +175,134 @@ def get_all_memorial(family_id):
         'count': len(items),
         'items': items,
     })
+
+
+# ═══ 线上祭祀：祭拜动作 + 追思留言 ═══
+
+RITUAL_KINDS = ('flower', 'candle', 'incense', 'kowtow')
+RITUAL_LABELS = {'flower': '献花', 'candle': '点烛', 'incense': '上香', 'kowtow': '叩首'}
+
+
+def _user_name_map(user_ids):
+    users = User.query.filter(User.id.in_(set(user_ids))).all() if user_ids else []
+    return {u.id: (u.display_name or u.username) for u in users}
+
+
+@memorial_bp.route('/<int:family_id>/memorial/rituals', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_memorial_rituals(family_id):
+    """某位先人的祭拜统计与最近记录"""
+    member_id = request.args.get('member_id', type=int)
+    if not member_id:
+        return jsonify({'error': '缺少 member_id'}), 400
+
+    rows = (MemorialRitual.query
+            .filter_by(family_id=family_id, member_id=member_id)
+            .order_by(MemorialRitual.created_at.desc())
+            .all())
+    names = _user_name_map([r.user_id for r in rows])
+    today = date.today()
+    today_counts = {k: 0 for k in RITUAL_KINDS}
+    total_counts = {k: 0 for k in RITUAL_KINDS}
+    mine_today = []
+    recent = []
+    for r in rows:
+        total_counts[r.kind] = total_counts.get(r.kind, 0) + 1
+        if r.created_at.date() == today:
+            today_counts[r.kind] = today_counts.get(r.kind, 0) + 1
+        if r.user_id == int(get_jwt_identity()) and r.created_at.date() == today:
+            mine_today.append(r.kind)
+        if len(recent) < 20:
+            recent.append(r.to_dict(names.get(r.user_id)))
+    return jsonify({
+        'today_counts': today_counts,
+        'total_counts': total_counts,
+        'mine_today': mine_today,
+        'recent': recent,
+    })
+
+
+@memorial_bp.route('/<int:family_id>/memorial/rituals', methods=['POST'])
+@jwt_required()
+@family_permission_required('viewer')
+def add_memorial_ritual(family_id):
+    """记录一次线上祭拜"""
+    data = request.get_json() or {}
+    member_id = data.get('member_id')
+    kind = data.get('kind')
+    if not member_id or kind not in RITUAL_KINDS:
+        return jsonify({'error': '参数不合法'}), 400
+    ritual = MemorialRitual(
+        family_id=family_id,
+        member_id=member_id,
+        user_id=int(get_jwt_identity()),
+        kind=kind,
+    )
+    db.session.add(ritual)
+    db.session.commit()
+    return jsonify({'message': f'{RITUAL_LABELS[kind]}已奉上', 'ritual': ritual.to_dict()}), 201
+
+
+@memorial_bp.route('/<int:family_id>/memorial/messages', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_memorial_messages(family_id):
+    """某位先人的追思留言"""
+    member_id = request.args.get('member_id', type=int)
+    if not member_id:
+        return jsonify({'error': '缺少 member_id'}), 400
+    rows = (MemorialMessage.query
+            .filter_by(family_id=family_id, member_id=member_id)
+            .order_by(MemorialMessage.created_at.desc())
+            .limit(100)
+            .all())
+    names = _user_name_map([r.user_id for r in rows])
+    me = int(get_jwt_identity())
+    return jsonify({'messages': [r.to_dict(names.get(r.user_id)) | {'mine': r.user_id == me} for r in rows]})
+
+
+@memorial_bp.route('/<int:family_id>/memorial/messages', methods=['POST'])
+@jwt_required()
+@family_permission_required('viewer')
+def add_memorial_message(family_id):
+    """添加追思留言"""
+    data = request.get_json() or {}
+    member_id = data.get('member_id')
+    content = (data.get('content') or '').strip()
+    if not member_id or not content:
+        return jsonify({'error': '留言内容不能为空'}), 400
+    msg = MemorialMessage(
+        family_id=family_id,
+        member_id=member_id,
+        user_id=int(get_jwt_identity()),
+        content=content[:500],
+    )
+    db.session.add(msg)
+    db.session.commit()
+    return jsonify({'message': '留言已提交', 'message_item': msg.to_dict()}), 201
+
+
+@memorial_bp.route('/<int:family_id>/memorial/messages/<int:message_id>', methods=['DELETE'])
+@jwt_required()
+@family_permission_required('viewer')
+def delete_memorial_message(family_id, message_id):
+    """删除留言（本人或家族管理员/编辑者）"""
+    msg = MemorialMessage.query.filter_by(id=message_id, family_id=family_id).first()
+    if not msg:
+        return jsonify({'error': '留言不存在'}), 404
+    me = int(get_jwt_identity())
+    if msg.user_id != me:
+        user = db.session.get(User, me)
+        fm_ok = user and (user.is_admin or _is_family_editor(family_id, me))
+        if not fm_ok:
+            return jsonify({'error': '只能删除自己的留言'}), 403
+    db.session.delete(msg)
+    db.session.commit()
+    return jsonify({'message': '留言已删除'})
+
+
+def _is_family_editor(family_id, user_id):
+    from app.models.family import FamilyMember
+    fm = FamilyMember.query.filter_by(family_id=family_id, user_id=user_id).first()
+    return bool(fm and fm.role in ('owner', 'admin', 'editor'))

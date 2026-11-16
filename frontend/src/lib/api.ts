@@ -759,6 +759,18 @@ export const api = {
   getAllMemorial: (familyId: number) =>
     request<any>(`/family/${familyId}/memorial/all`),
 
+  // 线上祭祀（祭拜 + 追思留言）
+  getMemorialRituals: (familyId: number, memberId: number) =>
+    request<any>(`/family/${familyId}/memorial/rituals?member_id=${memberId}`),
+  sendMemorialRitual: (familyId: number, memberId: number, kind: string) =>
+    request<any>(`/family/${familyId}/memorial/rituals`, { method: 'POST', body: { member_id: memberId, kind } }),
+  getMemorialMessages: (familyId: number, memberId: number) =>
+    request<any>(`/family/${familyId}/memorial/messages?member_id=${memberId}`),
+  postMemorialMessage: (familyId: number, memberId: number, content: string) =>
+    request<any>(`/family/${familyId}/memorial/messages`, { method: 'POST', body: { member_id: memberId, content } }),
+  deleteMemorialMessage: (familyId: number, messageId: number) =>
+    request<any>(`/family/${familyId}/memorial/messages/${messageId}`, { method: 'DELETE' }),
+
   // Memorial Reminders (祭日提醒)
   listMemorialReminders: (familyId: number, days = 90) =>
     request<{ days_ahead: number; total: number; items: MemorialReminder[] }>(

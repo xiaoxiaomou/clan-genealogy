@@ -5,7 +5,7 @@ import { PgPageHead, PgSectionHead, PgSeal, PG_RED, PG_SERIF } from '@/component
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { formatDaysOffset, solarToLunar, formatSolarDate } from '@/lib/lunar'
-import { ArrowLeft, Flame, Calendar } from 'lucide-react'
+import { ArrowLeft, Flame, Calendar, Flower2, Sparkles, Hand, X } from 'lucide-react'
 
 interface MemorialItem {
   member_id: number
@@ -44,6 +44,7 @@ export default function MemorialPage() {
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(60)
   const [familySurname, setFamilySurname] = useState('')
+  const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
 
   useEffect(() => {
     if (!familyId) return
@@ -121,7 +122,7 @@ export default function MemorialPage() {
             {!loading && today && today.count > 0 && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {today.items.map((m) => (
-                  <MemorialCard key={m.member_id} item={m} highlight />
+                  <MemorialCard key={m.member_id} item={m} highlight onRitual={() => setRitualMember(m)} />
                 ))}
               </div>
             )}
@@ -222,7 +223,7 @@ export default function MemorialPage() {
                     </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {day.items.map((m) => (
-                        <MemorialCard key={m.member_id} item={m} compact />
+                        <MemorialCard key={m.member_id} item={m} compact onRitual={() => setRitualMember(m)} />
                       ))}
                     </div>
                   </div>
@@ -244,14 +245,180 @@ export default function MemorialPage() {
 
         <MemorialRemindersSection familyId={familyId} isAdmin={true} />
       </div>
+
+      {ritualMember && (
+        <RitualModal
+          familyId={familyId}
+          member={ritualMember}
+          onClose={() => setRitualMember(null)}
+        />
+      )}
     </Layout>
   )
 }
 
-function MemorialCard({ item, highlight = false, compact = false }: {
+/* ═══ 线上祭祀纪念弹窗（祭日页与家庙排位墙共用） ═══ */
+export const RITUAL_BUTTONS: Array<{ kind: string; label: string; icon: typeof Flame }> = [
+  { kind: 'flower', label: '献花', icon: Flower2 },
+  { kind: 'candle', label: '点烛', icon: Flame },
+  { kind: 'incense', label: '上香', icon: Sparkles },
+  { kind: 'kowtow', label: '叩首', icon: Hand },
+]
+
+export function RitualModal({ familyId, member, onClose }: {
+  familyId: number
+  member: MemorialItem
+  onClose: () => void
+}) {
+  const { showToast } = useToast()
+  const [rituals, setRituals] = useState<any>(null)
+  const [messages, setMessages] = useState<any[]>([])
+  const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member.member_id])
+
+  const load = async () => {
+    try {
+      const [r, m] = await Promise.all([
+        api.getMemorialRituals(familyId, member.member_id),
+        api.getMemorialMessages(familyId, member.member_id),
+      ])
+      setRituals(r)
+      setMessages(m.messages || [])
+    } catch (err: any) {
+      showToast(err.message || '加载失败', 'error')
+    }
+  }
+
+  const doRitual = async (kind: string) => {
+    try {
+      await api.sendMemorialRitual(familyId, member.member_id, kind)
+      showToast('已奉上', 'success')
+      setRituals(await api.getMemorialRituals(familyId, member.member_id))
+    } catch (err: any) {
+      showToast(err.message || '祭拜失败', 'error')
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!draft.trim()) return
+    setSending(true)
+    try {
+      await api.postMemorialMessage(familyId, member.member_id, draft.trim())
+      setDraft('')
+      setMessages((await api.getMemorialMessages(familyId, member.member_id)).messages || [])
+    } catch (err: any) {
+      showToast(err.message || '留言失败', 'error')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="relative z-10 flex max-h-[86vh] w-full max-w-md flex-col overflow-hidden rounded-lg border shadow-2xl"
+        style={{ borderColor: `color-mix(in srgb, ${PG_RED} 35%, transparent)`, background: 'hsl(var(--card))' }}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* 牌位头 */}
+        <div className="relative flex flex-col items-center gap-2 px-6 pb-4 pt-8 text-center"
+          style={{ background: `color-mix(in srgb, ${PG_RED} 7%, transparent)` }}>
+          <button
+            onClick={onClose}
+            className="absolute right-3 top-3 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label="关闭"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          {member.avatar ? (
+            <img src={member.avatar} alt={member.member_name}
+              className="h-16 w-16 rounded-full object-cover"
+              style={{ boxShadow: `0 0 0 2px color-mix(in srgb, ${PG_RED} 45%, transparent)` }} />
+          ) : (
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full text-xl"
+              style={{ background: 'hsl(var(--muted) / .4)', fontFamily: PG_SERIF }}
+            >
+              {member.member_name.charAt(0)}
+            </div>
+          )}
+          <div className="text-lg" style={{ fontFamily: PG_SERIF }}>{member.member_name}</div>
+          <div className="text-xs text-muted-foreground">{member.death_date_lunar} 忌辰</div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          {/* 祭拜按钮 */}
+          <div className="grid grid-cols-4 gap-2">
+            {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
+              <button
+                key={kind}
+                onClick={() => doRitual(kind)}
+                className="flex flex-col items-center gap-1 rounded-md border py-2.5 transition-colors"
+                style={{
+                  borderColor: `color-mix(in srgb, ${PG_RED} 30%, transparent)`,
+                  color: PG_RED,
+                }}
+              >
+                <Icon className="h-5 w-5" aria-hidden="true" />
+                <span className="text-xs">{label}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  今日 {rituals?.today_counts?.[kind] ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* 追思留言 */}
+          <div className="mt-6">
+            <p className="mb-2 text-xs tracking-[0.25em] text-muted-foreground" style={{ fontFamily: PG_SERIF }}>
+              追 思 留 言
+            </p>
+            <div className="space-y-2">
+              {messages.length === 0 && (
+                <p className="py-4 text-center text-xs text-muted-foreground">尚无留言，写下你的追思</p>
+              )}
+              {messages.map((m) => (
+                <div key={m.id} className="rounded-md border px-3 py-2" style={{ borderColor: 'hsl(var(--border))' }}>
+                  <p className="text-sm leading-relaxed">{m.content}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {m.user_name || '族人'} · {m.created_at?.slice(0, 10)}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) sendMessage() }}
+                placeholder="写下追思…"
+                className="h-9 flex-1 rounded-md border px-3 text-sm outline-none"
+                style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--muted) / .3)' }}
+                maxLength={200}
+              />
+              <Button size="sm" onClick={sendMessage} disabled={!draft.trim() || sending}>
+                {sending ? '…' : '提交'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MemorialCard({ item, highlight = false, compact = false, onRitual }: {
   item: MemorialItem
   highlight?: boolean
   compact?: boolean
+  onRitual?: () => void
 }) {
   return (
     <div
@@ -303,6 +470,19 @@ function MemorialCard({ item, highlight = false, compact = false }: {
         style={{ color: highlight ? PG_RED : 'hsl(var(--muted-foreground))', opacity: highlight ? 1 : 0.4 }}
         aria-hidden="true"
       />
+      {onRitual && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRitual() }}
+          className="shrink-0 rounded-md border px-2 py-1 text-xs transition-colors"
+          style={{
+            borderColor: `color-mix(in srgb, ${PG_RED} 40%, transparent)`,
+            color: PG_RED,
+          }}
+          aria-label={`祭拜 ${item.member_name}`}
+        >
+          祭拜
+        </button>
+      )}
     </div>
   )
 }
