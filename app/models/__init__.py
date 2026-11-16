@@ -18,6 +18,7 @@ from app.models.chat import ChatGroup, ChatMessage
 from app.models.share_link import FamilyShareLink
 from app.models.member_edit_history import MemberEditHistory
 from app.models.memorial import MemorialRitual, MemorialMessage
+from app.models.activity import FamilyActivity, ActivityRsvp
 
 __all__ = [
     'User', 'Family', 'FamilyMember', 'Member', 'Relationship',
@@ -26,5 +27,5 @@ __all__ = [
     'Invitation', 'FamilyBranch', 'SystemConfig', 'FamilyArticle',
     'Honor', 'HistoricalEvent', 'Post', 'PostComment', 'PostLike',
     'ChatGroup', 'ChatMessage', 'FamilyShareLink', 'MemberEditHistory',
-    'MemorialRitual', 'MemorialMessage',
+    'MemorialRitual', 'MemorialMessage', 'FamilyActivity', 'ActivityRsvp',
 ]

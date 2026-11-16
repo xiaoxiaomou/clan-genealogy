@@ -635,6 +635,16 @@ export const api = {
     downloadBlob(blob, `${name}_族谱_完整版.pdf`)
   },
 
+  listActivities: (familyId: number) => request<any>(`/family/${familyId}/activities`),
+  createActivity: (familyId: number, data: any) =>
+    request<any>(`/family/${familyId}/activities`, { method: 'POST', body: data }),
+  updateActivity: (familyId: number, id: number, data: any) =>
+    request<any>(`/family/${familyId}/activities/${id}`, { method: 'PUT', body: data }),
+  deleteActivity: (familyId: number, id: number) =>
+    request<any>(`/family/${familyId}/activities/${id}`, { method: 'DELETE' }),
+  rsvpActivity: (familyId: number, id: number, data: { status: string; guests?: number; note?: string }) =>
+    request<any>(`/family/${familyId}/activities/${id}/rsvp`, { method: 'POST', body: data }),
+
   exportMembersCsv: async (familyId: number): Promise<void> => {
     const blob = await request<Blob>(`/export/${familyId}/export/members/csv`, { responseType: 'blob' })
     downloadBlob(blob, 'members.csv')

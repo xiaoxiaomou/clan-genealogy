@@ -30,6 +30,7 @@ import {
   Hourglass,
   CalendarClock,
   Box,
+  CalendarDays,
 } from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
 type LucideIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -100,6 +101,7 @@ const SECTIONS: NavSection[] = [
       { path: 'council', label: '理事会', desc: '族委会 / 理事会', icon: Award },
       { path: 'temple', label: '家庙', desc: '家庙', icon: Landmark },
       { path: 'memorial', label: '祭日', desc: '祭日忌日', icon: Heart },
+      { path: 'activities', label: '家族活动', desc: '祭祖颁谱聚会报名', icon: CalendarDays },
     ],
   },
   {
