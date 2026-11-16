@@ -883,6 +883,7 @@ export default function FamilyTreePage() {
                     setHighlightedMemberId(member.id)
                   }}
                   highlightedMemberId={highlightedMemberId}
+                  onOpenDetail={(member) => navigate(`/family/${familyId}/member/${member.id}`)}
                 />
               </Suspense>
             )}

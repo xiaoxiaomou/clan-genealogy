@@ -57,7 +57,7 @@ export function GenerationRuler({
         {generations.map((g) => {
           const color = getGenerationColor
             ? getGenerationColor(g.generation)
-            : `hsl(145, 45%, ${Math.min(30 + g.generation * 6, 85)}%)`
+            : `hsl(160, 24%, ${Math.min(30 + g.generation * 6, 70)}%)`
           return (
             <div
               key={g.generation}

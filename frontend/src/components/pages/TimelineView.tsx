@@ -7,6 +7,8 @@ interface TimelineViewProps {
   members: Member[]
   onMemberClick?: (member: Member) => void
   highlightedMemberId?: number | null
+  familyId?: number
+  onOpenDetail?: (member: Member) => void
 }
 
 function getGenderColor(gender: string): string {
@@ -30,6 +32,7 @@ export default function TimelineView({
   members,
   onMemberClick,
   highlightedMemberId,
+  onOpenDetail,
 }: TimelineViewProps) {
   const sortedMembers = useMemo(() => {
     return [...members].sort((a, b) => {
@@ -138,6 +141,7 @@ export default function TimelineView({
                             borderWidth: isHighlighted ? 2 : 1,
                           }}
                           onClick={() => onMemberClick?.(member)}
+                          onDoubleClick={() => onOpenDetail?.(member)}
                         >
                           <CardContent className="p-3">
                             <div className="flex items-center gap-2">
@@ -161,6 +165,18 @@ export default function TimelineView({
                                     ` - ${new Date(member.death_date).getFullYear()}`}
                                 </p>
                               </div>
+                            </div>
+                            <div className="mt-1 flex items-center justify-end">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onOpenDetail?.(member)
+                                }}
+                                className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+                                aria-label={`查看 ${member.name} 详情`}
+                              >
+                                查看详情 →
+                              </button>
                             </div>
                           </CardContent>
                         </Card>
