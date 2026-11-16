@@ -630,6 +630,11 @@ export const api = {
     downloadBlob(blob, `family_${familyId}.pdf`)
   },
 
+  exportFullBook: async (familyId: number, name: string): Promise<void> => {
+    const blob = await request<Blob>(`/export/${familyId}/export/book`, { responseType: 'blob' })
+    downloadBlob(blob, `${name}_族谱_完整版.pdf`)
+  },
+
   exportMembersCsv: async (familyId: number): Promise<void> => {
     const blob = await request<Blob>(`/export/${familyId}/export/members/csv`, { responseType: 'blob' })
     downloadBlob(blob, 'members.csv')

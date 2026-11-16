@@ -1604,6 +1604,15 @@ export default function FamilyTreePage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => api.exportFullBook(familyId, family?.name || 'family')}
+                className="gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" />
+                完整谱书 PDF
+              </Button>
+                            <Button
+                variant="outline"
+                size="sm"
                 onClick={() => api.exportMembersCsv(familyId)}
                 className="gap-1.5"
               >

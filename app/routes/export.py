@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, make_response, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services.family_service import FamilyService
 from app.utils.decorators import family_permission_required, admin_required
-from app.utils.export_utils import generate_pdf, generate_traditional_pdf
+from app.utils.export_utils import generate_pdf, generate_traditional_pdf, generate_full_book
 from app import db
 import io
 import csv
@@ -86,6 +86,26 @@ def export_guzhi_pdf(family_id):
     response = make_response(pdf_data)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f"attachment; filename=family_{family_id}_guzhi.pdf"
+    return response
+
+
+@export_bp.route('/<int:family_id>/export/book', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def export_full_book(family_id):
+    """导出完整谱书 PDF：封面/谱序/凡例/行传/像赞/领谱字号"""
+    from flask import current_app
+
+    family = FamilyService.get_family(family_id)
+    if not family:
+        return jsonify({'error': '族谱不存在'}), 404
+
+    members = FamilyService.get_family_members(family_id)
+    pdf_data = generate_full_book(family, members, current_app.config['UPLOAD_FOLDER'])
+
+    response = make_response(pdf_data)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = _content_disposition(f'{family.name}_族谱_完整版.pdf')
     return response
 
 

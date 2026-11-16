@@ -639,3 +639,207 @@ def generate_guzhi_pdf(family, members, relationships, tree_data, opts=None):
     doc.build(story, onFirstPage=_on_page, onLaterPages=_on_page)
     buffer.seek(0)
     return buffer.getvalue()
+
+
+def generate_full_book(family, members, upload_folder):
+    """生成完整谱书 PDF：封面 / 谱序 / 凡例 / 行传（按世代）/ 像赞 / 领谱字号"""
+    import re as _re
+    from io import BytesIO
+    from reportlab.lib.utils import ImageReader
+    from reportlab.platypus import Image as RLImage
+
+    RED = colors.Color(166 / 255, 58 / 255, 46 / 255)
+    INK = colors.Color(0.16, 0.14, 0.12, 1)
+    MUTED = colors.Color(0.45, 0.42, 0.38, 1)
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            leftMargin=2.2 * cm, rightMargin=2.2 * cm,
+                            topMargin=2.2 * cm, bottomMargin=2.2 * cm,
+                            title=f'{family.name} 族谱（完整版）')
+
+    styles = getSampleStyleSheet()
+    cover_surname = ParagraphStyle('CoverSurname', parent=styles['Normal'],
+                                   fontName=FONT_NAME_BOLD, fontSize=64, leading=72,
+                                   alignment=TA_CENTER, textColor=RED)
+    cover_title = ParagraphStyle('CoverTitle', parent=styles['Normal'],
+                                 fontName=FONT_NAME_BOLD, fontSize=36, leading=48,
+                                 alignment=TA_CENTER, textColor=INK)
+    cover_meta = ParagraphStyle('CoverMeta', parent=styles['Normal'],
+                                fontName=FONT_NAME, fontSize=14, leading=22,
+                                alignment=TA_CENTER, textColor=INK)
+    book_h2 = ParagraphStyle('BookH2', parent=styles['Normal'],
+                             fontName=FONT_NAME_BOLD, fontSize=18, leading=26,
+                             alignment=TA_CENTER, spaceBefore=18, spaceAfter=14, textColor=INK)
+    book_h3 = ParagraphStyle('BookH3', parent=styles['Normal'],
+                             fontName=FONT_NAME_BOLD, fontSize=13, leading=20,
+                             spaceBefore=12, spaceAfter=6, textColor=INK)
+    book_body = ParagraphStyle('BookBody', parent=styles['Normal'],
+                               fontName=FONT_NAME, fontSize=11.5, leading=20,
+                               textColor=INK)
+    book_muted = ParagraphStyle('BookMuted', parent=styles['Normal'],
+                                fontName=FONT_NAME, fontSize=10, leading=16,
+                                textColor=MUTED, alignment=TA_CENTER)
+
+    story = []
+
+    def strip_html(text):
+        return _re.sub(r'<[^>]+>', '', text or '').strip()
+
+    # ============ 封面 ============
+    story.append(Spacer(1, 5 * cm))
+    surname = family.surname or (family.name or '谱')[0]
+    seal_para = Paragraph(f'<font size="30"><b>{surname}</b></font>',
+                          ParagraphStyle('Seal', parent=styles['Normal'], fontName=FONT_NAME_BOLD,
+                                         fontSize=30, leading=34, alignment=TA_CENTER,
+                                         textColor=colors.white))
+    seal_table = Table([[seal_para]], colWidths=[3.2 * cm], rowHeights=[3.2 * cm])
+    seal_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), RED),
+        ('BOX', (0, 0), (-1, -1), 2, RED),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    story.append(seal_table)
+    story.append(Spacer(1, 1.2 * cm))
+    story.append(Paragraph('族 谱', cover_title))
+    story.append(Spacer(1, 0.8 * cm))
+    story.append(Paragraph(f'{family.name}', cover_meta))
+    if family.origin:
+        story.append(Paragraph(f'籍贯 · {family.origin}', cover_meta))
+    story.append(Spacer(1, 2.4 * cm))
+    story.append(Paragraph(f'{datetime.now().year} 年 编 修', cover_meta))
+    story.append(PageBreak())
+
+    # ============ 谱序 ============
+    story.append(Paragraph('谱 序', book_h2))
+    intro_text = strip_html(family.description or '')
+    count_alive = sum(1 for m in members if m.is_alive)
+    created_year = family.created_at.strftime('%Y') if family.created_at else '——'
+    preface = (f'夫谱牒之作，所以敬宗收族也。{family.name}肇立于{created_year}年，'
+               f'今收录族人{len(members)}位，其中在世{count_alive}位。')
+    if intro_text:
+        preface += '家族沿革如下：' + intro_text
+    preface += '。世系源流、字辈昭穆，悉载于后编。愿后人览谱思源，敦亲睦族，永葆家风。'
+    story.append(Paragraph(preface, book_body))
+    story.append(Spacer(1, 0.5 * cm))
+    story.append(Paragraph(f'{family.name} 全体族人 敬修',
+                           ParagraphStyle('PrefaceSign', parent=book_body, alignment=TA_CENTER)))
+    story.append(PageBreak())
+
+    # ============ 凡例 ============
+    story.append(Paragraph('凡 例', book_h2))
+    fanli = [
+        '一、本谱按世代先后编排，每位族人立行传一则，载名讳、字号、生卒、葬地、迁徙与生平。',
+        '二、在世族人信息默认仅族人可见，由各人隐私设置另行控制。',
+        '三、生卒年月以公历为准；先祖仅知年份者，从其记载。',
+        '四、已婚配女子注明夫家姓氏，出嫁从俗。',
+        '五、谱内数据由族人在线协作录入，如有讹误，请与谱局联系更正。',
+        '六、本谱支持随时增补续修，数据可经 GEDCOM 标准格式迁出留存。',
+    ]
+    for line in fanli:
+        story.append(Paragraph(line, book_body))
+    story.append(PageBreak())
+
+    # ============ 行传（按世代） ============
+    story.append(Paragraph('行 传', book_h2))
+    by_gen = {}
+    for m in members:
+        by_gen.setdefault(m.generation or 999, []).append(m)
+    for gen in sorted(by_gen):
+        story.append(Paragraph(f'第 {gen} 代', book_h3))
+        for m in sorted(by_gen[gen], key=lambda x: (x.birth_date or '', x.name)):
+            parts = [f'<b>{m.name}</b>']
+            if m.courtesy_name:
+                parts.append(f'字{m.courtesy_name}')
+            if m.art_name:
+                parts.append(f'号{m.art_name}')
+            if m.posthumous_name:
+                parts.append(f'谥{m.posthumous_name}')
+            head = '　'.join(parts)
+            detail = []
+            if m.birth_date:
+                detail.append(f"生于 {str(m.birth_date)[:10]} ~ {str(m.death_date or '')[:10]}")
+            if m.burial_place:
+                detail.append(f'葬 {m.burial_place}')
+            if m.migration_note:
+                detail.append(f'迁徙 {m.migration_note}')
+            if m.spouse_family_name:
+                detail.append(f'适 {m.spouse_family_name}氏')
+            body_text = '　'.join(detail)
+            if body_text:
+                story.append(Paragraph(f'{head}　{body_text}', book_body))
+            else:
+                story.append(Paragraph(head, book_body))
+            bio_text = strip_html(m.bio)
+            if bio_text:
+                story.append(Paragraph(bio_text[:300],
+                            ParagraphStyle('Bio', parent=book_muted, alignment=TA_LEFT, leading=16)))
+            story.append(Spacer(1, 0.3 * cm))
+    story.append(PageBreak())
+
+    # ============ 像赞（有照片的族人） ============
+    with_photos = [m for m in members if m.avatar]
+    if with_photos:
+        story.append(Paragraph('像 赞', book_h2))
+        grid_rows = []
+        row = []
+        for m in with_photos:
+            basename = (m.avatar or '').replace('\\', '/').rsplit('/', 1)[-1]
+            photo_path = os.path.join(upload_folder, basename)
+            cell_items = []
+            if os.path.exists(photo_path):
+                try:
+                    cell_items.append(RLImage(photo_path, width=4 * cm, height=4 * cm))
+                except Exception:
+                    pass
+            if not cell_items:
+                cell_items.append(Paragraph(
+                    f'<font size="24" color="#A63A2E"><b>{(m.name or "?")[0]}</b></font>',
+                    ParagraphStyle('NoImg', parent=styles['Normal'], alignment=TA_CENTER)))
+            cell_items.append(Paragraph(m.name, ParagraphStyle(
+                'PortraitName', parent=styles['Normal'], fontName=FONT_NAME_BOLD,
+                fontSize=12, leading=18, alignment=TA_CENTER)))
+            if m.birth_date:
+                cell_items.append(Paragraph(
+                    f"{str(m.birth_date)[:4]} ~ {str(m.death_date or '')[:4]}",
+                    ParagraphStyle('PortraitDates', parent=styles['Normal'],
+                                   fontSize=9, leading=14, alignment=TA_CENTER, textColor=MUTED)))
+            row.append(cell_items)
+            if len(row) == 2:
+                grid_rows.append(row)
+                row = []
+        if row:
+            grid_rows.append(row + [None] * (2 - len(row)))
+        portrait_table = Table(grid_rows, colWidths=[8 * cm, 8 * cm])
+        portrait_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+        ]))
+        story.append(portrait_table)
+        story.append(PageBreak())
+
+    # ============ 领谱字号 ============
+    story.append(Paragraph('领 谱 字 号', book_h2))
+    header = ['字号', '领谱人', '份数', '发出日期']
+    blank = [['', '', '', ''] for _ in range(8)]
+    lead_table = Table([header] + blank, colWidths=[3 * cm, 6 * cm, 2.5 * cm, 4 * cm],
+                       rowHeights=[0.8 * cm] + [0.9 * cm] * 8)
+    lead_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.6, colors.Color(0.55, 0.52, 0.48, 1)),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.94, 0.92, 0.88, 1)),
+        ('FONTNAME', (0, 0), (-1, 0), FONT_NAME_BOLD),
+        ('FONTNAME', (0, 1), (-1, -1), FONT_NAME),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    story.append(lead_table)
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph('领谱者当宝藏之，毋得轻亵转借。续修之日，凭字号缴回旧谱。', book_muted))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
