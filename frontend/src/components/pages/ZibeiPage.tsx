@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import { ArrowLeft } from 'lucide-react'
 import { PgPageHead, PgSeal, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
@@ -58,7 +59,7 @@ export default function ZibeiPage() {
       <div className="pg-rise mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <div className="mb-5">
           <button
-            onClick={() => navigate(`/family/${familyId}`)}
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />

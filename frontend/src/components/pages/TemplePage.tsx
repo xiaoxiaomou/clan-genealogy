@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import { ArrowLeft, Flame } from 'lucide-react'
 import { formatPoem } from '@/lib/zibei'
 import { RitualModal } from './MemorialPage'
@@ -87,7 +88,7 @@ export default function TemplePage() {
       <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6 pg-rise">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(`/family/${familyId}`)}
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />

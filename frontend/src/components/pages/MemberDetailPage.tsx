@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import type { Member, Family, FamilyTree } from '@/types'
 import {
   Button,
@@ -247,7 +248,7 @@ export default function MemberDetailPage() {
       <Layout>
         <div className="flex h-screen flex-col items-center justify-center text-muted-foreground" role="alert">
           <p>成员不存在或无权访问</p>
-          <Button variant="ghost" className="mt-4" onClick={() => navigate(`/family/${familyId}`)} aria-label="返回族谱">
+          <Button variant="ghost" className="mt-4" onClick={() => smartBack(navigate, `/family/${familyId}`)} aria-label="返回族谱">
             <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
             返回族谱
           </Button>
@@ -296,7 +297,7 @@ export default function MemberDetailPage() {
         {/* 顶部导航 */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/family/${familyId}`)} aria-label="返回族谱">
+            <Button variant="ghost" size="sm" onClick={() => smartBack(navigate, `/family/${familyId}`)} aria-label="返回族谱">
               <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
               返回族谱
             </Button>

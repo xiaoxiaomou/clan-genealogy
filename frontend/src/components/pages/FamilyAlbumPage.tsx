@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import type { FamilyAlbum, FamilyPhoto } from '@/types'
 import { formatDate } from '@/lib/date'
 import {
@@ -331,7 +332,7 @@ export default function FamilyAlbumPage() {
             </button>
           ) : (
             <button
-              onClick={() => navigate(`/family/${familyId}`)}
+              onClick={() => smartBack(navigate, `/family/${familyId}`)}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import type { Member, WufuData, WufuMember } from '@/types'
 import {
   Button,
@@ -133,7 +134,7 @@ export function WufuChartPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/family/${familyId}`)}
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
             className="gap-1 text-muted-foreground"
             aria-label="返回族谱"
           >

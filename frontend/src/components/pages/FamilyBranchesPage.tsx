@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import type { FamilyBranch, Member } from '@/types'
 import {
   Button,
@@ -350,7 +351,7 @@ export default function FamilyBranchesPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/family/${familyId}`)}
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
             aria-label="返回族谱"
             className="-ml-2 gap-1.5 text-muted-foreground"
           >

@@ -1,13 +1,15 @@
 import { useState, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useToast, Button, Input, Label } from '@/components/ui'
 import { Layout } from '@/components/layout/Layout'
 import { PgPageHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import { ArrowLeft, Upload, Download, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 
 export default function GedcomImportPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const familyId = Number(id)
   const { showToast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -71,13 +73,13 @@ export default function GedcomImportPage() {
     <Layout>
       <div className="pg-rise mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6">
         <div className="flex items-center gap-2">
-          <a
-            href={`/family/${familyId}`}
+          <button
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            返回族谱
-          </a>
+            返回
+          </button>
         </div>
 
         <PgPageHead

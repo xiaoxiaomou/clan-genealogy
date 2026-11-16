@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import type { FamilyEvent, Member } from '@/types'
 import { formatDate } from '@/lib/date'
 import {
@@ -230,7 +231,7 @@ export default function FamilyEventsPage() {
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 pg-rise">
         <div className="mb-5 flex items-center gap-2">
           <button
-            onClick={() => navigate(`/family/${familyId}`)}
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />

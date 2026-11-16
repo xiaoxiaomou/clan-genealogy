@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { smartBack } from '@/lib/smartBack'
 import type { Member, KinshipResult } from '@/types'
 import { Button, useToast } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
@@ -117,7 +118,7 @@ export default function KinshipCalculatorPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/family/${familyId}`)}
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
             className="gap-1 text-muted-foreground"
             aria-label="返回族谱"
           >
