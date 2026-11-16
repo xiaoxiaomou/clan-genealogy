@@ -121,6 +121,7 @@ const SECTIONS: NavSection[] = [
       { path: 'ocr', label: 'OCR', desc: 'AI 智能录入', icon: Sparkles },
       { path: 'gedcom', label: 'GEDCOM', desc: '族谱数据互换', icon: GitCommitHorizontal },
       { path: 'stats', label: '数据', desc: '数据看板', icon: BarChart3 },
+      { path: 'tasks', label: '待办清单', desc: '修谱任务逐条清账', icon: ListTree },
     ],
   },
 ]

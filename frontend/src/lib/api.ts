@@ -645,6 +645,14 @@ export const api = {
   rsvpActivity: (familyId: number, id: number, data: { status: string; guests?: number; note?: string }) =>
     request<any>(`/family/${familyId}/activities/${id}/rsvp`, { method: 'POST', body: data }),
 
+  listTasks: (familyId: number) => request<any>(`/family/${familyId}/tasks`),
+  createTask: (familyId: number, data: any) =>
+    request<any>(`/family/${familyId}/tasks`, { method: 'POST', body: data }),
+  updateTask: (familyId: number, id: number, data: any) =>
+    request<any>(`/family/${familyId}/tasks/${id}`, { method: 'PUT', body: data }),
+  deleteTask: (familyId: number, id: number) =>
+    request<any>(`/family/${familyId}/tasks/${id}`, { method: 'DELETE' }),
+
   getMemberDuplicates: (familyId: number) =>
     request<any>(`/family/${familyId}/members/duplicates`),
 
