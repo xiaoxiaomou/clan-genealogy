@@ -120,14 +120,11 @@ def list_backups():
     return jsonify({'backups': backups, 'sqlite': _sqlite_db_path() is not None})
 
 
-@maintenance_bp.route('/admin/maintenance/backups', methods=['POST'])
-@jwt_required()
-@admin_required
-def create_backup():
-    """创建备份：数据库 + 全部图片目录打包为一个 zip"""
+def _create_backup_file():
+    """执行备份打包，返回 (filename, error)"""
     db_path = _sqlite_db_path()
     if not db_path or not os.path.isfile(db_path):
-        return jsonify({'error': '当前数据库不是 SQLite，无法在页面内备份'}), 400
+        return None, '当前数据库不是 SQLite，无法在页面内备份'
 
     os.makedirs(BACKUP_DIR, exist_ok=True)
     filename = f"zupu-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
@@ -147,7 +144,29 @@ def create_backup():
     except OSError as e:
         if os.path.exists(target):
             os.remove(target)
-        return jsonify({'error': f'备份失败: {e}'}), 500
+        return None, f'备份失败: {e}'
+    return filename, None
+
+
+def _prune_backups(keep: int):
+    """只保留最近 keep 份备份"""
+    import glob as _glob
+    files = sorted(_glob.glob(os.path.join(BACKUP_DIR, '*.zip')), key=os.path.getmtime, reverse=True)
+    for stale in files[keep:]:
+        try:
+            os.remove(stale)
+        except OSError:
+            pass
+
+
+@maintenance_bp.route('/admin/maintenance/backups', methods=['POST'])
+@jwt_required()
+@admin_required
+def create_backup():
+    """创建备份：数据库 + 全部图片目录打包为一个 zip"""
+    filename, error = _create_backup_file()
+    if error:
+        return jsonify({'error': error}), 500
 
     log = AuditLog(
         user_id=get_jwt_identity(),
@@ -160,7 +179,8 @@ def create_backup():
     db.session.add(log)
     db.session.commit()
 
-    return jsonify({'message': '备份创建成功', 'backup': _backup_info(target)})
+    _prune_backups(20)
+    return jsonify({'message': '备份创建成功', 'backup': _backup_info(os.path.join(BACKUP_DIR, filename))})
 
 
 @maintenance_bp.route('/admin/maintenance/backups/<path:filename>/download', methods=['GET'])
@@ -382,3 +402,25 @@ def all_families():
         for fam in families
     ]
     return jsonify({'families': result})
+
+
+def init_backup_scheduler(app):
+    """每周一 03:30 自动备份（绕过应用上下文直接打包），保留最近 20 份"""
+    from apscheduler.schedulers.background import BackgroundScheduler
+
+    def weekly_backup():
+        with app.app_context():
+            filename, error = _create_backup_file()
+            if filename:
+                _prune_backups(20)
+                app.logger.info(f'每周自动备份完成: {filename}')
+            else:
+                app.logger.warning(f'每周自动备份失败: {error}')
+
+    try:
+        scheduler = BackgroundScheduler(daemon=True)
+        scheduler.add_job(weekly_backup, 'cron', day_of_week='mon', hour=3, minute=30, id='weekly_backup')
+        scheduler.start()
+        app.logger.info('每周自动备份调度器已启动')
+    except Exception as e:
+        app.logger.error(f'备份调度器启动失败: {e}')

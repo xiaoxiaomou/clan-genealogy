@@ -136,6 +136,10 @@ def create_app(config_name='default'):
     app.register_blueprint(maintenance_bp, url_prefix='/api')
     app.register_blueprint(activity_bp, url_prefix='/api/family')
 
+    # 每周自动备份调度器
+    from app.routes.maintenance import init_backup_scheduler
+    init_backup_scheduler(app)
+
     # 注册前端路由
     from app.routes.pages import page_bp
     app.register_blueprint(page_bp)
