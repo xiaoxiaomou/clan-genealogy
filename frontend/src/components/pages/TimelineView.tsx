@@ -134,7 +134,7 @@ export default function TimelineView({
                       const isDimmed = highlightedMemberId !== null && !isHighlighted
 
                       return (
-                        <Card spotlight
+                        <Card
                           key={member.id}
                           className={`cursor-pointer transition-all hover:shadow-md ${
                             isHighlighted ? 'ring-2 ring-yellow-500' : ''
