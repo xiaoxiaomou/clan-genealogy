@@ -124,7 +124,7 @@ export function Layout({ children }: LayoutProps) {
 
   const isHome = location.pathname === '/'
 
-  // 逻辑上一级：族谱子页→族谱主页；族谱主页/个人设置/管理页→工作台；管理子页→管理首页
+  // 返回上一级：优先回退浏览历史（回到来时的页面），无历史时回退到层级父页
   const pathname = location.pathname
   const familyMatch = pathname.match(/^\/family\/([^/]+)(\/.+)?$/)
   let backTo: string | null = null
@@ -147,6 +147,7 @@ export function Layout({ children }: LayoutProps) {
     backTo = '/'
     backLabel = '返回工作台'
   }
+  const canGoBack = (window.history.state?.idx ?? 0) > 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -157,13 +158,17 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-6">
             {backTo && (
               <button
-                onClick={() => navigate(backTo)}
+                onClick={() => {
+                  if (canGoBack) navigate(-1)
+                  else if (backTo) navigate(backTo)
+                  else navigate('/')
+                }}
                 className="flex h-8 items-center gap-1.5 rounded-lg border border-border/40 bg-foreground/3 px-2.5 text-xs text-muted-foreground transition-all hover:border-border/60 hover:bg-foreground/6 hover:text-foreground active:scale-95"
-                aria-label={backLabel}
-                title={backLabel}
+                aria-label={canGoBack ? '返回上一页' : backLabel}
+                title={canGoBack ? '返回上一页' : backLabel}
               >
                 <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="hidden md:inline">{backLabel}</span>
+                <span className="hidden md:inline">{canGoBack ? '返回' : backLabel}</span>
               </button>
             )}
             <button
