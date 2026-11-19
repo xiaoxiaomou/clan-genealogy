@@ -79,7 +79,12 @@ def get_year_only_memorial(family_id):
             'generation': m.generation,
             'gender': m.gender,
         })
-    items.sort(key=lambda x: (x['death_year'], x['member_name']))
+    # 昭穆有序：辈分（世代）升序，同辈按卒年、姓名
+    items.sort(key=lambda x: (
+        x['generation'] if x['generation'] is not None else 9999,
+        x['death_year'],
+        x['member_name'],
+    ))
     return jsonify({'count': len(items), 'items': items})
 
 

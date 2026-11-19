@@ -29,7 +29,7 @@ export default function TemplePage() {
 
   const [data, setData] = useState<TempleData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [deceased, setDeceased] = useState<Array<{ id: number; name: string; avatar: string | null; death_year: string | null; gender: string | null }>>([])
+  const [deceased, setDeceased] = useState<Array<{ id: number; name: string; avatar: string | null; death_year: string | null; gender: string | null; generation: number | null }>>([])
   const [ritualMember, setRitualMember] = useState<{
     member_id: number
     member_name: string
@@ -72,7 +72,18 @@ export default function TemplePage() {
             avatar: m.avatar || null,
             death_year: m.death_date ? String(m.death_date).slice(0, 4) : null,
             gender: m.gender || null,
-          })),
+            generation: typeof m.generation === 'number' ? m.generation : null,
+          }))
+          .sort((a: any, b: any) => {
+            // 昭穆有序：辈分（世代）升序，同辈按卒年、姓名
+            const ga = a.generation ?? 9999
+            const gb = b.generation ?? 9999
+            if (ga !== gb) return ga - gb
+            const ya = a.death_year || '9999'
+            const yb = b.death_year || '9999'
+            if (ya !== yb) return ya.localeCompare(yb)
+            return (a.name || '').localeCompare(b.name || '')
+          }),
       )
     } catch (err: any) {
       showToast(err.message || '加载失败', 'error')
