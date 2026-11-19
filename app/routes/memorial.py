@@ -54,6 +54,34 @@ def _gather_memorials(family_id: int):
     return result
 
 
+@memorial_bp.route('/<int:family_id>/memorial/year-only', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_year_only_memorial(family_id):
+    """周年祭名单：逝世只登记了年份（无月日）、无法排入忌日历的成员"""
+    members = FamilyService.get_family_members(family_id)
+    items = []
+    for m in members:
+        if getattr(m, 'is_alive', True):
+            continue
+        death = str(m.death_date or '')
+        if not death:
+            continue
+        # 有月日（能解析出完整日期）的成员由忌日历覆盖，不在此列
+        if parse_date_string(m.death_date):
+            continue
+        year_text = death[:4] if death[:4].isdigit() else death
+        items.append({
+            'member_id': m.id,
+            'member_name': m.name,
+            'avatar': m.avatar,
+            'death_year': year_text,
+            'generation': m.generation,
+        })
+    items.sort(key=lambda x: (x['death_year'], x['member_name']))
+    return jsonify({'count': len(items), 'items': items})
+
+
 @memorial_bp.route('/<int:family_id>/memorial/today', methods=['GET'])
 @jwt_required()
 @family_permission_required('viewer')

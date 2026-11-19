@@ -784,6 +784,8 @@ export const api = {
     request<any>(`/family/${familyId}/memorial/this-month`),
   getAllMemorial: (familyId: number) =>
     request<any>(`/family/${familyId}/memorial/all`),
+  getYearOnlyMemorial: (familyId: number) =>
+    request<any>(`/family/${familyId}/memorial/year-only`),
 
   // 线上祭祀（祭拜 + 追思留言）
   getMemorialRituals: (familyId: number, memberId: number) =>

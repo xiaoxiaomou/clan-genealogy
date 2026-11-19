@@ -46,6 +46,7 @@ export default function MemorialPage() {
   const [days, setDays] = useState(60)
   const [familySurname, setFamilySurname] = useState('')
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
+  const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null }> | null>(null)
 
   useEffect(() => {
     if (!familyId) return
@@ -56,12 +57,14 @@ export default function MemorialPage() {
   const loadAll = async () => {
     setLoading(true)
     try {
-      const [t, u] = await Promise.all([
+      const [t, u, y] = await Promise.all([
         api.getTodayMemorial(familyId),
         api.getUpcomingMemorial(familyId, days),
+        api.getYearOnlyMemorial(familyId).catch(() => ({ items: [] })),
       ])
       setToday(t)
       setUpcoming(u.upcoming || [])
+      setYearOnly(y.items || [])
     } catch (err: any) {
       showToast(err.message || '加载祭日失败', 'error')
     } finally {
@@ -243,6 +246,63 @@ export default function MemorialPage() {
         >
           愿先祖庇佑 · 子孙安康
         </p>
+
+        {/* 周年祭：逝世仅登记年份的先人 */}
+        {yearOnly && yearOnly.length > 0 && (
+          <div>
+            <PgSectionHead
+              text="周 年 祭"
+              right={<span className="text-xs text-muted-foreground">{yearOnly.length} 位 · 仅登记逝世年份</span>}
+            />
+            <div className="pg-card p-5">
+              <p className="mb-3 text-xs text-muted-foreground">
+                这些先人只登记了逝世年份（无月日），无法排入忌日历。点击牌位同样可以献花、点烛、上香、叩首。
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {yearOnly.map((m) => (
+                  <button
+                    key={m.member_id}
+                    onClick={() =>
+                      setRitualMember({
+                        member_id: m.member_id,
+                        member_name: m.member_name,
+                        avatar: m.avatar,
+                        death_date_solar: '',
+                        death_date_lunar: `${m.death_year} 年卒`,
+                        year_ganzhi: '',
+                        shengxiao: '',
+                        lunar_month: 0,
+                        lunar_day: 0,
+                      })
+                    }
+                    className="flex items-center gap-2 rounded-md border px-3 py-2 transition-colors hover:border-foreground/30"
+                    style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--muted) / .3)' }}
+                    aria-label={`祭拜 ${m.member_name}`}
+                  >
+                    {m.avatar ? (
+                      <img src={m.avatar} alt={m.member_name} className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
+                        style={{ background: 'hsl(var(--card))', fontFamily: PG_SERIF, color: 'hsl(var(--muted-foreground))' }}
+                        aria-hidden="true"
+                      >
+                        {m.member_name.charAt(0)}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 text-left">
+                      <span className="block truncate text-sm" style={{ fontFamily: PG_SERIF }}>
+                        {m.member_name}
+                      </span>
+                      <span className="block text-[10px] text-muted-foreground">{m.death_year} 年卒</span>
+                    </span>
+                    <Flame className="h-3.5 w-3.5 shrink-0" style={{ color: PG_RED, opacity: 0.6 }} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <MemorialRemindersSection familyId={familyId} isAdmin={true} />
       </div>
