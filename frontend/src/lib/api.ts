@@ -532,6 +532,9 @@ export const api = {
 
   getAllUsers: () => request<any>('/auth/admin/users'),
 
+  adminCreateUser: (payload: { username: string; email: string; password: string; display_name?: string }) =>
+    request<any>('/auth/admin/users', { method: 'POST', body: payload }),
+
   disableUser: (userId: number) =>
     request<any>(`/auth/admin/users/${userId}/disable`, { method: 'PUT' }),
 

@@ -124,6 +124,58 @@ class AuthService:
         return User.query.order_by(User.created_at.desc()).all()
 
     @staticmethod
+    def get_users_with_families():
+        """所有用户 + 各自的家族归属（用户管理页用）"""
+        from app.models.family import Family, FamilyMember
+        users = User.query.order_by(User.created_at.desc()).all()
+        rows = (db.session.query(FamilyMember, Family.name)
+                .join(Family, FamilyMember.family_id == Family.id)
+                .order_by(FamilyMember.joined_at)
+                .all())
+        fam_map = {}
+        for fm, fam_name in rows:
+            fam_map.setdefault(fm.user_id, []).append({
+                'family_id': fm.family_id,
+                'family_name': fam_name,
+                'role': fm.role,
+            })
+        result = []
+        for u in users:
+            d = u.to_dict()
+            d['families'] = fam_map.get(u.id, [])
+            result.append(d)
+        return result
+
+    @staticmethod
+    def admin_create_user(username, email, password, display_name=None):
+        """管理员直建账号：跳过注册审核，直接激活入册"""
+        username = (username or '').strip()
+        email = (email or '').strip().lower()
+        display_name = (display_name or '').strip()
+        if not username or len(username) > 50:
+            return None, '用户名不能为空且不超过 50 字'
+        if not email or len(email) > 120 or '@' not in email:
+            return None, '邮箱格式不正确'
+        if not password or len(password) < 6:
+            return None, '密码至少 6 位'
+        if User.query.filter_by(username=username).first():
+            return None, '用户名已存在'
+        if User.query.filter_by(email=email).first():
+            return None, '邮箱已被注册'
+        user = User(
+            username=username,
+            email=email,
+            display_name=display_name or username,
+            status='active',
+            is_active=True,
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        current_app.logger.info(f'管理员直建账号: {username}')
+        return user, None
+
+    @staticmethod
     def approve_user(user_id):
         """审核通过用户"""
         user = db.session.get(User, user_id)

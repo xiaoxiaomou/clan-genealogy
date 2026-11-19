@@ -11,6 +11,7 @@ export interface User {
   branch_id?: number | null;
   location?: string | null;
   created_at: string;
+  families?: Array<{ family_id: number; family_name: string; role: string }>;
 }
 
 export interface Family {

@@ -224,11 +224,24 @@ def reject_user(user_id):
 @auth_bp.route('/admin/users', methods=['GET'])
 @admin_required
 def get_all_users():
-    """获取所有用户列表"""
-    users = AuthService.get_all_users()
-    return jsonify({
-        'users': [u.to_dict() for u in users]
-    })
+    """获取所有用户列表（含家族归属）"""
+    return jsonify({'users': AuthService.get_users_with_families()})
+
+
+@auth_bp.route('/admin/users', methods=['POST'])
+@admin_required
+def admin_create_user():
+    """管理员直建账号（免注册审核，直接激活）"""
+    data = request.get_json() or {}
+    user, error = AuthService.admin_create_user(
+        data.get('username'),
+        data.get('email'),
+        data.get('password'),
+        data.get('display_name'),
+    )
+    if error:
+        return jsonify({'error': error}), 400
+    return jsonify({'message': '账号已创建', 'user': user.to_dict()}), 201
 
 
 @auth_bp.route('/admin/users/<int:user_id>/disable', methods=['PUT'])
