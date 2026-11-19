@@ -34,6 +34,63 @@ interface TodayData {
   items: MemorialItem[]
 }
 
+/* 阿拉伯年份 → 汉字（刻于牌位底座） */
+const CN_DIGITS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+const cnYear = (y: string) =>
+  String(y)
+    .split('')
+    .map((ch) => (/\d/.test(ch) ? CN_DIGITS[Number(ch)] : ch))
+    .join('')
+
+/* 位牌墙金饰 defs：漆帽卷草 + 蟠龙柱 + 金色渐变（页面内只渲染一次） */
+export function TabletDefs() {
+  return (
+    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+      <defs>
+        <linearGradient id="pg-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f3d489" />
+          <stop offset=".45" stopColor="#d9a44e" />
+          <stop offset=".75" stopColor="#a4712a" />
+          <stop offset="1" stopColor="#e8c46f" />
+        </linearGradient>
+        <symbol id="pg-crest-orn" viewBox="0 0 132 40">
+          <g fill="none" stroke="url(#pg-gold)" strokeWidth="2.2" strokeLinecap="round">
+            <circle cx="66" cy="15" r="7.5" />
+            <circle cx="66" cy="15" r="2.8" fill="url(#pg-gold)" stroke="none" />
+            <path d="M58.5 15a7.5 7.5 0 0 1 7.5-7.5M73.5 15a7.5 7.5 0 0 0-7.5-7.5" />
+            <path d="M66 3.5c-3 2-4.5 4.5-4.5 7M66 3.5c3 2 4.5 4.5 4.5 7" />
+            <path d="M55 16c-9 3-16-1-16.5-8.5C38.2 3.6 43 2.4 45 5.4c1.8 2.8-.8 6-3.6 5" />
+            <path d="M55 22c-10 5-19 2-22-6" />
+            <path d="M52 26c-8 6-15 6-20 1.5" />
+            <path d="M55 16c-2 6-1.5 10 .5 13" />
+            <path d="M77 16c9 3 16-1 16.5-8.5C93.8 3.6 89 2.4 87 5.4c-1.8 2.8.8 6 3.6 5" />
+            <path d="M77 22c10 5 19 2 22-6" />
+            <path d="M80 26c8 6 15 6 20 1.5" />
+            <path d="M77 16c2 6 1.5 10-.5 13" />
+            <path d="M35 24c-2.5 4-3 7-2 10M97 24c2.5 4 3 7 2 10" />
+          </g>
+        </symbol>
+        <symbol id="pg-dragon-orn" viewBox="0 0 30 200">
+          <g fill="none" stroke="url(#pg-gold)" strokeWidth="2.8" strokeLinecap="round">
+            <path d="M15 6c6 1 9 5 8 10-1 4-5 5-7 2.5-1.6-2-.4-4.5 1.8-4.5" />
+            <path d="M15 6c-4 0-7 2-8 5" />
+            <path d="M17 21C24 34 7 46 14 60c7 14-8 26-1 41 7 15-8 27-1 42 6 13-5 24-2 45" />
+            <path d="M20 30c3-1 5-3.5 5.5-6M11 47c-3-1-5-3.5-5.5-6M21 74c3-1 5-3.5 5.5-6M11 92c-3-1-5-3.5-5.5-6M21 118c3-1 5-3.5 5.5-6M11 136c-3-1-5-3.5-5.5-6" />
+            <path d="M15 60l7 5M15 100l-7 5M15 140l7 5M15 176l-7 5" />
+            <path d="M13 187c-3 3-3 7 0 9 2 1.5 5 .5 5-2 0-2-2-3-3.5-2" />
+          </g>
+          <g fill="url(#pg-gold)">
+            <circle cx="18" cy="26" r="1.3" /><circle cx="12" cy="38" r="1.3" /><circle cx="18" cy="52" r="1.3" />
+            <circle cx="11" cy="66" r="1.3" /><circle cx="18" cy="80" r="1.3" /><circle cx="12" cy="94" r="1.3" />
+            <circle cx="18" cy="108" r="1.3" /><circle cx="11" cy="122" r="1.3" /><circle cx="18" cy="136" r="1.3" />
+            <circle cx="12" cy="150" r="1.3" /><circle cx="17" cy="164" r="1.3" />
+          </g>
+        </symbol>
+      </defs>
+    </svg>
+  )
+}
+
 export default function MemorialPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -46,7 +103,7 @@ export default function MemorialPage() {
   const [days, setDays] = useState(60)
   const [familySurname, setFamilySurname] = useState('')
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
-  const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null }> | null>(null)
+  const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null; gender: string | null }> | null>(null)
 
   useEffect(() => {
     if (!familyId) return
@@ -74,6 +131,20 @@ export default function MemorialPage() {
 
   const todayLunar = solarToLunar(new Date())
   const titleText = familySurname ? `${familySurname}氏` : '本族'
+
+  const openRitual = (m: { member_id: number; member_name: string; avatar: string | null; death_year: string }) => {
+    setRitualMember({
+      member_id: m.member_id,
+      member_name: m.member_name,
+      avatar: m.avatar,
+      death_date_solar: '',
+      death_date_lunar: `${m.death_year} 年卒`,
+      year_ganzhi: '',
+      shengxiao: '',
+      lunar_month: 0,
+      lunar_day: 0,
+    })
+  }
 
   return (
     <Layout>
@@ -247,59 +318,63 @@ export default function MemorialPage() {
           愿先祖庇佑 · 子孙安康
         </p>
 
-        {/* 周年祭：逝世仅登记年份的先人 */}
+        {/* 周年祭：逝世仅登记年份的先人 —— 位牌墙 */}
         {yearOnly && yearOnly.length > 0 && (
           <div>
             <PgSectionHead
-              text="周 年 祭"
+              text="周 年 牌 位"
               right={<span className="text-xs text-muted-foreground">{yearOnly.length} 位 · 仅登记逝世年份</span>}
             />
-            <div className="pg-card p-5">
-              <p className="mb-3 text-xs text-muted-foreground">
-                这些先人只登记了逝世年份（无月日），无法排入忌日历。点击牌位同样可以献花、点烛、上香、叩首。
-              </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                {yearOnly.map((m) => (
+            <p className="mb-3 text-xs text-muted-foreground">
+              这些先人只登记了逝世年份（无月日），无法排入忌日历。点击牌位同样可以献花、点烛、上香、叩首。
+            </p>
+            <TabletDefs />
+            <div className="pg-shrine">
+              {yearOnly.map((m) => (
+                <div key={m.member_id} className="pg-plaque">
+                  <div className="pg-plaque-glow" aria-hidden="true" />
+                  <div
+                    className="pg-tstack"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`祭拜 ${m.member_name}`}
+                    onClick={() => openRitual(m)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        openRitual(m)
+                      }
+                    }}
+                  >
+                    <div className="pg-crest-cap" aria-hidden="true" />
+                    <svg className="pg-crest" aria-hidden="true"><use href="#pg-crest-orn" /></svg>
+                    <div className="pg-tbody">
+                      <svg className="pg-dragon pg-dragon-dl" aria-hidden="true"><use href="#pg-dragon-orn" /></svg>
+                      <div className="pg-panel">
+                        <div className="pg-cols">
+                          <span className="pg-cols-side">卒于{cnYear(m.death_year)}</span>
+                          <span className="pg-cols-main">
+                            <span className="pg-cols-nm">{m.member_name}</span>
+                            <span className="pg-cols-zhi">之神位</span>
+                          </span>
+                          <span className="pg-cols-side">{m.gender === 'female' ? '顯妣' : '顯考'}</span>
+                        </div>
+                      </div>
+                      <svg className="pg-dragon pg-dragon-dr" aria-hidden="true"><use href="#pg-dragon-orn" /></svg>
+                    </div>
+                    <div className="pg-ped1" aria-hidden="true" />
+                    <div className="pg-ped2" aria-hidden="true" />
+                  </div>
                   <button
-                    key={m.member_id}
-                    onClick={() =>
-                      setRitualMember({
-                        member_id: m.member_id,
-                        member_name: m.member_name,
-                        avatar: m.avatar,
-                        death_date_solar: '',
-                        death_date_lunar: `${m.death_year} 年卒`,
-                        year_ganzhi: '',
-                        shengxiao: '',
-                        lunar_month: 0,
-                        lunar_day: 0,
-                      })
-                    }
-                    className="flex items-center gap-2 rounded-md border px-3 py-2 transition-colors hover:border-foreground/30"
-                    style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--muted) / .3)' }}
+                    className="pg-worship-btn"
+                    onClick={() => openRitual(m)}
                     aria-label={`祭拜 ${m.member_name}`}
                   >
-                    {m.avatar ? (
-                      <img src={m.avatar} alt={m.member_name} className="h-8 w-8 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
-                        style={{ background: 'hsl(var(--card))', fontFamily: PG_SERIF, color: 'hsl(var(--muted-foreground))' }}
-                        aria-hidden="true"
-                      >
-                        {m.member_name.charAt(0)}
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1 text-left">
-                      <span className="block truncate text-sm" style={{ fontFamily: PG_SERIF }}>
-                        {m.member_name}
-                      </span>
-                      <span className="block text-[10px] text-muted-foreground">{m.death_year} 年卒</span>
-                    </span>
-                    <Flame className="h-3.5 w-3.5 shrink-0" style={{ color: PG_RED, opacity: 0.6 }} aria-hidden="true" />
+                    <Flame className="h-3 w-3" aria-hidden="true" />
+                    祭拜
                   </button>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

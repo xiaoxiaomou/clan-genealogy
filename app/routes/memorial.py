@@ -77,6 +77,7 @@ def get_year_only_memorial(family_id):
             'avatar': m.avatar,
             'death_year': year_text,
             'generation': m.generation,
+            'gender': m.gender,
         })
     items.sort(key=lambda x: (x['death_year'], x['member_name']))
     return jsonify({'count': len(items), 'items': items})

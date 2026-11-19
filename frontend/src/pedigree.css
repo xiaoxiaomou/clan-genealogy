@@ -167,3 +167,152 @@
   0% { opacity: 0; transform: scale(1.5) rotate(6deg); }
   100% { opacity: 1; transform: scale(1) rotate(-2deg); }
 }
+
+/* ═══ 位牌墙（神主牌，周年祭 / 排位墙共用）═══
+   形制仿实物：枣红漆帽 + 金饰卷草 + 蟠龙金柱 + 深色牌心金字竖排 + 须弥座。
+   漆器配色恒定，不随主题变；悬停烛光渐亮、整牌微起。 */
+.pg-shrine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px 18px;
+  padding: 34px 24px 28px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+}
+.pg-plaque {
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.pg-plaque-glow {
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  width: 170px;
+  height: 250px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgb(255 196 110 / .22) 0%, rgb(255 196 110 / .07) 45%, transparent 70%);
+  opacity: 0;
+  transition: opacity .3s ease;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pg-plaque:hover .pg-plaque-glow { opacity: 1; }
+  .pg-plaque:hover .pg-tstack { transform: translateY(-5px); filter: drop-shadow(0 0 22px rgb(255 196 110 / .3)); }
+}
+.pg-tstack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: transform .25s ease, filter .25s ease;
+}
+.pg-crest-cap {
+  width: 132px;
+  height: 46px;
+  background: linear-gradient(180deg, #7a2b1d 0%, #58180f 55%, #4a130c 100%);
+  border-radius: 14px 14px 4px 4px;
+  box-shadow: inset 0 1px 0 rgb(255 214 150 / .25), 0 3px 8px rgb(0 0 0 / .4);
+}
+.pg-crest {
+  width: 132px;
+  height: 44px;
+  display: block;
+  margin-top: -36px;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / .45));
+}
+.pg-tbody {
+  position: relative;
+  width: 108px;
+  height: 178px;
+  background: linear-gradient(90deg, #5c1d12 0%, #6e2416 30%, #5a1b10 62%, #4a130c 100%);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px rgb(233 200 118 / .35),
+    inset 0 2px 5px rgb(0 0 0 / .35),
+    0 8px 20px rgb(0 0 0 / .38);
+}
+.pg-dragon {
+  position: absolute;
+  top: -20px;
+  bottom: -6px;
+  width: 30px;
+  height: calc(100% + 26px);
+  z-index: 3;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / .5));
+}
+.pg-dragon-dl { left: -17px; }
+.pg-dragon-dr { right: -17px; transform: scaleX(-1); }
+.pg-panel {
+  position: absolute;
+  inset: 11px 15px 13px;
+  background: linear-gradient(180deg, #241007 0%, #170a05 55%, #1d0c06 100%);
+  border: 1px solid rgb(233 200 118 / .55);
+  border-radius: 3px;
+  box-shadow: inset 0 0 10px rgb(0 0 0 / .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.pg-cols {
+  writing-mode: vertical-rl;
+  font-family: var(--pg-serif);
+  height: 100%;
+  padding: 6px 0;
+  text-align: center;
+}
+.pg-cols-side {
+  display: block;
+  font-size: 10px;
+  letter-spacing: .16em;
+  color: #cf9d52;
+  margin: 0 4px;
+  text-shadow: 0 0 5px rgb(233 200 118 / .3);
+}
+.pg-cols-main {
+  display: block;
+  margin: 0 3px;
+  color: #ecd28a;
+  text-shadow: 0 0 7px rgb(233 200 118 / .4);
+}
+.pg-cols-nm { font-size: 21px; font-weight: 600; letter-spacing: .1em; }
+.pg-cols-zhi { font-size: 12px; letter-spacing: .14em; color: #d9ae62; }
+.pg-ped1 {
+  width: 124px;
+  height: 11px;
+  margin-top: 5px;
+  background: linear-gradient(180deg, #6e2416, #4a130c 85%);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgb(233 200 118 / .4), 0 2px 5px rgb(0 0 0 / .3);
+}
+.pg-ped2 {
+  width: 148px;
+  height: 15px;
+  margin-top: 2px;
+  background: linear-gradient(180deg, #58180f, #3a0e08 80%);
+  border-radius: 3px 3px 7px 7px;
+  box-shadow: inset 0 1px 0 rgb(233 200 118 / .28), 0 6px 14px rgb(0 0 0 / .35);
+}
+.pg-worship-btn {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  border: 1px solid rgb(166 58 46 / .45);
+  color: var(--pg-red);
+  transition: background .2s ease;
+}
+.pg-worship-btn:hover { background: rgb(166 58 46 / .1); }
+@media (max-width: 640px) {
+  .pg-shrine { gap: 24px 12px; padding: 24px 10px; }
+  .pg-plaque { width: 128px; }
+}
