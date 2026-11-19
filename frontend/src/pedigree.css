@@ -653,3 +653,97 @@
   .pg-candle-flame, .pg-candle-glow { animation: none; }
   .pg-flower, .pg-lotus-petal, .pg-lotus-core, .pg-lotus-base { animation: none; }
 }
+
+/* ── 香的进阶动效：烟分三向 / 香灰掉落 / 火星迸溅 ── */
+.pg-smoke-1 { --dx: 10px; --sk: -14deg; }
+.pg-smoke-2 { --dx: -12px; --sk: 13deg; }
+.pg-smoke-3 { --dx: 3px; --sk: -7deg; }
+@keyframes pg-smoke-rise {
+  0% { opacity: 0; transform: translate(-50%, 6px) skewX(0deg) scale(1); }
+  18% { opacity: .5; }
+  60% { opacity: .3; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 10px)), -56px) skewX(var(--sk, -14deg)) scale(1.6); }
+}
+/* 香灰片：每隔数秒从香头跌落炉灰 */
+.pg-stick::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 2.5px;
+  height: 2.5px;
+  margin-left: -1px;
+  border-radius: 50%;
+  background: #b0a89a;
+  opacity: 0;
+  animation: pg-ash-fall 5.6s ease-in calc(var(--d, 0s) + 3s) infinite;
+}
+@keyframes pg-ash-fall {
+  0%, 70% { opacity: 0; transform: translate(0, 0); }
+  74% { opacity: .85; transform: translate(0, 2px); }
+  88% { opacity: .55; transform: translate(1.5px, 16px); }
+  96%, 100% { opacity: 0; transform: translate(2px, 28px); }
+}
+/* 火星：偶发从香头迸向右上并熄灭 */
+.pg-spark {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 2px;
+  height: 2px;
+  margin-left: -1px;
+  border-radius: 50%;
+  background: #ffcf7a;
+  box-shadow: 0 0 4px 1px rgb(255 160 60 / .8);
+  opacity: 0;
+  animation: pg-spark 4.3s ease-out calc(var(--d, 0s) + 2.6s) infinite;
+}
+@keyframes pg-spark {
+  0%, 60% { opacity: 0; transform: translate(0, 0) scale(1); }
+  64% { opacity: 1; transform: translate(1px, -4px) scale(1.1); }
+  78% { opacity: .8; transform: translate(5px, -14px) scale(.8); }
+  90%, 100% { opacity: 0; transform: translate(9px, -24px) scale(.4); }
+}
+
+/* ── 蜡烛进阶动效：烛泪滑落 / 焰上烟丝 ── */
+.pg-candle-drip {
+  position: absolute;
+  top: 6px;
+  left: 2.5px;
+  width: 3px;
+  height: 4px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, #f4e3d4 0%, #dcb6a0 100%);
+  opacity: 0;
+  animation: pg-wax-drip 7.5s ease-in 2.4s infinite;
+}
+.pg-candle-r .pg-candle-drip { left: auto; right: 2.5px; animation-delay: 5.6s; }
+@keyframes pg-wax-drip {
+  0%, 44% { opacity: 0; height: 3px; }
+  50% { opacity: 1; height: 7px; }
+  78% { opacity: .85; height: 17px; }
+  92%, 100% { opacity: 0; height: 21px; }
+}
+.pg-candle-smoke {
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  margin-left: -1px;
+  background: linear-gradient(180deg, rgb(154 148 138 / 0) 0%, rgb(154 148 138 / .35) 100%);
+  filter: blur(1px);
+  opacity: 0;
+  animation: pg-candle-smoke 4.5s ease-out 1.2s infinite;
+}
+@keyframes pg-candle-smoke {
+  0% { opacity: 0; transform: translate(0, 2px) scaleY(.6) skewX(0deg); }
+  28% { opacity: .4; }
+  100% { opacity: 0; transform: translate(4px, -18px) scaleY(1.3) skewX(8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-spark { display: none; }
+  .pg-candle-drip, .pg-candle-smoke { display: none; }
+  .pg-stick::before { display: none; }
+}

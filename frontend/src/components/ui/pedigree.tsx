@@ -256,10 +256,14 @@ export function PgIncenseBurner({ signal, mini, candle }: { signal: number; mini
           <>
             <span className="pg-candle pg-candle-l" aria-hidden="true">
               <i className="pg-candle-glow" />
+              <i className="pg-candle-drip" />
+              <i className="pg-candle-smoke" />
               <i className="pg-candle-flame"><i className="pg-candle-core" /></i>
             </span>
             <span className="pg-candle pg-candle-r" aria-hidden="true">
               <i className="pg-candle-glow" />
+              <i className="pg-candle-drip" />
+              <i className="pg-candle-smoke" />
               <i className="pg-candle-flame"><i className="pg-candle-core" /></i>
             </span>
           </>
@@ -275,6 +279,7 @@ export function PgIncenseBurner({ signal, mini, candle }: { signal: number; mini
                 <i className="pg-smoke pg-smoke-2" aria-hidden="true" />
                 <i className="pg-smoke pg-smoke-1" aria-hidden="true" />
                 <i className="pg-smoke pg-smoke-3" aria-hidden="true" />
+                <i className="pg-spark" aria-hidden="true" />
               </span>
             ))}
         </div>
