@@ -209,8 +209,14 @@ export function PgIncenseBurner({ signal, mini, candle }: { signal: number; mini
       <div className={`pg-burner ${lit ? 'pg-burner-lit' : ''}`} role="img" aria-label="香炉">
         {candle && (
           <>
-            <span className="pg-candle pg-candle-l" aria-hidden="true" />
-            <span className="pg-candle pg-candle-r" aria-hidden="true" />
+            <span className="pg-candle pg-candle-l" aria-hidden="true">
+              <i className="pg-candle-glow" />
+              <i className="pg-candle-flame"><i className="pg-candle-core" /></i>
+            </span>
+            <span className="pg-candle pg-candle-r" aria-hidden="true">
+              <i className="pg-candle-glow" />
+              <i className="pg-candle-flame"><i className="pg-candle-core" /></i>
+            </span>
           </>
         )}
         <div className="pg-sticks" aria-hidden="true">
