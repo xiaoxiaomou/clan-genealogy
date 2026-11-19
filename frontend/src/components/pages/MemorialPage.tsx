@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useToast, Button, FilterDrawer, MemorialRemindersSection } from '@/components/ui'
-import { PgPageHead, PgSectionHead, PgSeal, PgIncenseBurner, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { PgPageHead, PgSectionHead, PgSeal, PgFlowers, PgIncenseBurner, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
@@ -48,6 +48,9 @@ export default function MemorialPage() {
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
   const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
   const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
+  const [candleSignals, setCandleSignals] = useState<Record<number, boolean>>({})
+  const [bowingId, setBowingId] = useState<number | null>(null)
+  const bowTimer = useRef<number | undefined>(undefined)
   const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null; gender: string | null }> | null>(null)
 
   useEffect(() => {
@@ -93,7 +96,7 @@ export default function MemorialPage() {
     })
   }
 
-  /** 牌位直拜：动作 + 本地计数 + 点燃对应香炉 */
+  /** 牌位直拜：动作 + 本地计数 + 对应特效（香炉点香 / 红烛点亮 / 牌位躬身） */
   const bumpRitual = (memberId: number, kind: string) => {
     setRitualCounts((p) => {
       const bucket = { ...(p[memberId] || { flower: 0, candle: 0, incense: 0, kowtow: 0 }) }
@@ -101,6 +104,12 @@ export default function MemorialPage() {
       return { ...p, [memberId]: bucket }
     })
     if (kind === 'incense') setIncenseSignals((s) => ({ ...s, [memberId]: (s[memberId] || 0) + 1 }))
+    if (kind === 'candle') setCandleSignals((s) => ({ ...s, [memberId]: true }))
+    if (kind === 'kowtow') {
+      setBowingId(memberId)
+      window.clearTimeout(bowTimer.current)
+      bowTimer.current = window.setTimeout(() => setBowingId(null), 980)
+    }
   }
 
   const quickRitual = async (memberId: number, kind: string) => {
@@ -301,7 +310,7 @@ export default function MemorialPage() {
                 <div key={m.member_id} className="pg-plaque">
                   <div className="pg-plaque-glow" aria-hidden="true" />
                   <div
-                    className="pg-tstack"
+                    className={`pg-tstack ${bowingId === m.member_id ? 'pg-bowing' : ''}`}
                     role="button"
                     tabIndex={0}
                     aria-label={`祭拜 ${m.member_name}`}
@@ -331,8 +340,9 @@ export default function MemorialPage() {
                     </div>
                     <div className="pg-ped1" aria-hidden="true" />
                     <div className="pg-ped2" aria-hidden="true" />
+                    <PgFlowers count={ritualCounts[m.member_id]?.flower || 0} />
                   </div>
-                  <PgIncenseBurner mini signal={incenseSignals[m.member_id] || 0} />
+                  <PgIncenseBurner mini signal={incenseSignals[m.member_id] || 0} candle={!!candleSignals[m.member_id]} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.member_name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
                       <button

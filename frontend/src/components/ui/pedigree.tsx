@@ -161,7 +161,32 @@ export function PgColophon({ items }: { items: Array<[ReactNode, ReactNode]> }) 
 
 const INCENSE_BURN_MS = 90_000
 
-export function PgIncenseBurner({ signal, mini }: { signal: number; mini?: boolean }) {
+/* 献花：牌座边绽放的莲花（最多并排 3 朵，重复献花重播绽放） */
+export function PgFlowers({ count }: { count: number }) {
+  const n = Math.min(count, 3)
+  if (n <= 0) return null
+  return (
+    <span className="pg-flowers" aria-hidden="true">
+      {Array.from({ length: n }).map((_, i) => (
+        <svg
+          key={i}
+          className="pg-flower"
+          style={{ left: `${6 + i * 13}px`, animationDelay: `${i * 0.12}s` }}
+          viewBox="0 0 24 24"
+        >
+          <g fill="#E8A0AE">
+            {[0, 72, 144, 216, 288].map((a) => (
+              <ellipse key={a} cx="12" cy="6.6" rx="3" ry="5.2" transform={`rotate(${a} 12 12)`} />
+            ))}
+          </g>
+          <circle cx="12" cy="12" r="2.3" fill="#F2C94C" />
+        </svg>
+      ))}
+    </span>
+  )
+}
+
+export function PgIncenseBurner({ signal, mini, candle }: { signal: number; mini?: boolean; candle?: boolean }) {
   const [lit, setLit] = useState(false)
   const burnTimer = useRef<number | undefined>(undefined)
 
@@ -182,6 +207,12 @@ export function PgIncenseBurner({ signal, mini }: { signal: number; mini?: boole
   return (
     <div className={mini ? 'pg-burner-sm' : 'pg-burner-zone'}>
       <div className={`pg-burner ${lit ? 'pg-burner-lit' : ''}`} role="img" aria-label="香炉">
+        {candle && (
+          <>
+            <span className="pg-candle pg-candle-l" aria-hidden="true" />
+            <span className="pg-candle pg-candle-r" aria-hidden="true" />
+          </>
+        )}
         <div className="pg-sticks" aria-hidden="true">
           {lit &&
             sticks.map((s, i) => (

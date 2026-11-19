@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/ui'
-import { PgPageHead, PgSectionHead, PgIncenseBurner, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { PgPageHead, PgSectionHead, PgFlowers, PgIncenseBurner, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
@@ -43,6 +43,9 @@ export default function TemplePage() {
   } | null>(null)
   const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
   const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
+  const [candleSignals, setCandleSignals] = useState<Record<number, boolean>>({})
+  const [bowingId, setBowingId] = useState<number | null>(null)
+  const bowTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     load()
@@ -76,7 +79,7 @@ export default function TemplePage() {
     }
   }
 
-  /** 牌位直拜：动作 + 本地计数 + 点燃对应香炉 */
+  /** 牌位直拜：动作 + 本地计数 + 对应特效（香炉点香 / 红烛点亮 / 牌位躬身） */
   const bumpRitual = (memberId: number, kind: string) => {
     setRitualCounts((p) => {
       const bucket = { ...(p[memberId] || { flower: 0, candle: 0, incense: 0, kowtow: 0 }) }
@@ -84,6 +87,12 @@ export default function TemplePage() {
       return { ...p, [memberId]: bucket }
     })
     if (kind === 'incense') setIncenseSignals((s) => ({ ...s, [memberId]: (s[memberId] || 0) + 1 }))
+    if (kind === 'candle') setCandleSignals((s) => ({ ...s, [memberId]: true }))
+    if (kind === 'kowtow') {
+      setBowingId(memberId)
+      window.clearTimeout(bowTimer.current)
+      bowTimer.current = window.setTimeout(() => setBowingId(null), 980)
+    }
   }
 
   const quickRitual = async (memberId: number, kind: string) => {
@@ -249,7 +258,7 @@ export default function TemplePage() {
                 <div key={m.id} className="pg-plaque">
                   <div className="pg-plaque-glow" aria-hidden="true" />
                   <div
-                    className="pg-tstack"
+                    className={`pg-tstack ${bowingId === m.id ? 'pg-bowing' : ''}`}
                     role="button"
                     tabIndex={0}
                     aria-label={`祭拜 ${m.name}`}
@@ -301,8 +310,9 @@ export default function TemplePage() {
                     </div>
                     <div className="pg-ped1" aria-hidden="true" />
                     <div className="pg-ped2" aria-hidden="true" />
+                    <PgFlowers count={ritualCounts[m.id]?.flower || 0} />
                   </div>
-                  <PgIncenseBurner mini signal={incenseSignals[m.id] || 0} />
+                  <PgIncenseBurner mini signal={incenseSignals[m.id] || 0} candle={!!candleSignals[m.id]} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
                       <button
