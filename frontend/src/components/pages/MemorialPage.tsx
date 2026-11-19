@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useToast, Button, FilterDrawer, MemorialRemindersSection } from '@/components/ui'
-import { PgPageHead, PgSectionHead, PgSeal, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { PgPageHead, PgSectionHead, PgSeal, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
@@ -32,63 +32,6 @@ interface TodayData {
   date_lunar: string
   count: number
   items: MemorialItem[]
-}
-
-/* 阿拉伯年份 → 汉字（刻于牌位底座） */
-const CN_DIGITS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
-const cnYear = (y: string) =>
-  String(y)
-    .split('')
-    .map((ch) => (/\d/.test(ch) ? CN_DIGITS[Number(ch)] : ch))
-    .join('')
-
-/* 位牌墙金饰 defs：漆帽卷草 + 蟠龙柱 + 金色渐变（页面内只渲染一次） */
-export function TabletDefs() {
-  return (
-    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-      <defs>
-        <linearGradient id="pg-gold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f3d489" />
-          <stop offset=".45" stopColor="#d9a44e" />
-          <stop offset=".75" stopColor="#a4712a" />
-          <stop offset="1" stopColor="#e8c46f" />
-        </linearGradient>
-        <symbol id="pg-crest-orn" viewBox="0 0 132 40">
-          <g fill="none" stroke="url(#pg-gold)" strokeWidth="2.2" strokeLinecap="round">
-            <circle cx="66" cy="15" r="7.5" />
-            <circle cx="66" cy="15" r="2.8" fill="url(#pg-gold)" stroke="none" />
-            <path d="M58.5 15a7.5 7.5 0 0 1 7.5-7.5M73.5 15a7.5 7.5 0 0 0-7.5-7.5" />
-            <path d="M66 3.5c-3 2-4.5 4.5-4.5 7M66 3.5c3 2 4.5 4.5 4.5 7" />
-            <path d="M55 16c-9 3-16-1-16.5-8.5C38.2 3.6 43 2.4 45 5.4c1.8 2.8-.8 6-3.6 5" />
-            <path d="M55 22c-10 5-19 2-22-6" />
-            <path d="M52 26c-8 6-15 6-20 1.5" />
-            <path d="M55 16c-2 6-1.5 10 .5 13" />
-            <path d="M77 16c9 3 16-1 16.5-8.5C93.8 3.6 89 2.4 87 5.4c-1.8 2.8.8 6 3.6 5" />
-            <path d="M77 22c10 5 19 2 22-6" />
-            <path d="M80 26c8 6 15 6 20 1.5" />
-            <path d="M77 16c2 6 1.5 10-.5 13" />
-            <path d="M35 24c-2.5 4-3 7-2 10M97 24c2.5 4 3 7 2 10" />
-          </g>
-        </symbol>
-        <symbol id="pg-dragon-orn" viewBox="0 0 30 200">
-          <g fill="none" stroke="url(#pg-gold)" strokeWidth="2.8" strokeLinecap="round">
-            <path d="M15 6c6 1 9 5 8 10-1 4-5 5-7 2.5-1.6-2-.4-4.5 1.8-4.5" />
-            <path d="M15 6c-4 0-7 2-8 5" />
-            <path d="M17 21C24 34 7 46 14 60c7 14-8 26-1 41 7 15-8 27-1 42 6 13-5 24-2 45" />
-            <path d="M20 30c3-1 5-3.5 5.5-6M11 47c-3-1-5-3.5-5.5-6M21 74c3-1 5-3.5 5.5-6M11 92c-3-1-5-3.5-5.5-6M21 118c3-1 5-3.5 5.5-6M11 136c-3-1-5-3.5-5.5-6" />
-            <path d="M15 60l7 5M15 100l-7 5M15 140l7 5M15 176l-7 5" />
-            <path d="M13 187c-3 3-3 7 0 9 2 1.5 5 .5 5-2 0-2-2-3-3.5-2" />
-          </g>
-          <g fill="url(#pg-gold)">
-            <circle cx="18" cy="26" r="1.3" /><circle cx="12" cy="38" r="1.3" /><circle cx="18" cy="52" r="1.3" />
-            <circle cx="11" cy="66" r="1.3" /><circle cx="18" cy="80" r="1.3" /><circle cx="12" cy="94" r="1.3" />
-            <circle cx="18" cy="108" r="1.3" /><circle cx="11" cy="122" r="1.3" /><circle cx="18" cy="136" r="1.3" />
-            <circle cx="12" cy="150" r="1.3" /><circle cx="17" cy="164" r="1.3" />
-          </g>
-        </symbol>
-      </defs>
-    </svg>
-  )
 }
 
 export default function MemorialPage() {
