@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import {
   Button,
@@ -9,8 +9,9 @@ import {
   useToast,
 } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PG_RED } from '@/components/ui/pedigree'
+import { smartBack } from '@/lib/smartBack'
 import { Layout } from '@/components/layout/Layout'
-import { CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle2, Circle, Plus, Trash2, ArrowLeft } from 'lucide-react'
 
 /* ═══ 谱局 · 待办 —— 修谱任务清单 ═══ */
 
@@ -28,6 +29,7 @@ interface TaskItem {
 export default function TasksPage() {
   const { id } = useParams<{ id: string }>()
   const familyId = Number(id)
+  const navigate = useNavigate()
   const { showToast } = useToast()
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -136,6 +138,15 @@ export default function TasksPage() {
   return (
     <Layout>
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6 pg-rise">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            返回族谱
+          </button>
+        </div>
         <PgPageHead
           eyebrow="谱 局 · 待 办"
           title="修谱待办"

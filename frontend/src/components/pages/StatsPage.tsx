@@ -110,8 +110,11 @@ export default function StatsPage() {
   if (!stats) {
     return (
       <Layout>
-        <div className="flex h-[60vh] items-center justify-center">
-          <p className="text-muted-foreground">暂无数据</p>
+        <div className="pg-rise mx-auto max-w-5xl px-4 py-8 sm:px-6">
+          <div className="pg-card flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <p className="pg-title text-base tracking-[0.1em] text-foreground/80">谱 卷 未 启</p>
+            <p className="text-sm text-muted-foreground">家族还没有成员数据，录入族人后这里会展开数据看板</p>
+          </div>
         </div>
       </Layout>
     )
@@ -269,7 +272,10 @@ export default function StatsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <ChartCard title="房支分布">
               {branchData.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">暂无分支数据</p>
+                <div className="flex flex-col items-center gap-1.5 py-10 text-center">
+                  <p className="pg-title text-sm tracking-[0.12em] text-foreground/70">支 系 未 分</p>
+                  <p className="text-xs text-muted-foreground">在成员资料中填写「分支」后，这里会呈现房支分布</p>
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
@@ -291,7 +297,10 @@ export default function StatsPage() {
 
             <ChartCard title="生年分布">
               {decadeData.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">暂无出生日期数据</p>
+                <div className="flex flex-col items-center gap-1.5 py-10 text-center">
+                  <p className="pg-title text-sm tracking-[0.12em] text-foreground/70">生 卒 未 详</p>
+                  <p className="text-xs text-muted-foreground">补齐族人出生日期后，这里会绘出代际生息曲线</p>
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={decadeData}>

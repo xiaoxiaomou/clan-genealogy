@@ -7,6 +7,7 @@ import {
   Modal,
   useToast,
 } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import { PgPageHead, PgSeal, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
@@ -39,6 +40,7 @@ const inputClass = 'mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm focu
 export default function HistoryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const familyId = Number(id)
 
@@ -72,7 +74,7 @@ export default function HistoryPage() {
   }
 
   async function remove(rid: number) {
-    if (!confirm('确定要删除这条历史事件吗？')) return
+    if (!(await ask({ title: '删除历史事实', message: '确定要删除这条历史事件吗？', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deleteHistoricalEvent(familyId, rid)
       showToast('已删除', 'success')
@@ -223,6 +225,7 @@ export default function HistoryPage() {
         event={editing}
         onSaved={() => { setShowEditor(false); load() }}
       />
+      {dialog}
     </Layout>
   )
 }

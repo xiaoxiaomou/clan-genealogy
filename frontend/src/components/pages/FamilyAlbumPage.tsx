@@ -11,6 +11,7 @@ import {
   Label,
   useToast,
 } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import {
@@ -33,6 +34,7 @@ import {
 export default function FamilyAlbumPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const familyId = Number(id)
 
@@ -127,7 +129,7 @@ export default function FamilyAlbumPage() {
   }
 
   const handleDeleteAlbum = async (albumId: number) => {
-    if (!confirm('确定要删除该相册吗？相册中的所有照片也将被删除。')) return
+    if (!(await ask({ title: '删除相册', message: '确定要删除该相册吗？相册中的所有照片也将被删除，此操作不可恢复。', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deleteAlbum(familyId, albumId)
       showToast('相册已删除', 'success')
@@ -178,7 +180,7 @@ export default function FamilyAlbumPage() {
   }
 
   const handleDeletePhoto = async (photoId: number) => {
-    if (!confirm('确定要删除这张照片吗？')) return
+    if (!(await ask({ title: '删除照片', message: '确定要删除这张照片吗？', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deletePhoto(familyId, currentAlbum!.id, photoId)
       showToast('照片已删除', 'success')
@@ -912,6 +914,7 @@ export default function FamilyAlbumPage() {
           </div>
         </div>
       )}
+      {dialog}
     </Layout>
   )
 }

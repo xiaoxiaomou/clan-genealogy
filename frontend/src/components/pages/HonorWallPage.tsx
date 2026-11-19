@@ -7,6 +7,7 @@ import {
   Modal,
   useToast,
 } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PgSeal, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
@@ -36,6 +37,7 @@ const CATEGORIES: { value: string; label: string; icon: any; seal: string }[] = 
 export default function HonorWallPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const familyId = Number(id)
 
@@ -70,7 +72,7 @@ export default function HonorWallPage() {
   }
 
   async function remove(h: Honor) {
-    if (!confirm(`确定要删除「${h.title}」吗？`)) return
+    if (!(await ask({ title: '删除荣誉', message: `确定删除「${h.title}」吗？此操作不可恢复。`, confirmText: '确认删除', danger: true }))) return
     try {
       await api.deleteHonor(familyId, h.id)
       showToast('已删除', 'success')
@@ -242,6 +244,7 @@ export default function HonorWallPage() {
         honor={editing}
         onSaved={() => { setShowEditor(false); load() }}
       />
+      {dialog}
     </Layout>
   )
 }

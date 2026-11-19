@@ -10,6 +10,7 @@ import {
   Label,
   useToast,
 } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PgSeal, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import {
@@ -72,6 +73,7 @@ function buildBranchTree(branches: FamilyBranch[]): BranchNode[] {
 export default function FamilyBranchesPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const familyId = Number(id)
 
@@ -189,7 +191,7 @@ export default function FamilyBranchesPage() {
   }
 
   const handleDelete = async (branchId: number) => {
-    if (!confirm('确定要删除该分支吗？分支下的成员不会被删除。')) return
+    if (!(await ask({ title: '删除分支', message: '确定要删除该分支吗？分支下的成员不会被删除。', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deleteBranch(familyId, branchId)
       showToast('分支已删除', 'success')
@@ -719,6 +721,7 @@ export default function FamilyBranchesPage() {
           </div>
         </Modal>
       </div>
+      {dialog}
     </Layout>
   )
 }

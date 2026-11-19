@@ -11,6 +11,7 @@ import {
   Label,
   useToast,
 } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import { PgPageHead, PgSectionHead, PgColophon } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import {
@@ -50,6 +51,7 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode }
 export default function FamilyEventsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const familyId = Number(id)
 
@@ -167,7 +169,7 @@ export default function FamilyEventsPage() {
   }
 
   const handleDelete = async (eventId: number) => {
-    if (!confirm('确定要删除这条大事记吗？')) return
+    if (!(await ask({ title: '删除大事记', message: '确定要删除这条大事记吗？', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deleteEvent(familyId, eventId)
       showToast('大事记已删除', 'success')
@@ -596,6 +598,7 @@ export default function FamilyEventsPage() {
           </div>
         </form>
       </Modal>
+      {dialog}
     </Layout>
   )
 }

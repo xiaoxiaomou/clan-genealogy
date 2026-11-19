@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { Layout } from '@/components/layout/Layout'
 import { Button, Input, useToast } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import {
   ChevronDown, ChevronUp, Plus, Trash2, ArrowRight, BookOpen, PenLine,
 } from 'lucide-react'
@@ -31,6 +32,7 @@ export default function FamilyIntroPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const familyId = Number(id)
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
 
   const [family, setFamily] = useState<any>(null)
@@ -118,7 +120,7 @@ export default function FamilyIntroPage() {
   }
 
   const handleDeleteArticle = async (articleId: number) => {
-    if (!confirm('确定删除此文章？')) return
+    if (!(await ask({ title: '删除文章', message: '确定要删除这篇文章吗？此操作不可恢复。', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deleteFamilyArticle(familyId, articleId)
       setArticles((prev) => prev.filter((a) => a.id !== articleId))
@@ -582,6 +584,7 @@ export default function FamilyIntroPage() {
           </p>
         </div>
       </div>
+      {dialog}
     </Layout>
   )
 }

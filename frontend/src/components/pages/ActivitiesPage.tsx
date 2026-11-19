@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { User } from '@/types'
 import {
@@ -9,9 +9,11 @@ import {
   Modal,
   useToast,
 } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import { PgPageHead, PgSectionHead } from '@/components/ui/pedigree'
+import { smartBack } from '@/lib/smartBack'
 import { Layout } from '@/components/layout/Layout'
-import { MapPin, Calendar, Users, Plus, Pencil, Trash2 } from 'lucide-react'
+import { MapPin, Calendar, Users, Plus, Pencil, Trash2, ArrowLeft } from 'lucide-react'
 
 /* ═══ 谱页 · 雅集 —— 家族活动（祭祖 / 颁谱 / 聚会） ═══ */
 
@@ -45,6 +47,8 @@ const STATUS_LABEL: Record<string, string> = { join: '参加', maybe: '待定', 
 export default function ActivitiesPage() {
   const { id } = useParams<{ id: string }>()
   const familyId = Number(id)
+  const navigate = useNavigate()
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [me, setMe] = useState<User | null>(null)
@@ -124,7 +128,7 @@ export default function ActivitiesPage() {
   }
 
   const handleDelete = async (a: ActivityItem) => {
-    if (!confirm(`确定删除活动「${a.title}」吗？报名记录也会一并删除。`)) return
+    if (!(await ask({ title: '删除活动', message: `确定删除活动「${a.title}」吗？报名记录也会一并删除。`, confirmText: '确认删除', danger: true }))) return
     try {
       await api.deleteActivity(familyId, a.id)
       showToast('活动已删除', 'success')
@@ -258,6 +262,15 @@ export default function ActivitiesPage() {
   return (
     <Layout>
       <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6 pg-rise">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            返回族谱
+          </button>
+        </div>
         <div className="flex items-center justify-between">
           <PgPageHead
             eyebrow="谱 局 · 雅 集"
@@ -423,6 +436,7 @@ export default function ActivitiesPage() {
           </Modal>
         )}
       </div>
+      {dialog}
     </Layout>
   )
 }

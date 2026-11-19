@@ -6,6 +6,7 @@ import {
   AvatarDisplay,
   MentionInput,
 } from '@/components/ui'
+import { useConfirm } from '@/components/ui'
 import { PgPageHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
@@ -47,6 +48,7 @@ interface Comment {
 export default function FeedPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const { user } = useAppSelector((s) => s.auth)
   const familyId = Number(id)
@@ -100,7 +102,7 @@ export default function FeedPage() {
   }
 
   async function removePost(p: Post) {
-    if (!confirm('确定要删除这条动态吗？')) return
+    if (!(await ask({ title: '删除动态', message: '确定要删除这条动态吗？此操作不可恢复。', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deletePost(familyId, p.id)
       showToast('已删除', 'success')
@@ -190,6 +192,7 @@ export default function FeedPage() {
           onClose={() => setOpenComments(null)}
         />
       )}
+      {dialog}
     </Layout>
   )
 }
@@ -284,6 +287,7 @@ function CommentsPanel({
   postId: number
   onClose: () => void
 }) {
+  const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
   const { user } = useAppSelector((s) => s.auth)
   const [comments, setComments] = useState<Comment[]>([])
@@ -358,7 +362,7 @@ function CommentsPanel({
                       {(user?.id === c.author_id || user?.is_admin) && (
                         <button
                           onClick={async () => {
-                            if (!confirm('删除这条评论？')) return
+                            if (!(await ask({ title: '删除评论', message: '确定要删除这条评论吗？', confirmText: '确认删除', danger: true }))) return
                             try {
                               await api.deletePostComment(familyId, postId, c.id)
                               load()
@@ -397,6 +401,7 @@ function CommentsPanel({
           </Button>
         </div>
       </div>
+      {dialog}
     </div>
   )
 }

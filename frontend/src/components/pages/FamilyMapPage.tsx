@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { useToast, MigrationPaths } from '@/components/ui'
 import { PgPageHead, PgSectionHead } from '@/components/ui/pedigree'
+import { smartBack } from '@/lib/smartBack'
+import { ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 import FamilyMapView, { type PlaceMark } from './FamilyMapView'
 
@@ -29,6 +31,7 @@ interface MemberLocation {
 
 export default function FamilyMapPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const familyId = Number(id)
   const { showToast } = useToast()
 
@@ -123,6 +126,15 @@ export default function FamilyMapPage() {
   return (
     <Layout>
       <div className="pg-rise mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            返回族谱
+          </button>
+        </div>
         <PgPageHead
           eyebrow="谱 牒 · 舆 图"
           title="家族地理分布"
