@@ -332,14 +332,6 @@ export default function MemorialPage() {
                     <div className="pg-ped1" aria-hidden="true" />
                     <div className="pg-ped2" aria-hidden="true" />
                   </div>
-                  <button
-                    className="pg-worship-btn"
-                    onClick={() => openRitual(m)}
-                    aria-label={`祭拜 ${m.member_name}`}
-                  >
-                    <Flame className="h-3 w-3" aria-hidden="true" />
-                    祭拜
-                  </button>
                   <PgIncenseBurner mini signal={incenseSignals[m.member_id] || 0} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.member_name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (

@@ -5,7 +5,7 @@ import { PgPageHead, PgSectionHead, PgIncenseBurner, TabletDefs, cnYear, PG_RED,
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
-import { ArrowLeft, Flame } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { formatPoem } from '@/lib/zibei'
 import { RitualModal, RITUAL_BUTTONS } from './MemorialPage'
 
@@ -302,26 +302,6 @@ export default function TemplePage() {
                     <div className="pg-ped1" aria-hidden="true" />
                     <div className="pg-ped2" aria-hidden="true" />
                   </div>
-                  <button
-                    className="pg-worship-btn"
-                    onClick={() =>
-                      setRitualMember({
-                        member_id: m.id,
-                        member_name: m.name,
-                        avatar: m.avatar,
-                        death_date_solar: '',
-                        death_date_lunar: m.death_year ? `${m.death_year} 年卒` : '在册先人',
-                        year_ganzhi: '',
-                        shengxiao: '',
-                        lunar_month: 0,
-                        lunar_day: 0,
-                      })
-                    }
-                    aria-label={`祭拜 ${m.name}`}
-                  >
-                    <Flame className="h-3 w-3" aria-hidden="true" />
-                    祭拜
-                  </button>
                   <PgIncenseBurner mini signal={incenseSignals[m.id] || 0} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
