@@ -505,10 +505,45 @@
 .pg-quick-ritual:hover { background: rgb(166 58 46 / .08); border-color: rgb(166 58 46 / .55); transform: translateY(-1px); }
 .pg-quick-n { font-size: 9.5px; line-height: 1; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
 
-/* ── 献花：牌座边的莲花 ── */
+/* ── 献花：牌座边的莲花（分层花瓣逐片绽放） ── */
 .pg-flowers { position: absolute; left: 8px; bottom: -7px; display: flex; z-index: 4; pointer-events: none; }
-.pg-flower { position: absolute; bottom: 0; width: 17px; height: 17px; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .3)); animation: pg-bloom .5s cubic-bezier(.34,1.4,.64,1) both; transform-origin: bottom center; }
-@keyframes pg-bloom { from { opacity: 0; transform: scale(.2) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.pg-flower {
+  position: absolute;
+  bottom: 0;
+  width: 24px;
+  height: 21px;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / .3));
+  animation: pg-bloom .5s cubic-bezier(.34,1.4,.64,1) both;
+  transform-origin: bottom center;
+}
+@keyframes pg-bloom {
+  from { opacity: 0; transform: scale(calc(var(--s, 1) * .25)) translateY(4px); }
+  to { opacity: 1; transform: scale(var(--s, 1)) translateY(0); }
+}
+.pg-lotus-petal {
+  transform-box: view-box;
+  transform-origin: 50% 71%;
+  transform: rotate(var(--a, 0deg));
+  animation: pg-petal-open .5s ease-out both;
+}
+@keyframes pg-petal-open {
+  from { opacity: 0; transform: rotate(var(--a, 0deg)) scale(.35); }
+  to { opacity: 1; transform: rotate(var(--a, 0deg)) scale(1); }
+}
+.pg-lotus-core {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: pg-core-pop .35s cubic-bezier(.34, 1.4, .64, 1) both;
+}
+.pg-lotus-base { animation: pg-lotus-base-in .25s ease-out both; }
+@keyframes pg-core-pop {
+  from { opacity: 0; transform: scale(.3); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes pg-lotus-base-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 /* ── 点烛：红烛（融蜡口 · 铜烛台 · 多层火焰 · 环境光晕） ── */
 .pg-candle {
@@ -616,5 +651,5 @@
 @media (prefers-reduced-motion: reduce) {
   .pg-bowing { animation: none; }
   .pg-candle-flame, .pg-candle-glow { animation: none; }
-  .pg-flower { animation: none; }
+  .pg-flower, .pg-lotus-petal, .pg-lotus-core, .pg-lotus-base { animation: none; }
 }

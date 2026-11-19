@@ -30,6 +30,15 @@ export function TabletDefs() {
           <stop offset=".75" stopColor="#a4712a" />
           <stop offset="1" stopColor="#e8c46f" />
         </linearGradient>
+        <linearGradient id="pg-lotus-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#F7CDD8" />
+          <stop offset=".55" stopColor="#EE9FB4" />
+          <stop offset="1" stopColor="#DD7A96" />
+        </linearGradient>
+        <linearGradient id="pg-lotus-grad-in" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FCE4EC" />
+          <stop offset="1" stopColor="#F2A5BC" />
+        </linearGradient>
         <symbol id="pg-crest-orn" viewBox="0 0 132 40">
           <g fill="none" stroke="url(#pg-gold)" strokeWidth="2.2" strokeLinecap="round">
             <circle cx="66" cy="15" r="7.5" />
@@ -161,25 +170,61 @@ export function PgColophon({ items }: { items: Array<[ReactNode, ReactNode]> }) 
 
 const INCENSE_BURN_MS = 90_000
 
-/* 献花：牌座边绽放的莲花（最多并排 3 朵，重复献花重播绽放） */
+/* 献花：牌座边绽放的莲花（外五内三层花瓣逐片展开，金蕊茎叶，最多并排 3 朵） */
 export function PgFlowers({ count }: { count: number }) {
   const n = Math.min(count, 3)
   if (n <= 0) return null
+  const outer = ['-52deg', '-26deg', '0deg', '26deg', '52deg']
+  const inner = ['-18deg', '0deg', '18deg']
+  const scales = [1, 0.9, 1.06]
   return (
     <span className="pg-flowers" aria-hidden="true">
       {Array.from({ length: n }).map((_, i) => (
         <svg
           key={i}
           className="pg-flower"
-          style={{ left: `${6 + i * 13}px`, animationDelay: `${i * 0.12}s` }}
-          viewBox="0 0 24 24"
+          style={{
+            left: `${2 + i * 15}px`,
+            animationDelay: `${i * 0.14}s`,
+            '--s': scales[i],
+          } as CSSProperties}
+          viewBox="0 0 28 24"
         >
-          <g fill="#E8A0AE">
-            {[0, 72, 144, 216, 288].map((a) => (
-              <ellipse key={a} cx="12" cy="6.6" rx="3" ry="5.2" transform={`rotate(${a} 12 12)`} />
-            ))}
+          {/* 茎叶 */}
+          <g className="pg-lotus-base" style={{ animationDelay: `${i * 0.14}s` }}>
+            <path d="M14 15 L14 19" stroke="#5F8F5A" strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M14 19 C 11 18.6, 9 19.6, 7.6 21 C 10.4 21.4, 12.8 20.8, 14 19 Z" fill="#6DA066" />
+            <path d="M14 19 C 17 18.6, 19 19.6, 20.4 21 C 17.6 21.4, 15.2 20.8, 14 19 Z" fill="#5F8F5A" />
           </g>
-          <circle cx="12" cy="12" r="2.3" fill="#F2C94C" />
+          {/* 外层花瓣 */}
+          {outer.map((a, j) => (
+            <path
+              key={`o${j}`}
+              className="pg-lotus-petal"
+              fill="url(#pg-lotus-grad)"
+              d="M14 3.2 C 11.2 7, 10.4 11, 14 14.8 C 17.6 11, 16.8 7, 14 3.2 Z"
+              style={{ '--a': a, animationDelay: `${i * 0.14 + j * 0.07}s` } as CSSProperties}
+            />
+          ))}
+          {/* 内层花瓣 */}
+          {inner.map((a, j) => (
+            <path
+              key={`in${j}`}
+              className="pg-lotus-petal"
+              fill="url(#pg-lotus-grad-in)"
+              d="M14 5 C 11.8 8.4, 11.2 11.6, 14 15 C 16.8 11.6, 16.2 8.4, 14 5 Z"
+              style={{ '--a': a, animationDelay: `${i * 0.14 + 0.2 + j * 0.06}s` } as CSSProperties}
+            />
+          ))}
+          {/* 金蕊 */}
+          <circle
+            className="pg-lotus-core"
+            cx="14"
+            cy="13.2"
+            r="2.1"
+            fill="#F2C94C"
+            style={{ animationDelay: `${i * 0.14 + 0.42}s` }}
+          />
         </svg>
       ))}
     </span>
