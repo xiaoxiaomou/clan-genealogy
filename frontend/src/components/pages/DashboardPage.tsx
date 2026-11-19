@@ -122,7 +122,7 @@ export default function DashboardPage() {
                   className="gap-2"
                 >
                   <Shield className="h-4 w-4" aria-hidden="true" />
-                  用户审核
+                  用户管理
                 </Button>
               )}
               {isAdmin && (
