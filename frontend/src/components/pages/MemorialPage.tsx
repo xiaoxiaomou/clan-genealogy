@@ -47,6 +47,7 @@ export default function MemorialPage() {
   const [familySurname, setFamilySurname] = useState('')
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
   const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
+  const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
   const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null; gender: string | null }> | null>(null)
 
   useEffect(() => {
@@ -58,14 +59,16 @@ export default function MemorialPage() {
   const loadAll = async () => {
     setLoading(true)
     try {
-      const [t, u, y] = await Promise.all([
+      const [t, u, y, rc] = await Promise.all([
         api.getTodayMemorial(familyId),
         api.getUpcomingMemorial(familyId, days),
         api.getYearOnlyMemorial(familyId).catch(() => ({ items: [] })),
+        api.getRitualTodaySummary(familyId).catch(() => ({ summary: {} })),
       ])
       setToday(t)
       setUpcoming(u.upcoming || [])
       setYearOnly(y.items || [])
+      setRitualCounts(rc.summary || {})
     } catch (err: any) {
       showToast(err.message || '加载祭日失败', 'error')
     } finally {
@@ -88,6 +91,26 @@ export default function MemorialPage() {
       lunar_month: 0,
       lunar_day: 0,
     })
+  }
+
+  /** 牌位直拜：动作 + 本地计数 + 点燃对应香炉 */
+  const bumpRitual = (memberId: number, kind: string) => {
+    setRitualCounts((p) => {
+      const bucket = { ...(p[memberId] || { flower: 0, candle: 0, incense: 0, kowtow: 0 }) }
+      bucket[kind] = (bucket[kind] || 0) + 1
+      return { ...p, [memberId]: bucket }
+    })
+    if (kind === 'incense') setIncenseSignals((s) => ({ ...s, [memberId]: (s[memberId] || 0) + 1 }))
+  }
+
+  const quickRitual = async (memberId: number, kind: string) => {
+    try {
+      await api.sendMemorialRitual(familyId, memberId, kind)
+      showToast('已奉上', 'success')
+      bumpRitual(memberId, kind)
+    } catch (err: any) {
+      showToast(err.message || '祭拜失败', 'error')
+    }
   }
 
   return (
@@ -318,6 +341,20 @@ export default function MemorialPage() {
                     祭拜
                   </button>
                   <PgIncenseBurner mini signal={incenseSignals[m.member_id] || 0} />
+                  <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.member_name} 祭拜`}>
+                    {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
+                      <button
+                        key={kind}
+                        className="pg-quick-ritual"
+                        onClick={() => quickRitual(m.member_id, kind)}
+                        aria-label={`${label} · 今日 ${ritualCounts[m.member_id]?.[kind] || 0} 次`}
+                        title={`${label}（今日 ${ritualCounts[m.member_id]?.[kind] || 0}）`}
+                      >
+                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="pg-quick-n">{ritualCounts[m.member_id]?.[kind] || 0}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -332,7 +369,7 @@ export default function MemorialPage() {
           familyId={familyId}
           member={ritualMember}
           onClose={() => setRitualMember(null)}
-          onRitualSuccess={(k, mid) => { if (k === 'incense' && mid) setIncenseSignals((p) => ({ ...p, [mid]: (p[mid] || 0) + 1 })) }}
+          onRitualSuccess={(k, mid) => { if (mid) bumpRitual(mid, k) }}
         />
       )}
     </Layout>

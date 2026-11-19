@@ -482,3 +482,25 @@
   transform: scale(.6);
   transform-origin: top center;
 }
+
+/* 牌位直拜：香炉下的四动作小按钮 */
+.pg-quick-rituals {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.pg-quick-ritual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: 30px;
+  padding: 4px 0 2px;
+  border: 1px solid rgb(166 58 46 / .3);
+  border-radius: 7px;
+  background: hsl(var(--card));
+  color: var(--pg-red);
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.pg-quick-ritual:hover { background: rgb(166 58 46 / .08); border-color: rgb(166 58 46 / .55); transform: translateY(-1px); }
+.pg-quick-n { font-size: 9.5px; line-height: 1; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }

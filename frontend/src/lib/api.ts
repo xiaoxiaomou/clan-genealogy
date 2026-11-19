@@ -793,6 +793,8 @@ export const api = {
   // 线上祭祀（祭拜 + 追思留言）
   getMemorialRituals: (familyId: number, memberId: number) =>
     request<any>(`/family/${familyId}/memorial/rituals?member_id=${memberId}`),
+  getRitualTodaySummary: (familyId: number) =>
+    request<any>(`/family/${familyId}/memorial/rituals/today-summary`),
   sendMemorialRitual: (familyId: number, memberId: number, kind: string) =>
     request<any>(`/family/${familyId}/memorial/rituals`, { method: 'POST', body: { member_id: memberId, kind } }),
   getMemorialMessages: (familyId: number, memberId: number) =>

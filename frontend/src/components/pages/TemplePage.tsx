@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
 import { ArrowLeft, Flame } from 'lucide-react'
 import { formatPoem } from '@/lib/zibei'
-import { RitualModal } from './MemorialPage'
+import { RitualModal, RITUAL_BUTTONS } from './MemorialPage'
 
 interface TempleData {
   family: any
@@ -42,6 +42,7 @@ export default function TemplePage() {
     lunar_day: number
   } | null>(null)
   const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
+  const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
 
   useEffect(() => {
     load()
@@ -50,11 +51,13 @@ export default function TemplePage() {
   async function load() {
     setLoading(true)
     try {
-      const [d, membersRes] = await Promise.all([
+      const [d, membersRes, rc] = await Promise.all([
         api.getTemple(familyId),
         api.getMembers(familyId).catch(() => ({ members: [] })),
+        api.getRitualTodaySummary(familyId).catch(() => ({ summary: {} })),
       ])
       setData(d)
+      setRitualCounts(rc.summary || {})
       setDeceased(
         (membersRes.members || [])
           .filter((m: any) => m.is_alive === false)
@@ -70,6 +73,26 @@ export default function TemplePage() {
       showToast(err.message || '加载失败', 'error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  /** 牌位直拜：动作 + 本地计数 + 点燃对应香炉 */
+  const bumpRitual = (memberId: number, kind: string) => {
+    setRitualCounts((p) => {
+      const bucket = { ...(p[memberId] || { flower: 0, candle: 0, incense: 0, kowtow: 0 }) }
+      bucket[kind] = (bucket[kind] || 0) + 1
+      return { ...p, [memberId]: bucket }
+    })
+    if (kind === 'incense') setIncenseSignals((s) => ({ ...s, [memberId]: (s[memberId] || 0) + 1 }))
+  }
+
+  const quickRitual = async (memberId: number, kind: string) => {
+    try {
+      await api.sendMemorialRitual(familyId, memberId, kind)
+      showToast('已奉上', 'success')
+      bumpRitual(memberId, kind)
+    } catch (err: any) {
+      showToast(err.message || '祭拜失败', 'error')
     }
   }
 
@@ -300,6 +323,20 @@ export default function TemplePage() {
                     祭拜
                   </button>
                   <PgIncenseBurner mini signal={incenseSignals[m.id] || 0} />
+                  <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.name} 祭拜`}>
+                    {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
+                      <button
+                        key={kind}
+                        className="pg-quick-ritual"
+                        onClick={() => quickRitual(m.id, kind)}
+                        aria-label={`${label} · 今日 ${ritualCounts[m.id]?.[kind] || 0} 次`}
+                        title={`${label}（今日 ${ritualCounts[m.id]?.[kind] || 0}）`}
+                      >
+                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="pg-quick-n">{ritualCounts[m.id]?.[kind] || 0}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -318,7 +355,7 @@ export default function TemplePage() {
           familyId={familyId}
           member={ritualMember}
           onClose={() => setRitualMember(null)}
-          onRitualSuccess={(k, mid) => { if (k === 'incense' && mid) setIncenseSignals((p) => ({ ...p, [mid]: (p[mid] || 0) + 1 })) }}
+          onRitualSuccess={(k, mid) => { if (mid) bumpRitual(mid, k) }}
         />
       )}
       </div>

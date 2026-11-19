@@ -252,6 +252,25 @@ def get_memorial_rituals(family_id):
     })
 
 
+@memorial_bp.route('/<int:family_id>/memorial/rituals/today-summary', methods=['GET'])
+@jwt_required()
+@family_permission_required('viewer')
+def get_ritual_today_summary(family_id):
+    """牌位墙直拜用：今日全族每位先人各祭拜动作次数 {member_id: {kind: n}}"""
+    from datetime import datetime as _dt
+    today = date.today()
+    rows = (MemorialRitual.query
+            .filter_by(family_id=family_id)
+            .filter(MemorialRitual.created_at >= _dt(today.year, today.month, today.day))
+            .all())
+    summary = {}
+    for r in rows:
+        bucket = summary.setdefault(r.member_id, {k: 0 for k in RITUAL_KINDS})
+        if r.kind in bucket:
+            bucket[r.kind] += 1
+    return jsonify({'summary': summary})
+
+
 @memorial_bp.route('/<int:family_id>/memorial/rituals', methods=['POST'])
 @jwt_required()
 @family_permission_required('viewer')
