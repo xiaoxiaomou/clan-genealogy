@@ -22,7 +22,7 @@ import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { FamilySwitcher } from '@/components/layout/FamilySwitcher'
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts'
 import { ShortcutHelp } from '@/hooks/ShortcutHelp'
-import { TreePine, LogOut, Home, Bell, Sun, Moon, Menu, X, Search, Keyboard, ArrowLeft } from 'lucide-react'
+import { TreePine, LogOut, Home, Bell, Sun, Moon, Menu, X, Search, Keyboard, ArrowLeft, Shield } from 'lucide-react'
 import type { ThemeMode } from '@/store/slices/appSlice'
 
 interface LayoutProps {
@@ -246,6 +246,16 @@ export function Layout({ children }: LayoutProps) {
                 </span>
               )}
             </div>
+            {user?.is_admin && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/6 transition-all active:scale-90"
+                aria-label="数据维护后台"
+                title="数据维护后台"
+              >
+                <Shield className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
             <button
               onClick={() => navigate('/profile')}
               className="flex items-center gap-2 rounded-lg px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-foreground/6 transition-all mr-0.5"
@@ -381,6 +391,18 @@ export function Layout({ children }: LayoutProps) {
                 <Home className="h-5 w-5" aria-hidden="true" />
                 我的族谱
               </button>
+              {user?.is_admin && (
+                <button
+                  onClick={() => {
+                    navigate('/admin')
+                    dispatch(setShowMobileMenu(false))
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 dark:text-gray-200 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  <Shield className="h-5 w-5" aria-hidden="true" />
+                  数据维护
+                </button>
+              )}
               <button
                 onClick={() => {
                   navigate('/profile')
