@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
 import { ArrowLeft } from 'lucide-react'
 import { formatPoem } from '@/lib/zibei'
-import { RitualModal, RITUAL_BUTTONS } from './MemorialPage'
+import { RitualModal, RITUAL_BUTTONS, RitualVisitorTip, getMeName, type VisitorInfo } from './MemorialPage'
 
 interface TempleData {
   family: any
@@ -43,6 +43,7 @@ export default function TemplePage() {
   } | null>(null)
   const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
   const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
+  const [visitors, setVisitors] = useState<Record<number, VisitorInfo[]>>({})
   const [candleSignals, setCandleSignals] = useState<Record<number, boolean>>({})
   const [bowingId, setBowingId] = useState<number | null>(null)
   const bowTimer = useRef<number | undefined>(undefined)
@@ -61,6 +62,7 @@ export default function TemplePage() {
       ])
       setData(d)
       setRitualCounts(rc.summary || {})
+      setVisitors(rc.visitors || {})
       setDeceased(
         (membersRes.members || [])
           .filter((m: any) => m.is_alive === false)
@@ -79,12 +81,31 @@ export default function TemplePage() {
     }
   }
 
-  /** 牌位直拜：动作 + 本地计数 + 对应特效（香炉点香 / 红烛点亮 / 牌位躬身） */
+  /** 牌位直拜：动作 + 本地计数 + 对应特效（香炉点香 / 红烛点亮 / 牌位躬身）+ 访客上榜 */
   const bumpRitual = (memberId: number, kind: string) => {
     setRitualCounts((p) => {
       const bucket = { ...(p[memberId] || { flower: 0, candle: 0, incense: 0, kowtow: 0 }) }
       bucket[kind] = (bucket[kind] || 0) + 1
       return { ...p, [memberId]: bucket }
+    })
+    setVisitors((p) => {
+      const meName = getMeName()
+      const list = p[memberId] ? [...p[memberId]] : []
+      const idx = list.findIndex((v) => v.user_name === meName)
+      if (idx >= 0) {
+        const v = { ...list[idx], kinds: [...list[idx].kinds] }
+        const k = v.kinds.find((x) => x.kind === kind)
+        if (k) k.n += 1
+        else v.kinds.push({ kind, n: 1 })
+        v.last_at = new Date().toISOString()
+        list.splice(idx, 1)
+        list.unshift(v)
+        return { ...p, [memberId]: list }
+      }
+      return {
+        ...p,
+        [memberId]: [{ user_name: meName, kinds: [{ kind, n: 1 }], last_at: new Date().toISOString() }, ...list].slice(0, 6),
+      }
     })
     if (kind === 'incense') setIncenseSignals((s) => ({ ...s, [memberId]: (s[memberId] || 0) + 1 }))
     if (kind === 'candle') setCandleSignals((s) => ({ ...s, [memberId]: true }))
@@ -256,6 +277,7 @@ export default function TemplePage() {
             <div className="pg-shrine">
               {deceased.map((m) => (
                 <div key={m.id} className="pg-plaque">
+                  <RitualVisitorTip visitors={visitors[m.id]} />
                   <div className="pg-plaque-glow" aria-hidden="true" />
                   <div
                     className={`pg-tstack ${bowingId === m.id ? 'pg-bowing' : ''}`}

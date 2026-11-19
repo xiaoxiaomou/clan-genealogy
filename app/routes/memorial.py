@@ -231,7 +231,8 @@ def get_memorial_rituals(family_id):
             .order_by(MemorialRitual.created_at.desc())
             .all())
     names = _user_name_map([r.user_id for r in rows])
-    today = date.today()
+    # created_at 存 UTC，「今日祭拜」统一按 UTC 日切，避免时区错位
+    today = datetime.utcnow().date()
     today_counts = {k: 0 for k in RITUAL_KINDS}
     total_counts = {k: 0 for k in RITUAL_KINDS}
     mine_today = []
@@ -256,19 +257,33 @@ def get_memorial_rituals(family_id):
 @jwt_required()
 @family_permission_required('viewer')
 def get_ritual_today_summary(family_id):
-    """牌位墙直拜用：今日全族每位先人各祭拜动作次数 {member_id: {kind: n}}"""
-    from datetime import datetime as _dt
-    today = date.today()
+    """牌位墙直拜用：今日全族每位先人各祭拜动作次数 + 谁来过（按人聚合）"""
+    # created_at 存 UTC，「今日」按 UTC 日切，与 created_at 同口径
     rows = (MemorialRitual.query
             .filter_by(family_id=family_id)
-            .filter(MemorialRitual.created_at >= _dt(today.year, today.month, today.day))
+            .filter(MemorialRitual.created_at >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0))
             .all())
     summary = {}
     for r in rows:
         bucket = summary.setdefault(r.member_id, {k: 0 for k in RITUAL_KINDS})
         if r.kind in bucket:
             bucket[r.kind] += 1
-    return jsonify({'summary': summary})
+
+    # 谁来过：按 先人×用户 聚合（动作与次数），按最近时间倒序，每人最多 6 条
+    names = _user_name_map({r.user_id for r in rows})
+    grouped = {}
+    for r in sorted(rows, key=lambda x: x.created_at):
+        users = grouped.setdefault(r.member_id, {})
+        u = users.setdefault(r.user_id, {'user_name': names.get(r.user_id), 'kinds': {}, 'last_at': None})
+        u['kinds'][r.kind] = u['kinds'].get(r.kind, 0) + 1
+        u['last_at'] = r.created_at.isoformat()
+    visitors = {}
+    for mid, users in grouped.items():
+        lst = sorted(users.values(), key=lambda x: x['last_at'], reverse=True)[:6]
+        for u in lst:
+            u['kinds'] = [{'kind': k, 'n': n} for k, n in u['kinds'].items()]
+        visitors[mid] = lst
+    return jsonify({'summary': summary, 'visitors': visitors})
 
 
 @memorial_bp.route('/<int:family_id>/memorial/rituals', methods=['POST'])

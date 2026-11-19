@@ -747,3 +747,33 @@
   .pg-candle-drip, .pg-candle-smoke { display: none; }
   .pg-stick::before { display: none; }
 }
+
+/* ── 悬浮牌位：今日谁来祭拜过 ── */
+.pg-visitor-tip {
+  position: absolute;
+  bottom: calc(100% - 30px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  width: 158px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 26px rgb(0 0 0 / .28);
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.pg-plaque:hover .pg-visitor-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+.pg-vt-title {
+  font-family: var(--pg-serif);
+  font-size: 12px;
+  letter-spacing: .22em;
+  color: var(--pg-red);
+  margin-bottom: 6px;
+}
+.pg-vt-row { display: flex; flex-direction: column; margin-bottom: 5px; }
+.pg-vt-row b { font-size: 12.5px; color: hsl(var(--foreground)); font-weight: 600; line-height: 1.4; }
+.pg-vt-kinds { font-size: 11px; color: hsl(var(--muted-foreground)); line-height: 1.5; }
+.pg-vt-empty { font-size: 11.5px; color: hsl(var(--muted-foreground)); }

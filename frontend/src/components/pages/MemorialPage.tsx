@@ -34,6 +34,46 @@ interface TodayData {
   items: MemorialItem[]
 }
 
+/** 今日来祭拜过的人（悬浮牌位时展示） */
+export interface VisitorInfo {
+  user_name: string
+  kinds: { kind: string; n: number }[]
+  last_at: string
+}
+
+const RITUAL_LABELS: Record<string, string> = { flower: '献花', candle: '点烛', incense: '上香', kowtow: '叩首' }
+
+export function getMeName(): string {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}')
+    return u.display_name || u.username || '族人'
+  } catch {
+    return '族人'
+  }
+}
+
+/** 悬浮牌位时显示「今日谁来祭拜过」 */
+export function RitualVisitorTip({ visitors }: { visitors?: VisitorInfo[] }) {
+  const vs = visitors || []
+  return (
+    <div className="pg-visitor-tip" role="tooltip">
+      <p className="pg-vt-title">今 日 祭 拜</p>
+      {vs.length === 0 ? (
+        <p className="pg-vt-empty">今日尚无族人祭拜</p>
+      ) : (
+        vs.map((v, i) => (
+          <p key={i} className="pg-vt-row">
+            <b>{v.user_name}</b>
+            <span className="pg-vt-kinds">
+              {v.kinds.map((k) => `${RITUAL_LABELS[k.kind] || k.kind}${k.n > 1 ? ` ×${k.n}` : ''}`).join(' · ')}
+            </span>
+          </p>
+        ))
+      )}
+    </div>
+  )
+}
+
 export default function MemorialPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -48,6 +88,7 @@ export default function MemorialPage() {
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
   const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
   const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
+  const [visitors, setVisitors] = useState<Record<number, VisitorInfo[]>>({})
   const [candleSignals, setCandleSignals] = useState<Record<number, boolean>>({})
   const [bowingId, setBowingId] = useState<number | null>(null)
   const bowTimer = useRef<number | undefined>(undefined)
@@ -72,6 +113,7 @@ export default function MemorialPage() {
       setUpcoming(u.upcoming || [])
       setYearOnly(y.items || [])
       setRitualCounts(rc.summary || {})
+      setVisitors(rc.visitors || {})
     } catch (err: any) {
       showToast(err.message || '加载祭日失败', 'error')
     } finally {
@@ -96,12 +138,31 @@ export default function MemorialPage() {
     })
   }
 
-  /** 牌位直拜：动作 + 本地计数 + 对应特效（香炉点香 / 红烛点亮 / 牌位躬身） */
+  /** 牌位直拜：动作 + 本地计数 + 对应特效（香炉点香 / 红烛点亮 / 牌位躬身）+ 访客上榜 */
   const bumpRitual = (memberId: number, kind: string) => {
     setRitualCounts((p) => {
       const bucket = { ...(p[memberId] || { flower: 0, candle: 0, incense: 0, kowtow: 0 }) }
       bucket[kind] = (bucket[kind] || 0) + 1
       return { ...p, [memberId]: bucket }
+    })
+    setVisitors((p) => {
+      const meName = getMeName()
+      const list = p[memberId] ? [...p[memberId]] : []
+      const idx = list.findIndex((v) => v.user_name === meName)
+      if (idx >= 0) {
+        const v = { ...list[idx], kinds: [...list[idx].kinds] }
+        const k = v.kinds.find((x) => x.kind === kind)
+        if (k) k.n += 1
+        else v.kinds.push({ kind, n: 1 })
+        v.last_at = new Date().toISOString()
+        list.splice(idx, 1)
+        list.unshift(v)
+        return { ...p, [memberId]: list }
+      }
+      return {
+        ...p,
+        [memberId]: [{ user_name: meName, kinds: [{ kind, n: 1 }], last_at: new Date().toISOString() }, ...list].slice(0, 6),
+      }
     })
     if (kind === 'incense') setIncenseSignals((s) => ({ ...s, [memberId]: (s[memberId] || 0) + 1 }))
     if (kind === 'candle') setCandleSignals((s) => ({ ...s, [memberId]: true }))
@@ -308,6 +369,7 @@ export default function MemorialPage() {
             <div className="pg-shrine">
               {yearOnly.map((m) => (
                 <div key={m.member_id} className="pg-plaque">
+                  <RitualVisitorTip visitors={visitors[m.member_id]} />
                   <div className="pg-plaque-glow" aria-hidden="true" />
                   <div
                     className={`pg-tstack ${bowingId === m.member_id ? 'pg-bowing' : ''}`}
