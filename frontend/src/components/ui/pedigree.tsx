@@ -156,11 +156,12 @@ export function PgColophon({ items }: { items: Array<[ReactNode, ReactNode]> }) 
 }
 
 /* ═══ 香炉：三足铜炉 + 三支香（点击「上香」后缓缓插入，香头火星 + 青烟袅袅）═══
-   signal 每自增一次即点燃一次；燃烧约 90 秒后香烬复位，可再续。 */
+   signal 每自增一次即点燃一次；燃烧约 90 秒后香烬复位，可再续。
+   mini=true 时缩小尺寸，用于嵌在每块牌位脚下。 */
 
 const INCENSE_BURN_MS = 90_000
 
-export function PgIncenseBurner({ signal }: { signal: number }) {
+export function PgIncenseBurner({ signal, mini }: { signal: number; mini?: boolean }) {
   const [lit, setLit] = useState(false)
   const burnTimer = useRef<number | undefined>(undefined)
 
@@ -179,7 +180,7 @@ export function PgIncenseBurner({ signal }: { signal: number }) {
   ]
 
   return (
-    <div className="pg-burner-zone">
+    <div className={mini ? 'pg-burner-sm' : 'pg-burner-zone'}>
       <div className={`pg-burner ${lit ? 'pg-burner-lit' : ''}`} role="img" aria-label="香炉">
         <div className="pg-sticks" aria-hidden="true">
           {lit &&

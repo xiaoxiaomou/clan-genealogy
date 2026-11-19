@@ -46,7 +46,7 @@ export default function MemorialPage() {
   const [days, setDays] = useState(60)
   const [familySurname, setFamilySurname] = useState('')
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
-  const [incenseSignal, setIncenseSignal] = useState(0)
+  const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
   const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null; gender: string | null }> | null>(null)
 
   useEffect(() => {
@@ -317,9 +317,9 @@ export default function MemorialPage() {
                     <Flame className="h-3 w-3" aria-hidden="true" />
                     祭拜
                   </button>
+                  <PgIncenseBurner mini signal={incenseSignals[m.member_id] || 0} />
                 </div>
               ))}
-              <PgIncenseBurner signal={incenseSignal} />
             </div>
           </div>
         )}
@@ -332,7 +332,7 @@ export default function MemorialPage() {
           familyId={familyId}
           member={ritualMember}
           onClose={() => setRitualMember(null)}
-          onRitualSuccess={(k) => { if (k === 'incense') setIncenseSignal((s) => s + 1) }}
+          onRitualSuccess={(k, mid) => { if (k === 'incense' && mid) setIncenseSignals((p) => ({ ...p, [mid]: (p[mid] || 0) + 1 })) }}
         />
       )}
     </Layout>
@@ -351,8 +351,8 @@ export function RitualModal({ familyId, member, onClose, onRitualSuccess }: {
   familyId: number
   member: MemorialItem
   onClose: () => void
-  /** 祭拜成功回调（kind: flower/candle/incense/kowtow），供页面联动（如点燃香炉） */
-  onRitualSuccess?: (kind: string) => void
+  /** 祭拜成功回调（kind: flower/candle/incense/kowtow），供页面联动（如点燃对应牌位的香炉） */
+  onRitualSuccess?: (kind: string, memberId?: number) => void
 }) {
   const { showToast } = useToast()
   const [rituals, setRituals] = useState<any>(null)
@@ -382,7 +382,7 @@ export function RitualModal({ familyId, member, onClose, onRitualSuccess }: {
     try {
       await api.sendMemorialRitual(familyId, member.member_id, kind)
       showToast('已奉上', 'success')
-      onRitualSuccess?.(kind)
+      onRitualSuccess?.(kind, member.member_id)
       setRituals(await api.getMemorialRituals(familyId, member.member_id))
     } catch (err: any) {
       showToast(err.message || '祭拜失败', 'error')

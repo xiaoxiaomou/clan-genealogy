@@ -41,7 +41,7 @@ export default function TemplePage() {
     lunar_month: number
     lunar_day: number
   } | null>(null)
-  const [incenseSignal, setIncenseSignal] = useState(0)
+  const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
 
   useEffect(() => {
     load()
@@ -299,9 +299,9 @@ export default function TemplePage() {
                     <Flame className="h-3 w-3" aria-hidden="true" />
                     祭拜
                   </button>
+                  <PgIncenseBurner mini signal={incenseSignals[m.id] || 0} />
                 </div>
               ))}
-              <PgIncenseBurner signal={incenseSignal} />
             </div>
           </div>
         )}
@@ -318,7 +318,7 @@ export default function TemplePage() {
           familyId={familyId}
           member={ritualMember}
           onClose={() => setRitualMember(null)}
-          onRitualSuccess={(k) => { if (k === 'incense') setIncenseSignal((s) => s + 1) }}
+          onRitualSuccess={(k, mid) => { if (k === 'incense' && mid) setIncenseSignals((p) => ({ ...p, [mid]: (p[mid] || 0) + 1 })) }}
         />
       )}
       </div>

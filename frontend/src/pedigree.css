@@ -468,3 +468,17 @@
   .pg-stick::after { animation: pg-ember-in .01s forwards; }
   .pg-smoke { display: none; }
 }
+
+/* 牌位脚下的迷你香炉（整炉等比缩小） */
+.pg-burner-sm {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  justify-content: center;
+  margin-top: -2px;
+  overflow: visible;
+}
+.pg-burner-sm .pg-burner {
+  transform: scale(.6);
+  transform-origin: top center;
+}
