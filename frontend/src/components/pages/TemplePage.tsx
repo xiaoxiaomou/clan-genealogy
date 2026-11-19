@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/ui'
-import { PgPageHead, PgSectionHead, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { PgPageHead, PgSectionHead, PgIncenseBurner, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
@@ -41,6 +41,7 @@ export default function TemplePage() {
     lunar_month: number
     lunar_day: number
   } | null>(null)
+  const [incenseSignal, setIncenseSignal] = useState(0)
 
   useEffect(() => {
     load()
@@ -300,6 +301,7 @@ export default function TemplePage() {
                   </button>
                 </div>
               ))}
+              <PgIncenseBurner signal={incenseSignal} />
             </div>
           </div>
         )}
@@ -316,6 +318,7 @@ export default function TemplePage() {
           familyId={familyId}
           member={ritualMember}
           onClose={() => setRitualMember(null)}
+          onRitualSuccess={(k) => { if (k === 'incense') setIncenseSignal((s) => s + 1) }}
         />
       )}
       </div>

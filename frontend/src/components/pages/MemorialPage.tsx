@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useToast, Button, FilterDrawer, MemorialRemindersSection } from '@/components/ui'
-import { PgPageHead, PgSectionHead, PgSeal, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { PgPageHead, PgSectionHead, PgSeal, PgIncenseBurner, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
@@ -46,6 +46,7 @@ export default function MemorialPage() {
   const [days, setDays] = useState(60)
   const [familySurname, setFamilySurname] = useState('')
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
+  const [incenseSignal, setIncenseSignal] = useState(0)
   const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null; gender: string | null }> | null>(null)
 
   useEffect(() => {
@@ -318,6 +319,7 @@ export default function MemorialPage() {
                   </button>
                 </div>
               ))}
+              <PgIncenseBurner signal={incenseSignal} />
             </div>
           </div>
         )}
@@ -330,6 +332,7 @@ export default function MemorialPage() {
           familyId={familyId}
           member={ritualMember}
           onClose={() => setRitualMember(null)}
+          onRitualSuccess={(k) => { if (k === 'incense') setIncenseSignal((s) => s + 1) }}
         />
       )}
     </Layout>
@@ -344,10 +347,12 @@ export const RITUAL_BUTTONS: Array<{ kind: string; label: string; icon: typeof F
   { kind: 'kowtow', label: '叩首', icon: Hand },
 ]
 
-export function RitualModal({ familyId, member, onClose }: {
+export function RitualModal({ familyId, member, onClose, onRitualSuccess }: {
   familyId: number
   member: MemorialItem
   onClose: () => void
+  /** 祭拜成功回调（kind: flower/candle/incense/kowtow），供页面联动（如点燃香炉） */
+  onRitualSuccess?: (kind: string) => void
 }) {
   const { showToast } = useToast()
   const [rituals, setRituals] = useState<any>(null)
@@ -377,6 +382,7 @@ export function RitualModal({ familyId, member, onClose }: {
     try {
       await api.sendMemorialRitual(familyId, member.member_id, kind)
       showToast('已奉上', 'success')
+      onRitualSuccess?.(kind)
       setRituals(await api.getMemorialRituals(familyId, member.member_id))
     } catch (err: any) {
       showToast(err.message || '祭拜失败', 'error')

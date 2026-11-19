@@ -3,6 +3,7 @@
  * 样式类定义在 src/pedigree.css（全局注册于 main.tsx）。
  * 页面统一使用这些原语，保证全站视觉一致。
  */
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 export const PG_RED = '#A63A2E'
@@ -150,6 +151,59 @@ export function PgColophon({ items }: { items: Array<[ReactNode, ReactNode]> }) 
           </span>
         </span>
       ))}
+    </div>
+  )
+}
+
+/* ═══ 香炉：三足铜炉 + 三支香（点击「上香」后缓缓插入，香头火星 + 青烟袅袅）═══
+   signal 每自增一次即点燃一次；燃烧约 90 秒后香烬复位，可再续。 */
+
+const INCENSE_BURN_MS = 90_000
+
+export function PgIncenseBurner({ signal }: { signal: number }) {
+  const [lit, setLit] = useState(false)
+  const burnTimer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (signal <= 0) return
+    setLit(true)
+    window.clearTimeout(burnTimer.current)
+    burnTimer.current = window.setTimeout(() => setLit(false), INCENSE_BURN_MS)
+    return () => window.clearTimeout(burnTimer.current)
+  }, [signal])
+
+  const sticks = [
+    { rot: '-9deg', d: '0s', h: 54 },
+    { rot: '0deg', d: '.55s', h: 62 },
+    { rot: '9deg', d: '1.1s', h: 58 },
+  ]
+
+  return (
+    <div className="pg-burner-zone">
+      <div className={`pg-burner ${lit ? 'pg-burner-lit' : ''}`} role="img" aria-label="香炉">
+        <div className="pg-sticks" aria-hidden="true">
+          {lit &&
+            sticks.map((s, i) => (
+              <span
+                key={i}
+                className="pg-stick"
+                style={{ '--rot': s.rot, '--d': s.d, '--h': `${s.h}px` } as CSSProperties}
+              >
+                <i className="pg-smoke pg-smoke-2" aria-hidden="true" />
+                <i className="pg-smoke pg-smoke-1" aria-hidden="true" />
+                <i className="pg-smoke pg-smoke-3" aria-hidden="true" />
+              </span>
+            ))}
+        </div>
+        <span className="pg-burner-ear pg-burner-ear-l" aria-hidden="true" />
+        <span className="pg-burner-ear pg-burner-ear-r" aria-hidden="true" />
+        <div className="pg-burner-bowl">
+          <span className="pg-burner-ash" aria-hidden="true" />
+        </div>
+        <span className="pg-burner-leg pg-burner-leg-l" aria-hidden="true" />
+        <span className="pg-burner-leg pg-burner-leg-c" aria-hidden="true" />
+        <span className="pg-burner-leg pg-burner-leg-r" aria-hidden="true" />
+      </div>
     </div>
   )
 }
