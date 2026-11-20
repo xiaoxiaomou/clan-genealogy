@@ -309,6 +309,20 @@ export default function TemplePage() {
             <div className="pg-shrine">
               {deceased.map((m) => (
                 <div key={m.id} className="pg-plaque">
+                  <div className="pg-plaque-tools">
+                    {isAdmin && (
+                      <button
+                        className="pg-tool-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/family/${familyId}/member/${m.id}`)
+                        }}
+                        title="维护牌位信息（名讳/称谓/卒年）"
+                      >
+                        <Pencil aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                   <RitualVisitorTip visitors={visitors[m.id]} />
                   <div className="pg-plaque-glow" aria-hidden="true" />
                   <div
@@ -380,17 +394,6 @@ export default function TemplePage() {
                         <span className="pg-quick-n">{ritualCounts[m.id]?.[kind] || 0}</span>
                       </button>
                     ))}
-                    {isAdmin && (
-                      <button
-                        className="pg-quick-ritual pg-quick-edit"
-                        onClick={() => navigate(`/family/${familyId}/member/${m.id}`)}
-                        aria-label={`维护 ${m.name} 的牌位信息`}
-                        title="维护牌位信息（名讳/称谓/卒年）"
-                      >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                        <span className="pg-quick-n">维护</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}

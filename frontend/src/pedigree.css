@@ -468,7 +468,7 @@
 /* 牌位脚下的迷你香炉（整炉等比缩小） */
 .pg-burner-sm {
   width: 100%;
-  height: 52px;
+  height: 66px;
   display: flex;
   justify-content: center;
   margin-top: -2px;
@@ -1033,6 +1033,26 @@
   .pg-candle-core, .pg-spark::before, .pg-burner-lit::before { animation: none; }
 }
 
-/* 管理员维护入口（牌位直拜行末的笔形按钮） */
-.pg-quick-edit { color: hsl(var(--muted-foreground)); }
-.pg-quick-edit:hover { color: hsl(var(--foreground)); border-color: hsl(var(--border)); background: hsl(var(--muted) / .6); }
+/* ── 牌位右上角悬浮维护笔（管理员，悬停显现） ── */
+.pg-plaque-tools {
+  position: absolute;
+  top: 4px; right: 4px;
+  z-index: 6;
+  display: flex; gap: 4px;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pg-plaque:hover .pg-plaque-tools { opacity: 1; }
+}
+.pg-plaque-tools:focus-within { opacity: 1; }
+.pg-tool-btn {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 7px;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground)); cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.pg-tool-btn:hover { color: hsl(var(--foreground)); border-color: rgb(166 58 46 / .45); }
+.pg-tool-btn svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
