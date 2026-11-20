@@ -6,6 +6,7 @@ from app.utils.decorators import family_permission_required, admin_required, log
 from app.utils.html_utils import sanitize_html
 from app.models.user import User
 from app.models.member import Member
+from app.models.family import FamilyMember
 from app.models.member_edit_history import MemberEditHistory
 from app.routes.member_history import record_member_changes
 from app.services.privacy_service import filter_member_list, filter_member_dict
@@ -855,12 +856,30 @@ def get_family_tree(family_id):
     for m in members:
         member_map[m.id] = m
     from app.services.privacy_service import get_effective_privacy_level
+    # 获取当前用户身份：是否管理员、是否该族谱成员
+    user_id = None
+    try:
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        verify_jwt_in_request(optional=True)
+        user_id = int(get_jwt_identity())
+    except:
+        user_id = None
+    is_admin = False
+    is_family_member = False
+    if user_id:
+        user = db.session.get(User, user_id)
+        if user:
+            is_admin = user.is_admin
+            fm = FamilyMember.query.filter_by(family_id=family_id, user_id=user_id).first()
+            is_family_member = fm is not None
+
     for node in tree_data.get('nodes', []):
         m = member_map.get(node['id'])
         if m:
             effective = get_effective_privacy_level(m)
             node['privacy_level'] = effective
-            if effective == 'private' and role != 'admin':
+            # 隐私保护仅对非管理员、非族谱成员生效：族谱成员登录查看族谱不受隐私屏蔽
+            if effective == 'private' and not is_admin and not is_family_member:
                 node['name'] = '***'
                 node['gender'] = 'unknown'
                 node.pop('birth_date', None)

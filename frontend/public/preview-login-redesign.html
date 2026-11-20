@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>登录注册 · 族谱 — 家族传承管理</title>
+<meta name="description" content="族谱：登录或注册新账户，翻开你的家族传承档案。" />
+<style>
+  /* ═══ landing-page-design 令牌 ═══ */
+  :root {
+    --accent: #C43A31;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --font: 'Manrope', -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  html[data-theme='dark'] {
+    --bg: #000000; --surface: #181818; --surface-2: #1F1F1F;
+    --fg: #FFFFFF; --muted: #9B9B9B; --border: #313131;
+    --h1-grad: linear-gradient(90deg, #FFFFFF, #9B9B9B);
+  }
+  html[data-theme='light'] {
+    --bg: #FFFFFF; --surface: #F5F5F5; --surface-2: #EFEFEF;
+    --fg: #0A0A0A; --muted: #666666; --border: #E0E0E0;
+    --h1-grad: linear-gradient(90deg, #000000, #666666);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font); }
+
+  /* 命名文本样式 */
+  .heading-2  { font-size: 30px; line-height: 36px; font-weight: 600; }
+  .body-3     { font-size: 16px; line-height: 24px; font-weight: 400; }
+  .caption-1  { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .caption-3  { font-size: 12px; line-height: 16px; font-weight: 600; }
+  .caption-5  { font-size: 12px; line-height: 16px; font-weight: 400; }
+
+  :where(a, button, input, [tabindex]):focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+  }
+
+  .skip {
+    position: fixed; top: -48px; left: 16px; z-index: 100;
+    background: var(--accent); color: #fff; padding: 8px 12px;
+    font-size: 14px; border-radius: 8px; text-decoration: none;
+    transition: top 500ms var(--ease);
+  }
+  .skip:focus { top: 16px; }
+
+  /* 噪点氛围层 */
+  body::after {
+    content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    opacity: .04; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ═══ 悬浮导航 ═══ */
+  .nav {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
+    display: flex; align-items: center; gap: 16px;
+    padding: 8px 16px;
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border); border-radius: 12px;
+  }
+  .nav .mark { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+  .nav .mark .dot {
+    width: 20px; height: 20px; border-radius: 4px; background: var(--accent);
+    color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 600;
+  }
+  .nav a.back { font-size: 14px; color: var(--muted); text-decoration: none; transition: color 300ms var(--ease); }
+  .nav a.back:hover { color: var(--fg); }
+
+  /* ═══ 主区 ═══ */
+  main {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 120px 24px 64px;
+  }
+  .hero { max-width: 680px; text-align: center; margin-bottom: 48px; }
+  .hero h1 {
+    font-size: 30px; line-height: 36px; font-weight: 600; text-wrap: balance;
+    background: var(--h1-grad);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero .sub { margin-top: 12px; font-size: 16px; line-height: 24px; color: var(--muted); }
+
+  /* ═══ 双卡：登录 | 注册 ═══ */
+  .panels { display: flex; gap: 24px; width: min(860px, 100%); align-items: stretch; flex-wrap: wrap; justify-content: center; }
+  .panel {
+    flex: 1 1 380px; max-width: 430px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 32px; text-align: left;
+    transition: border-color 300ms var(--ease);
+  }
+  .panel:hover { border-color: var(--muted); }
+  .panel h2 {
+    font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel h2::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 1px; }
+  .panel .desc { font-size: 14px; line-height: 20px; color: var(--muted); margin-bottom: 24px; }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; margin-bottom: 8px;
+    font-size: 14px; line-height: 20px; font-weight: 500; color: var(--muted);
+  }
+  .field input {
+    width: 100%; height: 44px; padding: 0 14px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--fg); font-size: 16px; line-height: 24px; font-family: var(--font);
+    outline: none;
+    transition: border-color 300ms var(--ease), background 300ms var(--ease);
+  }
+  .field input::placeholder { color: var(--muted); opacity: .6; }
+  .field input:focus { border-color: var(--accent); background: var(--bg); }
+  .field input[aria-invalid="true"] { border-color: var(--accent); }
+  .field .err { margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--accent); }
+  .pw { position: relative; }
+  .pw input { padding-right: 44px; }
+  .pw .eye {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    border: 0; background: none; color: var(--muted); cursor: pointer;
+    display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px;
+    transition: color 300ms var(--ease);
+  }
+  .pw .eye:hover { color: var(--fg); }
+
+  .meta-row {
+    margin: 16px 0 0; display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px;
+  }
+  .meta-row label { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
+  .meta-row input { accent-color: var(--accent); width: 14px; height: 14px; }
+  .meta-row a { color: var(--muted); text-decoration: none; transition: color 300ms var(--ease); }
+  .meta-row a:hover { color: var(--fg); }
+  .meta-row .agree { color: var(--muted); }
+  .meta-row .agree a { color: var(--fg); }
+
+  .btn {
+    margin-top: 24px; width: 100%; height: 44px;
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    font-weight: 600; font-size: 16px; cursor: pointer;
+    transition: transform 500ms var(--ease), filter 300ms var(--ease);
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:active { transform: scale(0.98); }
+
+  .panel .swap {
+    margin-top: 16px; text-align: center; font-size: 14px; color: var(--muted);
+  }
+  .panel .swap a { color: var(--fg); font-weight: 500; text-decoration: none; transition: color 300ms var(--ease); }
+  .panel .swap a:hover { color: var(--accent); }
+
+  .legal {
+    margin-top: 48px; text-align: center;
+    font-size: 12px; color: var(--muted);
+  }
+  .legal a { color: inherit; text-decoration: none; }
+  .legal a:hover { color: var(--fg); }
+
+  .demo-note {
+    position: fixed; bottom: 14px; right: 16px; z-index: 98;
+    font-size: 12px; color: var(--muted); opacity: .75;
+  }
+  @media (max-width: 860px) {
+    .panels { flex-direction: column; align-items: center; }
+    .panel { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#login-panel">跳到登录表单</a>
+
+<nav class="nav" aria-label="主导航">
+  <span class="mark"><span class="dot">谱</span> 族谱</span>
+  <a class="back" href="#">返回首页</a>
+</nav>
+
+<main>
+  <div class="hero">
+    <h1>登录，或为家族立一册新谱</h1>
+    <p class="sub">一个账户，管理整个家族的传承档案。</p>
+  </div>
+
+  <div class="panels">
+    <!-- 登录 -->
+    <section class="panel" id="login-panel" aria-labelledby="login-title">
+      <h2 id="login-title">登录</h2>
+      <p class="desc">已有账户？进入你的谱册。</p>
+      <form onsubmit="return false" noValidate>
+        <div class="field">
+          <label for="lu" class="caption-1">账号</label>
+          <input id="lu" class="body-3" type="text" placeholder="用户名或邮箱" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="lp" class="caption-1">密码</label>
+          <div class="pw">
+            <input id="lp" class="body-3" type="password" placeholder="输入密码" autocomplete="current-password" />
+            <button class="eye" type="button" aria-label="显示密码">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="meta-row">
+          <label><input type="checkbox" /> 记住我 7 天</label>
+          <a href="#">忘记密码？</a>
+        </div>
+        <button class="btn" type="submit">登 录</button>
+        <p class="swap">还没有账户？ <a href="#register-panel">去注册 ↓</a></p>
+      </form>
+    </section>
+
+    <!-- 注册 -->
+    <section class="panel" id="register-panel" aria-labelledby="register-title">
+      <h2 id="register-title">注册新账户</h2>
+      <p class="desc">为你的家族立一册新谱，三十秒开册。</p>
+      <form onsubmit="return false" noValidate>
+        <div class="field">
+          <label for="ru" class="caption-1">账号</label>
+          <input id="ru" class="body-3" type="text" placeholder="用户名或邮箱" autocomplete="username" aria-invalid="true" />
+          <p class="err" role="alert">请输入用户名</p>
+        </div>
+        <div class="field">
+          <label for="rn" class="caption-1">显示名称</label>
+          <input id="rn" class="body-3" type="text" placeholder="如：王丽华（族人怎么称呼你）" />
+        </div>
+        <div class="field">
+          <label for="rp" class="caption-1">密码</label>
+          <div class="pw">
+            <input id="rp" class="body-3" type="password" placeholder="至少 6 位" autocomplete="new-password" />
+            <button class="eye" type="button" aria-label="显示密码">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="meta-row">
+          <label class="agree"><input type="checkbox" /> 我已阅读并同意 <a href="#">服务条款</a> 与 <a href="#">隐私政策</a></label>
+        </div>
+        <button class="btn" type="submit">注 册</button>
+        <p class="swap">已有账户？ <a href="#login-panel">去登录 ↑</a></p>
+      </form>
+    </section>
+  </div>
+
+  <p class="legal">登录即代表同意 <a href="#">服务条款</a> 与 <a href="#">隐私政策</a></p>
+</main>
+
+<p class="demo-note">预览示意 · 注册卡的错误态为示例（真实页按输入触发）</p>
+</body>
+</html>

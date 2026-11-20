@@ -565,6 +565,8 @@ export const api = {
   // Config
   getConfigs: () => request<any>('/admin/config'),
 
+  getPublicConfigs: () => request<{ configs: Record<string, any> }>('/config/public'),
+
   updateConfig: (key: string, value: string) =>
     request<any>(`/admin/config/${key}`, { method: 'PUT', body: { value } }),
 

@@ -7,6 +7,7 @@ import { ReactFlowProvider } from '@xyflow/react'
 import GenerationStats from '@/components/tree/GenerationStats'
 import { PgSeal, PgSectionHead, PG_RED } from '@/components/ui/pedigree'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useAuth } from '@/hooks/useAuth'
 import {
   Plus,
   Users,
@@ -82,7 +83,12 @@ export default function FamilyTreePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { user } = useAuth()
   const familyId = Number(id)
+
+  // 后台功能开关（公开配置）
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
+  const isSystemAdmin = !!user?.is_admin
 
   // 数据状态
   const [family, setFamily] = useState<Family | null>(null)
@@ -358,7 +364,7 @@ export default function FamilyTreePage() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [familyData, treeDataResult, membersData, roleData, statsData, gensData, branchesData, relsData] = await Promise.all([
+      const [familyData, treeDataResult, membersData, roleData, statsData, gensData, branchesData, relsData, publicCfg] = await Promise.all([
         api.getFamily(familyId),
         api.getFamilyTree(familyId),
         api.getMembers(familyId),
@@ -367,7 +373,13 @@ export default function FamilyTreePage() {
         api.getGenerations(familyId),
         api.getBranches(familyId),
         api.getRelationships(familyId).catch(() => ({ relationships: [] })),
+        api.getPublicConfigs().catch(() => ({ configs: {} })),
       ])
+      const flagKeys = ['family.show_settings_button', 'family.show_export_button', 'family.show_functions_button']
+      const publicConfigs = (publicCfg?.configs ?? {}) as Record<string, unknown>
+      setFeatureFlags(
+        Object.fromEntries(flagKeys.map((k) => [k, publicConfigs[k] !== false]))
+      )
       setFamily(familyData.family)
       setTreeData(treeDataResult)
       setMembers(membersData.members)
@@ -383,6 +395,19 @@ export default function FamilyTreePage() {
       setIsLoading(false)
     }
   }
+
+  // 系统管理员就地切换顶栏功能开关（写入后台配置，普通用户下次加载即生效）
+  const handleToggleFeature = useCallback(async (key: string, value: boolean) => {
+    const prev = featureFlags[key]
+    setFeatureFlags((f) => ({ ...f, [key]: value })) // 即时生效
+    try {
+      await api.updateConfig(key, String(value))
+      showToast('已保存，普通用户刷新后生效', 'success')
+    } catch (err: any) {
+      setFeatureFlags((f) => ({ ...f, [key]: prev })) // 失败回滚
+      showToast(err.message || '开关保存失败', 'error')
+    }
+  }, [featureFlags, showToast])
 
   // ============ 示例数据集 ============
   const openSampleModal = useCallback(async () => {
@@ -728,6 +753,9 @@ export default function FamilyTreePage() {
           }}
           onOpenImport={() => setShowImport(true)}
           onExportPdf={handleExportPdf}
+          featureFlags={featureFlags}
+          isSystemAdmin={isSystemAdmin}
+          onToggleFeature={handleToggleFeature}
         />
 
         {/* 匾额 */}

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zupu-redesign>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>族谱树页 · 庄重谱牒版 视觉预览（牟氏）</title>
+<meta name="description" content="zupu 族谱树页视觉升级预览：庄重谱牒风格（卷册 + 印堂 + 墨青世代 + 朱砂系），仅视觉调整，功能结构与原版一致。" />
+<style>
+/* ════════════════════════════════════════════════════════════
+   族谱树页 · 庄重谱牒视觉系统（升级版）
+   设计方向：以「册页 + 印堂」为视觉母题，收敛为朱砂印泥红 / 墨青世代色 /
+             宣纸色 / 描金（仅装饰）四要素，整体呈现谱牒档案的庄重与仪式感。
+   所有节点、连线、分区均沿用原族谱设计系统的配色与字体令牌（--pg-red / --pg-serif），
+   仅做视觉升级；树形结构、成员展示、交互逻辑与原版完全一致。
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  --pg-red: #A63A2E;          /* 朱砂印泥红（唯一强调色，跨主题固定） */
+  --pg-red-deep: #8A2B22;
+  --pg-ink: #2A2118;          /* 墨色正文 */
+  --pg-ink-2: #5C4E3D;        /* 次级文字 */
+  --pg-ink-3: #8A7A64;        /* 极次文字 */
+  --pg-mono: #43503F;         /* 墨青（世代色最深，尊位） */
+  --pg-mono-2: #6E9C6E;       /* 墨青（世代色浅，末代） */
+  --pg-paper: #F6EFE2;        /* 宣纸底（浅色主题） */
+  --pg-paper-2: #FBF6E9;      /* 卡片纸（浅色主题） */
+  --pg-paper-dark: #191310;   /* 宣纸底（深色主题） */
+  --pg-card-dark: #221A14;    /* 卡片纸（深色主题） */
+  --pg-gold: #B8963F;         /* 描金（仅装饰，不作信息色） */
+  --pg-gold-2: #D9A44E;       /* 描金亮 */
+  --pg-serif: 'Noto Serif SC', 'STSong', 'KaiTi', 'STKaiti', serif;
+}
+
+html[data-theme='dark'] {
+  --pg-paper: #16110D;
+  --pg-paper-2: #221A14;
+  --pg-card-dark: #1A130D;
+  --pg-ink: #E7DCC6;
+  --pg-ink-2: #B3A388;
+  --pg-ink-3: #8A7A64;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(166, 58, 46, 0.06), transparent 60%),
+    radial-gradient(1000px 500px at 95% 0%, rgba(67, 80, 63, 0.05), transparent 55%),
+    var(--pg-paper);
+  color: var(--pg-ink);
+  font-family: var(--pg-serif);
+  font-size: 14px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 宣纸纹理（纯装饰氛围层） */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(120, 96, 60, 0.025) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(0deg, rgba(120, 96, 60, 0.02) 0 1px, transparent 1px 5px);
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+}
+
+/* 卷页外层：双线卷边 + 宣纸卡片 */
+.pg-redesign {
+  position: relative;
+  z-index: 1;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 26px 28px 40px;
+}
+.pg-redesign::before {
+  content: '';
+  position: absolute;
+  inset: 10px 10px auto 10px;
+  height: 220px;
+  border: 1px solid var(--pg-gold);
+  border-top: none;
+  border-radius: 2px 2px 0 0;
+  opacity: 0.55;
+}
+.pg-redesign::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  border: 1px solid var(--pg-gold);
+  border-radius: 2px;
+  opacity: 0.25;
+}
+
+/* ── 册页封面（页头） ── */
+.pg-cover {
+  position: relative;
+  margin-bottom: 22px;
+  padding: 22px 24px 20px;
+  background: linear-gradient(180deg, var(--pg-paper-2), var(--pg-paper));
+  border: 1px solid var(--pg-gold);
+  border-radius: 4px;
+  box-shadow: 0 10px 30px rgba(42, 33, 24, 0.12), inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+html[data-theme='dark'] .pg-cover {
+  background: linear-gradient(180deg, var(--pg-card-dark), var(--pg-paper-dark));
+  border-color: var(--pg-gold);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* 朱点眉标 */
+.pg-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  color: var(--pg-ink-2);
+  margin-bottom: 14px;
+}
+.pg-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--pg-red);
+}
+
+/* 朱砂姓印 */
+.pg-seal-char {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pg-red);
+  color: #fff;
+  font-family: var(--pg-serif);
+  font-weight: 600;
+  font-size: 26px;
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(138, 43, 34, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  transform: rotate(-3deg);
+  letter-spacing: 0;
+  user-select: none;
+}
+.pg-seal-char-sm { font-size: 14px; border-radius: 3px; transform: rotate(2deg); }
+
+.pg-title {
+  font-family: var(--pg-serif);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--pg-ink);
+  margin-top: 6px;
+}
+.pg-subtitle {
+  font-size: 13px;
+  letter-spacing: 0.24em;
+  color: var(--pg-ink-2);
+  margin-top: 8px;
+}
+
+/* 卷首副题（卷数/世代/人数） */
+.pg-vol-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--pg-gold);
+  opacity: 0.85;
+}
+.pg-vol-meta span { display: inline-flex; align-items: baseline; gap: 4px; }
+.pg-vol-meta .v-label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--pg-ink-3);
+}
+.pg-vol-meta .v-value {
+  font-family: var(--pg-serif);
+  font-size: 14px;
+  color: var(--pg-ink);
+  letter-spacing: 0.08em;
+}
+
+/* 卷页内操作按钮（庄重版） */
+.pg-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--pg-red);
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  box-shadow: 0 3px 10px rgba(138, 43, 34, 0.35);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.pg-action:hover { background: var(--pg-red-deep); transform: translateY(-1px); }
+.pg-action:focus-visible { outline: 2px solid var(--pg-gold-2); outline-offset: 3px; }
+
+/* ════════════════════════════════════════════════════════════
+   谱系谱图（族谱树页 · 升级视觉核心）
+   ════════════════════════════════════════════════════════════ */
+
+.pg-chart {
+  position: relative;
+  padding: 26px 28px 8px;
+  background: linear-gradient(180deg, var(--pg-paper-2), var(--pg-paper));
+  border: 1px solid var(--pg-gold);
+  border-radius: 4px;
+  box-shadow: 0 12px 34px rgba(42, 33, 24, 0.14), inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+html[data-theme='dark'] .pg-chart {
+  background: linear-gradient(180deg, var(--pg-card-dark), var(--pg-paper-dark));
+  border-color: var(--pg-gold);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+}
+.pg-chart::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 14px;
+  background: linear-gradient(180deg, rgba(184, 150, 63, 0.22), transparent);
+  border-bottom: 1px solid var(--pg-gold);
+}
+
+/* 世代轴：横向世代带 */
+.pg-gen-band {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.pg-gen-label {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: var(--pg-ink-3);
+  min-width: 56px;
+}
+.pg-gen-num {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--pg-ink);
+  padding: 4px 12px;
+  border: 1px solid var(--pg-gold);
+  border-radius: 3px;
+}
+
+/* 谱图左轴（墨色竖轴 + 世代节点点） */
+.pg-axis {
+  position: absolute;
+  left: 30px;
+  top: 20px;
+  bottom: 18px;
+  width: 1px;
+  background: var(--pg-gold);
+  opacity: 0.5;
+}
+.pg-axis::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20px;
+  bottom: 18px;
+  width: 1px;
+  background: var(--pg-mono);
+  opacity: 0.7;
+}
+
+/* 节点定位锚 */
+.pg-node-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  visibility: hidden;
+}
+
+/* ── 成员牌位节点 ── */
+.pg-member {
+  position: absolute;
+  width: 168px;
+  padding: 10px 12px 11px;
+  background: var(--pg-paper-2);
+  border: 1px solid var(--pg-gold);
+  border-radius: 6px;
+  box-shadow: 0 3px 12px rgba(42, 33, 24, 0.12), inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+  border-top: 3px solid var(--gen-color, var(--pg-mono));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: pg-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html[data-theme='dark'] .pg-member {
+  background: var(--pg-card-dark);
+  border-color: var(--pg-gold);
+}
+.pg-member:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(42, 33, 24, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+@keyframes pg-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pg-member .m-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pg-paper), var(--pg-paper-dark));
+  border: 1px solid var(--pg-gold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pg-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pg-ink);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+html[data-theme='dark'] .pg-member .m-avatar {
+  background: linear-gradient(135deg, #2E2518, #1A1410);
+}
+.pg-member .m-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--pg-ink);
+  margin-bottom: 3px;
+}
+.pg-member .m-zi {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--pg-ink-2);
+  margin-bottom: 4px;
+}
+.pg-member .m-year {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--pg-ink-3);
+  line-height: 1.4;
+}
+.pg-member .m-tag {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--pg-red);
+  border: 1px solid rgba(166, 58, 46, 0.4);
+  border-radius: 2px;
+  padding: 0 5px;
+  opacity: 0.92;
+}
+.pg-member .m-died {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  color: var(--pg-red);
+  font-size: 11px;
+}
+
+/* 始祖节点（根，庄重放大 + 朱砂印式边框） */
+.pg-root {
+  position: absolute;
+  width: 210px;
+  padding: 14px 16px 16px;
+  background: linear-gradient(180deg, var(--pg-paper-2), var(--pg-paper));
+  border: 2px solid var(--pg-red);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(138, 43, 34, 0.22), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  border-top: 5px solid var(--pg-mono);
+  animation: pg-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html[data-theme='dark'] .pg-root {
+  background: linear-gradient(180deg, #2A2218, #1A1410);
+}
+.pg-root .r-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 5px;
+  background: var(--pg-red);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pg-serif);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: 0 3px 10px rgba(138, 43, 34, 0.4);
+  margin-bottom: 10px;
+}
+.pg-root .r-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--pg-ink);
+  margin-bottom: 4px;
+}
+.pg-root .r-sub {
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--pg-red);
+  margin-bottom: 6px;
+}
+.pg-root .r-zi, .pg-root .r-year {
+  font-size: 10.5px;
+  color: var(--pg-ink-2);
+  letter-spacing: 0.08em;
+}
+
+/* ── 谱线（墨色 + 描金细线） ── */
+.pg-link {
+  position: absolute;
+  width: 1px;
+  background: linear-gradient(180deg, var(--pg-mono) 0%, var(--pg-gold) 100%);
+  opacity: 0.75;
+  z-index: 1;
+}
+.pg-link-h {
+  height: 1px;
+  background: linear-gradient(90deg, var(--pg-gold), transparent);
+  opacity: 0.5;
+  border-top: none;
+}
+
+/* ════════════════════════════════════════════════════════════
+   成员列表面板（按世代表格 · 谱牒式排档）
+   ════════════════════════════════════════════════════════════ */
+.pg-ancilla {
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: linear-gradient(180deg, var(--pg-card-dark), var(--pg-paper-dark));
+  border: 1px solid var(--pg-gold);
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 26px;
+  opacity: 0.92;
+}
+html[data-theme='light'] .pg-ancilla {
+  background: linear-gradient(180deg, var(--pg-paper-2), var(--pg-paper));
+  opacity: 1;
+}
+.pg-ancilla .a-label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--pg-ink-3);
+}
+.pg-ancilla .a-value {
+  font-family: var(--pg-serif);
+  font-size: 13px;
+  color: var(--pg-ink);
+  letter-spacing: 0.06em;
+}
+.pg-ancilla .a-sep {
+  width: 1px;
+  height: 10px;
+  background: var(--pg-gold);
+  opacity: 0.5;
+}
+
+/* ════════════════════════════════════════════════════════════
+   庄重入场动效（尊重减少动效）
+   ════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .pg-cover, .pg-chart, .pg-ancilla { animation: pg-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .pg-seal-char { animation: pg-stamp 0.4s ease-out 0.1s both; }
+}
+@keyframes pg-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pg-stamp {
+  0% { opacity: 0; transform: scale(2.2) rotate(8deg); }
+  60% { opacity: 1; transform: scale(1.04) rotate(-2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-3deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-cover, .pg-chart, .pg-ancilla, .pg-member, .pg-root { animation: none; }
+  .pg-member:hover { transform: none; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   改版要点（预览页底部说明）
+   ════════════════════════════════════════════════════════════ */
+.pg-version-note {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: rgba(166, 58, 46, 0.06);
+  border-left: 3px solid var(--pg-red);
+  border-radius: 2px;
+  font-size: 11.5px;
+  color: var(--pg-ink-2);
+  line-height: 1.8;
+}
+.pg-version-note b { color: var(--pg-ink); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .pg-redesign { padding: 18px 14px 28px; }
+  .pg-cover { padding: 16px 14px 14px; }
+  .pg-title { font-size: 24px; }
+  .pg-chart { padding: 18px 14px 8px; }
+  .pg-member { width: 150px; padding: 8px 10px; }
+  .pg-root { width: 178px; }
+}
+</style>
+</head>
+<body>
+<div class="pg-redesign">
+
+  <!-- ── 册页封面 ── -->
+  <div class="pg-cover">
+    <div class="pg-eyebrow">谱 牒 · 宗 脉</div>
+    <div class="pg-seal-char">牟</div>
+    <div class="pg-title">牟氏 · 族谱卷</div>
+    <div class="pg-subtitle">受 祖 守 业 · 十 世 后 嗣</div>
+
+    <div class="pg-vol-meta">
+      <span><span class="v-label">卷 帙</span><span class="v-value">一 帙</span></span>
+      <span><span class="v-label">世 系</span><span class="v-value">十 世</span></span>
+      <span><span class="v-label">宗 人</span><span class="v-value">8 位</span></span>
+      <span><span class="v-label">治 世</span><span class="v-value">明清</span></span>
+    </div>
+
+    <button class="pg-action" type="button" tabindex="0" aria-label="展开族谱树">展 卷</button>
+  </div>
+
+  <!-- ── 谱系谱图（族谱树页核心区） ── -->
+  <div class="pg-chart">
+    <div class="pg-gen-band">
+      <span class="pg-gen-label">始 祖</span>
+      <span class="pg-gen-num" style="--gen-color:#43503F;">一 世</span>
+      <span class="pg-gen-label">后 嗣</span>
+      <span class="pg-gen-num" style="--gen-color:#6E9C6E;">二 世</span>
+      <span class="pg-gen-label">世 系</span>
+      <span class="pg-gen-num" style="--gen-color:#7E9C7E;">三 世</span>
+      <span class="pg-gen-label">世代</span>
+      <span class="pg-gen-num" style="--gen-color:#8E9C7E;">四 世</span>
+      <span class="pg-gen-label">嫡 支</span>
+      <span class="pg-gen-num" style="--gen-color:#A09C7E;">五 世</span>
+    </div>
+
+    <div class="pg-axis"></div>
+    <!-- 节点与谱线由 JS 定位渲染 -->
+  </div>
+
+  <!-- ── 版刻藏书行（卷末） ── -->
+  <div class="pg-ancilla">
+    <span class="a-label">籍 贯</span><span class="a-sep"></span><span class="a-value">山东牟邑</span>
+    <span class="a-sep"></span>
+    <span class="a-label">世 系</span><span class="a-sep"></span><span class="a-value">十世单传</span>
+    <span class="a-sep"></span>
+    <span class="a-label">藏 处</span><span class="a-sep"></span><span class="a-value">族谱堂 · 第一卷</span>
+    <span class="a-sep"></span>
+    <span class="a-label">修 记</span><span class="a-sep"></span><span class="a-value">崇祯 修 · 乾隆 增</span>
+  </div>
+
+  <!-- ── 改版要点 ── -->
+  <div class="pg-version-note">
+    <b>视觉升级要点（仅视觉调整，功能结构与原版一致）：</b><br />
+    1. <b>风格定位</b>：以「册页 + 印堂」为母题，整体呈谱牒档案的庄重仪式感，收敛为朱砂印泥红 / 墨青世代色 / 宣纸色 / 描金（仅装饰）四要素。<br />
+    2. <b>配色</b>：移除原页头的现代 amber/stone 中性配色，统一为谱牒色系；朱砂红保持原 `--pg-red`，世代色改用墨青深浅阶（尊位深、末代浅）。<br />
+    3. <b>布局</b>：页头改为册页封面（朱砂姓印 + 竖排题签 + 卷帙副题）；树区改为卷页式谱系谱图（世代带 + 左墨色轴 + 庄重牌位节点）；卷末新增版刻藏书行。<br />
+    4. <b>关键元素</b>：朱砂姓印、世代墨青色阶条、字辈朱砂小印、墨色/描金谱线、始祖庄重根节点、宣纸纹理与卷边。<br />
+    5. <b>动效</b>：入场改为庄重版（卷页浮起淡入 + 姓印落印），保留 `prefers-reduced-motion` 兼容；不新增功能。
+  </div>
+
+</div>
+<script>
+/* ════════════════════════════════════════════════════════════
+   数据：牟氏家族树（与族谱树页节点结构一致：id / name / gen / gender /
+   courtesy / art / birth / death / alive / role）
+   ════════════════════════════════════════════════════════════ */
+const MEMBERS = [
+  { id: 1,  name: '牟伯望',    gen: 1, gender: 'male',  courtesy: '仲贤', art: '守业',  birth: '1708', death: '1786', alive: true,  role: '受祖', note: '始祖' },
+  { id: 2,  name: '牟氏氏',    gen: 1, gender: 'female', courtesy: '',     art: '',        birth: '1712', death: '1789', alive: true,  role: '祖妣', note: '' },
+  { id: 3,  name: '牟仲贤',    gen: 2, gender: 'male',  courtesy: '仲贤', art: '守业',  birth: '1740', death: '1812', alive: true,  role: '后嗣', note: '' },
+  { id: 4,  name: '牟绍祖',    gen: 3, gender: 'male',  courtesy: '绍祖', art: '',        birth: '1778', death: '1834', alive: true,  role: '后嗣', note: '' },
+  { id: 5,  name: '牟绍基',    gen: 4, gender: 'male',  courtesy: '绍基', art: '',        birth: '1805', death: '1887', alive: true,  role: '后嗣', note: '' },
+  { id: 6,  name: '牟绍清',    gen: 5, gender: 'male',  courtesy: '绍清', art: '',        birth: '1832', death: '1909', alive: true,  role: '后嗣', note: '' },
+  { id: 7,  name: '牟守拙',    gen: 4, gender: 'male',  courtesy: '守拙', art: '',        birth: '1808', death: '1881', alive: true,  role: '后嗣', note: '' },
+  { id: 8,  name: '牟守安',    gen: 5, gender: 'male',  courtesy: '守安', art: '',        birth: '1835', death: '1921', alive: true,  role: '后嗣', note: '' },
+];
+const CN = ['〇','一','二','三','四','五','六','七','八','九'];
+const genColor = (g) => `hsl(${32 + g * 7}%, 26%, 62%)`; // 深→浅 墨青世代色
+
+const byId = new Map(MEMBERS.map(m => [m.id, m]));
+// 树形结构：根 + 父子关系（与族谱树页 edges 一致）
+const tree = {
+  1: [2, 3],
+  3: [4],
+  4: [5, 7],
+  5: [6],
+  7: [8],
+};
+const roots = [1];
+
+/* ════════════════════════════════════════════════════════════
+   布局：确定性比例定位（预览用，保持谱图形态与庄重排布）
+   ════════════════════════════════════════════════════════════ */
+const COL_W = 820;          // 谱图宽度
+const LH = 122;             // 世代层高
+const PAD_L = 30;           // 左轴距
+const NODE_W = 168;
+const NODE_H = 96;
+
+// 计算每个节点的水平位置（按本世代节点数居中分布）
+function computeX(nodeId, gen) {
+  // 收集本世代全部 id（按谱树前序遍历），再按序号均匀分布到谱图宽度内
+  const genIds = [];
+  const traverse = (id) => {
+    const kids = tree[id] || [];
+    for (const k of kids) traverse(Number(k));
+    genIds.push(Number(id));
+  };
+  for (const r of roots) traverse(Number(r));
+  const nodeIds = genIds.filter(id => byId.get(id)?.gen === gen);
+  const idx = nodeIds.indexOf(Number(nodeId));
+  const c = nodeIds.length;
+  // 相邻节点间距 = NODE_W + 8；首尾居中于谱图宽度内
+  const spread = (COL_W / 2) - (NODE_W / 2) - ((c - 1) * (NODE_W + 8) / 2);
+  return COL_W / 2 - (NODE_W / 2) - spread / 2 + idx * (NODE_W + 8);
+}
+function computeTop(gen) {
+  return 24 + (gen - 1) * LH;
+}
+
+const nodes = [];
+const links = [];
+const addNode = (nodeId, gen, isRoot) => {
+  const m = byId.get(nodeId);
+  const x = computeX(nodeId, m.gen);
+  const top = computeTop(m.gen);
+  const left = x;
+  const el = document.createElement('div');
+  if (isRoot) {
+    el.className = 'pg-root';
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  } else {
+    el.className = 'pg-member';
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.style.setProperty('--gen-color', genColor(m.gen));
+  }
+  const died = !m.alive ? '<span class="m-died">†</span>' : '';
+  const content = isRoot
+    ? `
+      <div class="r-avatar">${m.name.slice(0, 1)}</div>
+      <div class="r-name">${m.name}</div>
+      <div class="r-sub">${m.role || '受祖'}</div>
+      <div class="r-year">${m.birth} 生 · ${m.death} 卒${died}</div>
+    `
+    : `
+      <div class="m-avatar">${m.name.slice(0, 1)}</div>
+      <div class="m-name">${m.name}</div>
+      <div class="m-zi">字${m.courtesy || '—'}　号${m.art || '—'}</div>
+      <div class="m-year">${m.birth} ~ ${m.death}${!m.alive ? '（已故）' : ''}</div>
+      ${m.role ? `<span class="m-tag">${m.role}</span>` : ''}${died}
+    `;
+  el.innerHTML = content;
+  nodes.push({ id: nodeId, el, gen: m.gen, isRoot, m });
+  return el;
+};
+
+// 按谱树顺序渲染根节点（先根，再其子）
+const rootEls = [];
+for (const r of roots) {
+  const el = addNode(Number(r), byId.get(Number(r)).gen, true);
+  el.id = String(Number(r)); // 挂 id，便于谱线定位父节点
+  rootEls.push(el);
+  // 根的子节点稍后挂到根下方（单独处理）
+}
+// 处理非根节点（先渲染节点，再画谱线）
+const renderedNonRoot = [];
+function addChild(parentId, nodeId) {
+  if (renderedNonRoot.some(n => n.id === nodeId)) return;
+  const el = addNode(nodeId, byId.get(nodeId).gen, false);
+  renderedNonRoot.push({ parentId, childId: nodeId, el });
+}
+for (const r of roots) {
+  const pid = Number(r);
+  for (const kidId of tree[pid] || []) {
+    addChild(pid, kidId);
+  }
+}
+// 先渲染非根节点到 chart（顺序无影响，定位已算好）
+for (const n of renderedNonRoot) {
+  document.querySelector('.pg-chart').appendChild(n.el);
+}
+// 渲染始祖根节点（根节点先于其子节点可见，营造谱系源头在上的顺序）
+for (const el of rootEls) {
+  document.querySelector('.pg-chart').appendChild(el);
+}
+// 画谱线：父→子 垂直线（位于子节点中心 x），以及 同世代并列的横向分支线
+renderedNonRoot.forEach(({ parentId, childId, el }) => {
+  // 找到父节点元素（根节点或已挂载的非根节点）
+  let parentEl = null;
+  const findEl = (id) => {
+    if (rootEls.some(n => n.el.id === id)) return rootEls.find(n => n.el.id === id);
+    if (renderedNonRoot.some(n => n.id === id)) return renderedNonRoot.find(n => n.id === id).el;
+    return null;
+  };
+  parentEl = findEl(parentId);
+  const child = nodes.find(n => n.id === childId);
+  if (!parentEl || !child) return;
+  const parentTop = parentEl.offsetTop + parentEl.offsetHeight;
+  const childTop = child.el.offsetTop;
+  const x = child.el.offsetLeft + child.el.offsetWidth / 2;
+  const y = parentTop + 4;
+  const h = childTop - y;
+  const line = document.createElement('div');
+  line.className = 'pg-link';
+  line.style.left = (x - 1) + 'px';
+  line.style.top = y + 'px';
+  line.style.height = Math.max(16, h) + 'px';
+  document.querySelector('.pg-chart').appendChild(line);
+  links.push({ line, parentId, childId });
+});
+// 同世代首尾节点的横向分支线（示并列关系）
+// 找出每世代节点序列
+const genGroups = {};
+for (const m of MEMBERS) { genGroups[m.gen] = genGroups[m.gen] || []; genGroups[m.gen].push(m.id); }
+for (const [gen, ids] of Object.entries(genGroups)) {
+  const sorted = ids.map(id => byId.get(id).id).sort((a, b) => computeX(a, Number(gen)) - computeX(b, Number(gen)));
+  if (sorted.length < 2) continue;
+  const chart = document.querySelector('.pg-chart');
+  sorted.forEach((id, i) => {
+    const x = computeX(id, Number(gen));
+    const top = computeTop(Number(gen));
+    const el = document.createElement('div');
+    el.className = 'pg-node-anchor';
+    el.style.left = x + 'px';
+    el.style.top = top + 'px';
+    chart.appendChild(el);
+  });
+  const first = computeX(sorted[0], Number(gen));
+  const last = computeX(sorted[sorted.length - 1], Number(gen));
+  const line = document.createElement('div');
+  line.className = 'pg-link pg-link-h';
+  line.style.left = (first + NODE_W / 2) + 'px';
+  line.style.top = (top + NODE_H + 4) + 'px';
+  line.style.width = (last - first - 8) + 'px';
+  chart.appendChild(line);
+}
+
+/* 属性：节点显式挂 id，便于排查 */
+nodes.forEach(n => n.el.setAttribute('data-member-id', String(n.id)));
+</script>
+</body>
+</html>

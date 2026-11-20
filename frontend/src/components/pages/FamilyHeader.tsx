@@ -1,4 +1,5 @@
-import { Button } from '@/components/ui'
+import { useState } from 'react'
+import { Button, ToggleSwitch } from '@/components/ui'
 import { PG_RED } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
@@ -9,6 +10,8 @@ import {
   Download,
   Settings,
   BookOpenText,
+  SlidersHorizontal,
+  X,
 } from 'lucide-react'
 import type { Family } from '@/types'
 
@@ -25,7 +28,19 @@ interface FamilyHeaderProps {
   onOpenQuickFamily: () => void
   onOpenImport: () => void
   onExportPdf: () => void
+  /** 后台功能开关（系统管理员控制）；undefined 时按开启处理 */
+  featureFlags?: Record<string, boolean>
+  /** 系统管理员：始终可见所有按钮，避免关闭后无法再次开启 */
+  isSystemAdmin?: boolean
+  /** 系统管理员就地切换开关 */
+  onToggleFeature?: (key: string, value: boolean) => void
 }
+
+const FEATURE_SWITCHES: Array<{ key: string; label: string; desc: string }> = [
+  { key: 'family.show_settings_button', label: '族谱设置按钮', desc: '顶栏齿轮入口' },
+  { key: 'family.show_export_button', label: '导出 PDF 按钮', desc: '顶栏导出入口' },
+  { key: 'family.show_functions_button', label: '功能目录按钮', desc: '顶栏功能目录入口' },
+]
 
 function getRoleLabel(role: string): string {
   switch (role) {
@@ -66,8 +81,17 @@ export default function FamilyHeader({
   onOpenQuickFamily,
   onOpenImport,
   onExportPdf,
+  featureFlags,
+  isSystemAdmin = false,
+  onToggleFeature,
 }: FamilyHeaderProps) {
+  const [showFeaturePanel, setShowFeaturePanel] = useState(false)
   const memberCount = Array.isArray(members) ? members.length : 0
+  // 系统管理员始终可见；普通用户按后台开关决定
+  const flagOn = (key: string) => isSystemAdmin || featureFlags?.[key] !== false
+  const showSettings = flagOn('family.show_settings_button')
+  const showExport = flagOn('family.show_export_button')
+  const showFunctions = flagOn('family.show_functions_button')
 
   return (
     <div
@@ -167,51 +191,119 @@ export default function FamilyHeader({
             </>
           )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onNavigate(`/family/${familyId}/settings`)}
-            className="h-8 w-8 rounded-md border border-amber-700/30 bg-stone-950/40 text-amber-100 hover:border-amber-600/50 hover:bg-stone-900/60"
-            aria-label="族谱设置"
-            title="族谱设置"
-          >
-            <Settings className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onExportPdf}
-            disabled={isExporting || memberCount === 0}
-            className="h-8 w-8 rounded-md border border-amber-700/30 bg-stone-950/40 text-amber-100 hover:border-amber-600/50 hover:bg-stone-900/60 disabled:opacity-40"
-            aria-label="导出 PDF"
-            title={memberCount === 0 ? '暂无可导出的成员' : '导出 PDF'}
-          >
-            {isExporting ? (
-              <div
-                className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-400 border-t-transparent"
-                aria-hidden="true"
-              />
-            ) : (
-              <Download className="h-4 w-4" aria-hidden="true" />
-            )}
-          </Button>
+          {showSettings && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onNavigate(`/family/${familyId}/settings`)}
+              className="h-8 w-8 rounded-md border border-amber-700/30 bg-stone-950/40 text-amber-100 hover:border-amber-600/50 hover:bg-stone-900/60"
+              aria-label="族谱设置"
+              title="族谱设置"
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
+          {showExport && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onExportPdf}
+              disabled={isExporting || memberCount === 0}
+              className="h-8 w-8 rounded-md border border-amber-700/30 bg-stone-950/40 text-amber-100 hover:border-amber-600/50 hover:bg-stone-900/60 disabled:opacity-40"
+              aria-label="导出 PDF"
+              title={memberCount === 0 ? '暂无可导出的成员' : '导出 PDF'}
+            >
+              {isExporting ? (
+                <div
+                  className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-400 border-t-transparent"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Download className="h-4 w-4" aria-hidden="true" />
+              )}
+            </Button>
+          )}
 
           {/* 功能目录：原页头 21 个导航链接收拢至此页 */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onNavigate(`/family/${familyId}/functions`)}
-            className="h-8 gap-1.5 px-2.5 text-xs"
-            style={{
-              borderColor: 'color-mix(in srgb, ' + PG_RED + ' 55%, transparent)',
-              color: PG_RED,
-            }}
-            aria-label="功能目录"
-            title="全部功能目录"
-          >
-            <BookOpenText className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="whitespace-nowrap font-serif tracking-wide">功能目录</span>
-          </Button>
+          {showFunctions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigate(`/family/${familyId}/functions`)}
+              className="h-8 gap-1.5 px-2.5 text-xs"
+              style={{
+                borderColor: 'color-mix(in srgb, ' + PG_RED + ' 55%, transparent)',
+                color: PG_RED,
+              }}
+              aria-label="功能目录"
+              title="全部功能目录"
+            >
+              <BookOpenText className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="whitespace-nowrap font-serif tracking-wide">功能目录</span>
+            </Button>
+          )}
+
+          {/* 系统管理员专用：就地功能开关（不受上面开关影响，始终可见） */}
+          {isSystemAdmin && onToggleFeature && (
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFeaturePanel((v) => !v)}
+                className="h-8 w-8 rounded-md border border-sky-700/40 bg-stone-950/40 text-sky-200 hover:border-sky-600/60 hover:bg-stone-900/60"
+                aria-label="功能开关"
+                title="功能开关（仅管理员）"
+              >
+                <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              </Button>
+
+              {showFeaturePanel && (
+                <div
+                  className="absolute right-0 top-10 z-50 w-72 rounded-lg border border-amber-700/40 bg-stone-950 p-3 shadow-2xl shadow-black/60"
+                  role="dialog"
+                  aria-label="功能开关面板"
+                >
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <span className="font-serif text-sm font-semibold text-amber-100">功能开关</span>
+                    <button
+                      onClick={() => setShowFeaturePanel(false)}
+                      className="rounded p-0.5 text-amber-200/60 hover:text-amber-100"
+                      aria-label="关闭"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mb-2 text-[11px] leading-snug text-amber-200/50">
+                    关闭后普通用户不可见，管理员始终可见
+                  </p>
+                  <div className="space-y-1">
+                    {FEATURE_SWITCHES.map((s) => {
+                      const on = featureFlags?.[s.key] !== false
+                      return (
+                        <div
+                          key={s.key}
+                          className="flex w-full items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left hover:bg-stone-800/60"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs text-amber-50">{s.label}</span>
+                            <span className="block truncate text-[10px] text-amber-200/40">{s.desc}</span>
+                          </span>
+                          <ToggleSwitch
+                            size="sm"
+                            showLabel={false}
+                            checked={on}
+                            onChange={(v) => onToggleFeature(s.key, v)}
+                            ariaLabel={`${s.label}，当前${on ? '已开启' : '已关闭'}`}
+                            className="flex-shrink-0"
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

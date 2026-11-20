@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { SystemConfig } from '@/types'
 import { Layout } from '@/components/layout/Layout'
-import { Button, Input, useToast } from '@/components/ui'
+import { Button, Input, useToast, ToggleSwitch } from '@/components/ui'
 import { PgPageHead } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
@@ -15,8 +15,6 @@ import {
   UserCircle,
   Bell,
   Palette,
-  ToggleLeft,
-  ToggleRight,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
@@ -45,6 +43,8 @@ export function AdminConfigPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [expandedDesc, setExpandedDesc] = useState<string | null>(null)
+  // 正在切换中的布尔开关 key 集合：用于防重复点击 + 禁用态
+  const [togglingKeys, setTogglingKeys] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchConfigs()
@@ -91,6 +91,29 @@ export function AdminConfigPage() {
     setEditValue('')
   }
 
+  // 布尔开关：点击就地切换，状态可被后端与各业务逻辑读取
+  const handleToggleBool = async (config: SystemConfig) => {
+    if (togglingKeys.has(config.key)) return // 防重复点击
+    const next = config.value === 'true' ? 'false' : 'true'
+    setTogglingKeys((prev) => new Set(prev).add(config.key))
+    // 乐观更新：界面显示/文案/样式立即同步
+    setConfigs((prev) => prev.map((c) => (c.key === config.key ? { ...c, value: next } : c)))
+    try {
+      await api.updateConfig(config.key, next)
+      showToast(`${config.label} 已${next === 'true' ? '开启' : '关闭'}`, 'success')
+    } catch (error: any) {
+      // 失败回滚
+      setConfigs((prev) => prev.map((c) => (c.key === config.key ? { ...c, value: config.value } : c)))
+      showToast(`切换失败：${error.message || '请重试'}`, 'error')
+    } finally {
+      setTogglingKeys((prev) => {
+        const s = new Set(prev)
+        s.delete(config.key)
+        return s
+      })
+    }
+  }
+
   const handleResetCategory = async () => {
     if (!confirm(`确定要重置 ${CATEGORY_CONFIG[activeCategory as keyof typeof CATEGORY_CONFIG]?.label} 下的所有配置吗？`)) {
       return
@@ -107,28 +130,22 @@ export function AdminConfigPage() {
   const filteredConfigs = configs.filter(c => c.category === activeCategory)
 
   const renderConfigInput = (config: SystemConfig) => {
-    if (editingKey !== config.key) {
+    // 布尔项：谱牒风格开关控件
+    if (config.value_type === 'boolean') {
+      const on = config.value === 'true'
       return (
-        <span className="text-sm text-muted-foreground">
-          {config.value_type === 'boolean' ? (
-            config.value === 'true' ? '是' : '否'
-          ) : (
-            config.value || '-'
-          )}
-        </span>
+        <ToggleSwitch
+          checked={on}
+          onChange={() => handleToggleBool(config)}
+          ariaLabel={`${config.label}，当前${on ? '已开启' : '已关闭'}`}
+          busy={togglingKeys.has(config.key)}
+        />
       )
     }
 
-    if (config.value_type === 'boolean') {
+    if (editingKey !== config.key) {
       return (
-        <select
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          className="rounded border px-2 py-1 text-sm"
-        >
-          <option value="true">是 (true)</option>
-          <option value="false">否 (false)</option>
-        </select>
+        <span className="text-sm text-muted-foreground">{config.value || '-'}</span>
       )
     }
 
@@ -303,7 +320,7 @@ export function AdminConfigPage() {
                         取消
                       </Button>
                     </>
-                  ) : (
+                  ) : config.value_type === 'boolean' ? null : (
                     <Button
                       size="sm"
                       variant="outline"
@@ -316,13 +333,6 @@ export function AdminConfigPage() {
               </div>
               <div className="mt-3 flex items-center gap-2">
                 {renderConfigInput(config)}
-                {config.value_type === 'boolean' && editingKey !== config.key && (
-                  config.value === 'true' ? (
-                    <ToggleRight className="h-5 w-5 text-success" aria-hidden="true" />
-                  ) : (
-                    <ToggleLeft className="h-5 w-5 text-muted-foreground/50" aria-hidden="true" />
-                  )
-                )}
               </div>
             </div>
           ))}

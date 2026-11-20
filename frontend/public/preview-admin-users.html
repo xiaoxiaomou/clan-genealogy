@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户管理 · 改版预览（谱局名册）</title>
+<style>
+/* ═══════════ 主题令牌（与 src/index.css 同源） ═══════════ */
+:root {
+  --pg-red: #A63A2E;
+  --pg-serif: 'Noto Serif SC', 'STSong', 'KaiTi', 'STKaiti', serif;
+  --radius: 12px;
+
+  /* 浅色（默认） */
+  --background: 220 10% 96%;
+  --foreground: 220 5% 11%;
+  --card: 0 0% 100%;
+  --muted: 220 10% 92%;
+  --muted-foreground: 220 8% 42%;
+  --border: 220 10% 84%;
+  --success: 145 35% 34%;
+  --warning: 38 85% 38%;
+  --destructive: 0 72% 46%;
+}
+html.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 240 3% 13%;
+  --muted: 240 3% 15%;
+  --muted-foreground: 220 8% 62%;
+  --border: 240 2% 20%;
+  --success: 145 35% 48%;
+  --warning: 38 85% 52%;
+  --destructive: 0 72% 58%;
+}
+html.ink {
+  --background: 36 36% 92%;
+  --foreground: 24 30% 18%;
+  --card: 36 30% 88%;
+  --muted: 36 20% 86%;
+  --muted-foreground: 24 18% 36%;
+  --border: 36 18% 76%;
+  --success: 145 32% 32%;
+  --warning: 30 70% 34%;
+  --destructive: 0 60% 42%;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  transition: background-color .25s ease, color .25s ease;
+}
+button { font: inherit; cursor: pointer; color: inherit; background: none; border: none; }
+:focus-visible { outline: 2px solid hsl(var(--pg-red, #A63A2E)); outline-offset: 2px; }
+svg.ic { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.7; fill: none;
+         stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+/* ═══════════ 顶栏（示意） ═══════════ */
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 28px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / .7);
+}
+.logo-seal {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: var(--pg-red); color: #fff;
+  font-family: var(--pg-serif); font-weight: 600; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-2deg); box-shadow: 0 2px 5px rgb(0 0 0 / .18);
+}
+.logo-name { font-family: var(--pg-serif); letter-spacing: .18em; font-weight: 600; }
+.topbar-spacer { flex: 1; }
+.theme-seg { display: flex; gap: 2px; padding: 2px; border: 1px solid hsl(var(--border)); border-radius: 8px; }
+.theme-seg button { padding: 3px 10px; font-size: 12px; border-radius: 6px; color: hsl(var(--muted-foreground)); }
+.theme-seg button[aria-pressed="true"] { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.me { display: flex; align-items: center; gap: 8px; font-size: 13px; color: hsl(var(--muted-foreground)); }
+.me .ava { width: 28px; height: 28px; font-size: 12px; }
+
+/* ═══════════ 页面骨架 ═══════════ */
+.page { max-width: 920px; margin: 0 auto; padding: 28px 20px 60px; }
+.back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: hsl(var(--muted-foreground));
+  padding: 5px 10px 5px 6px; border-radius: 8px; margin-bottom: 18px;
+}
+.back-btn:hover { background: hsl(var(--muted) / .6); color: hsl(var(--foreground)); }
+
+.pg-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.pg-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: .32em; color: hsl(var(--muted-foreground));
+}
+.pg-eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 2px; background: var(--pg-red); }
+.pg-title { font-family: var(--pg-serif); font-size: 26px; letter-spacing: .06em; margin-top: 6px; }
+.pg-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+.pg-seal {
+  width: 52px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--pg-red); color: #fff;
+  font-family: var(--pg-serif); font-weight: 600; font-size: 24px;
+  border-radius: 10px; transform: rotate(-2deg);
+  box-shadow: 0 2px 6px rgb(0 0 0 / .18); user-select: none;
+}
+
+/* ═══════════ 名册总览（新增） ═══════════ */
+.stats {
+  display: flex; align-items: stretch;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  border-radius: var(--radius); overflow: hidden;
+}
+.stats-spine {
+  display: flex; align-items: center; padding: 14px 10px;
+  border-right: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / .45);
+}
+.stats-spine span {
+  writing-mode: vertical-rl; font-family: var(--pg-serif);
+  letter-spacing: .42em; font-size: 13px; color: var(--pg-red);
+}
+.stat { flex: 1; padding: 16px 10px 14px; text-align: center; position: relative; }
+.stat + .stat::before {
+  content: ''; position: absolute; left: 0; top: 22%; bottom: 22%;
+  width: 1px; background: hsl(var(--border));
+}
+.stat b { font-family: var(--pg-serif); font-size: 26px; font-weight: 600; line-height: 1.15; display: block; }
+.stat.alert b { color: var(--pg-red); }
+.stat span { font-size: 11.5px; letter-spacing: .14em; color: hsl(var(--muted-foreground)); }
+.stat small { display: block; font-size: 10.5px; color: hsl(var(--muted-foreground) / .75); margin-top: 2px; }
+
+/* ═══════════ 工具行：标签 + 搜索 ═══════════ */
+.toolbar { display: flex; gap: 12px; align-items: center; margin: 22px 0 14px; flex-wrap: wrap; }
+.tabs {
+  display: inline-flex; gap: 2px; padding: 3px;
+  background: hsl(var(--muted) / .5); border: 1px solid hsl(var(--border)); border-radius: 10px;
+}
+.tabs button {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; font-size: 13px; border-radius: 8px;
+  color: hsl(var(--muted-foreground));
+}
+.tabs button .n {
+  font-size: 11px; padding: 0 6px; min-width: 18px; text-align: center;
+  border-radius: 99px; background: hsl(var(--muted)); color: hsl(var(--muted-foreground));
+}
+.tabs button[aria-selected="true"] {
+  background: hsl(var(--card)); color: hsl(var(--foreground));
+  box-shadow: 0 1px 3px rgb(0 0 0 / .08);
+}
+.tabs button[aria-selected="true"] .n { background: hsl(var(--pg-red, #A63A2E) / .1); color: var(--pg-red); }
+.search {
+  flex: 1; min-width: 200px; max-width: 300px; margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid hsl(var(--border)); border-radius: 10px;
+  background: hsl(var(--card)); padding: 7px 12px; color: hsl(var(--muted-foreground));
+}
+.search input {
+  flex: 1; border: none; background: none; color: hsl(var(--foreground));
+  font: inherit; outline: none;
+}
+.search input::placeholder { color: hsl(var(--muted-foreground) / .7); }
+
+/* ═══════════ 名册列表 ═══════════ */
+.pg-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.pg-section-head::before { content: ''; width: 6px; height: 6px; border-radius: 2px; background: var(--pg-red); flex-shrink: 0; }
+.pg-section-title { font-family: var(--pg-serif); font-size: 15px; font-weight: 600; letter-spacing: .18em; white-space: nowrap; }
+.pg-section-rule { flex: 1; height: 1px; background: hsl(var(--border)); }
+.pg-section-count { font-size: 12px; color: hsl(var(--muted-foreground)); }
+
+.rows { display: flex; flex-direction: column; gap: 10px; }
+.user-row {
+  display: flex; align-items: center; gap: 14px;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  border-radius: var(--radius); padding: 14px 16px;
+  transition: opacity .2s ease;
+}
+.user-row.is-dim { opacity: .58; }
+.user-row.is-dim:hover { opacity: 1; }
+
+.ava {
+  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: hsl(var(--muted)); font-family: var(--pg-serif);
+  font-size: 17px; font-weight: 600; color: hsl(var(--foreground) / .8);
+}
+.ava.is-admin { box-shadow: 0 0 0 2px hsl(var(--card)), 0 0 0 3.5px var(--pg-red); color: var(--pg-red); }
+.user-row.is-dim .ava { filter: grayscale(.7); }
+
+.u-main { flex: 1; min-width: 0; }
+.u-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.u-name .nm { font-size: 14.5px; font-weight: 600; }
+.seal-mini {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  background: var(--pg-red); color: #fff;
+  font-family: var(--pg-serif); font-size: 11px; font-weight: 600;
+  border-radius: 4px; transform: rotate(3deg); user-select: none;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 500; padding: 1.5px 8px; border-radius: 99px;
+}
+.badge svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 1.8; fill: none;
+             stroke-linecap: round; stroke-linejoin: round; }
+.badge.ok   { color: hsl(var(--success)); background: hsl(var(--success) / .1); }
+.badge.warn { color: hsl(var(--warning)); background: hsl(var(--warning) / .12); }
+.badge.off  { color: hsl(var(--muted-foreground)); background: hsl(var(--muted)); }
+.badge.no   { color: hsl(var(--destructive)); background: hsl(var(--destructive) / .1); }
+.self-tag { font-size: 12px; color: hsl(var(--muted-foreground)); }
+
+.u-meta { font-size: 12.5px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+.u-meta .dim { color: hsl(var(--muted-foreground) / .72); }
+
+.u-fams { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+.fam-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; padding: 2px 9px; border-radius: 99px;
+  border: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / .35);
+}
+.fam-chip i { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.fam-chip b { font-weight: 500; color: hsl(var(--foreground) / .78); }
+.dot-owner { background: var(--pg-red); }
+.dot-admin { background: hsl(18 60% 45%); }
+.dot-editor { background: hsl(160 24% 38%); }
+.dot-viewer { background: hsl(211 40% 55%); }
+
+.u-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.act-divider { width: 1px; height: 18px; background: hsl(var(--border)); margin: 0 2px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12.5px; padding: 6px 12px; border-radius: 9px;
+  border: 1px solid hsl(var(--border)); color: hsl(var(--foreground) / .85);
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.btn:hover { background: hsl(var(--muted) / .6); }
+.btn.danger { color: hsl(var(--destructive)); border-color: hsl(var(--destructive) / .35); }
+.btn.danger:hover { background: hsl(var(--destructive) / .08); border-color: hsl(var(--destructive) / .55); }
+.btn.solid-ok { background: hsl(var(--success)); color: #fff; border-color: transparent; }
+.btn.solid-ok:hover { background: hsl(var(--success) / .88); }
+.btn.solid-red { background: var(--pg-red); color: #fff; border-color: transparent; }
+.btn.solid-red:hover { background: #8f2f25; }
+
+/* ═══════════ 空状态 ═══════════ */
+.empty {
+  text-align: center; padding: 44px 20px;
+  background: hsl(var(--card)); border: 1px dashed hsl(var(--border));
+  border-radius: var(--radius);
+}
+.empty .e-title { font-family: var(--pg-serif); font-size: 15px; letter-spacing: .12em; color: hsl(var(--foreground) / .75); }
+.empty .e-sub { font-size: 12.5px; color: hsl(var(--muted-foreground)); margin-top: 6px; }
+.empty .btn { margin-top: 14px; }
+
+/* ═══════════ 改版要点 ═══════════ */
+.colophon {
+  display: flex; flex-wrap: wrap; align-items: center; row-gap: 8px;
+  margin-top: 28px; padding-top: 16px; border-top: 1px solid hsl(var(--border));
+  font-size: 12.5px; color: hsl(var(--muted-foreground));
+}
+.colophon b { color: hsl(var(--foreground)); font-weight: 500; }
+.colo-sep { margin: 0 12px; width: 1px; height: 12px; background: hsl(var(--border)); }
+.note-demo { margin-top: 8px; font-size: 11.5px; color: hsl(var(--muted-foreground) / .7); }
+
+/* ═══════════ 弹窗 ═══════════ */
+.overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgb(0 0 0 / .45);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.overlay.show { display: flex; }
+.modal {
+  width: 100%; max-width: 400px; max-height: 86vh; overflow: auto;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  border-radius: 14px; padding: 22px;
+  box-shadow: 0 18px 50px rgb(0 0 0 / .3);
+}
+.modal h3 { font-family: var(--pg-serif); font-size: 16.5px; letter-spacing: .06em; margin-bottom: 12px; }
+.modal p { font-size: 13px; color: hsl(var(--muted-foreground)); line-height: 1.75; }
+.modal p b { color: hsl(var(--foreground)); }
+.modal .m-field { margin-top: 14px; }
+.modal label { display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px; }
+.modal input {
+  width: 100%; font: inherit; padding: 8px 12px;
+  border: 1px solid hsl(var(--border)); border-radius: 9px;
+  background: hsl(var(--background)); color: hsl(var(--foreground));
+}
+.modal input:focus-visible { outline: 2px solid var(--pg-red); outline-offset: 1px; }
+.m-hint { font-size: 11.5px; color: hsl(var(--muted-foreground) / .8); margin-top: 5px; }
+.m-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* ═══════════ 轻提示 ═══════════ */
+.toast {
+  position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(8px);
+  z-index: 60; padding: 9px 18px; border-radius: 10px;
+  background: hsl(var(--foreground)); color: hsl(var(--background));
+  font-size: 13px; opacity: 0; pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══════════ 响应式 ═══════════ */
+@media (max-width: 720px) {
+  .stats-spine { display: none; }
+  .user-row { flex-wrap: wrap; }
+  .u-actions { width: 100%; justify-content: flex-end; padding-top: 4px; border-top: 1px dashed hsl(var(--border)); }
+  .search { max-width: none; margin-left: 0; flex-basis: 100%; order: 2; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page { animation: pg-rise .4s ease-out; }
+  .pg-seal { animation: pg-stamp .35s ease-out .12s both; }
+}
+@keyframes pg-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pg-stamp { 0% { opacity: 0; transform: scale(1.5) rotate(6deg); } 100% { opacity: 1; transform: scale(1) rotate(-2deg); } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SVG 图标库 ═══════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.8 5.8l12.4 12.4"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.2-8.2M15 5l3 3M18 8l2-2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6.5 7l1 12a1 1 0 0 0 1 .9h7a1 1 0 0 0 1-.9l1-12"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.7-1.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/></symbol>
+</svg>
+
+<!-- ═══════════ 顶栏（示意） ═══════════ -->
+<header class="topbar">
+  <div class="logo-seal" aria-hidden="true">谱</div>
+  <span class="logo-name">族谱</span>
+  <span class="topbar-spacer"></span>
+  <div class="theme-seg" role="group" aria-label="预览主题">
+    <button data-theme="" aria-pressed="true">浅色</button>
+    <button data-theme="ink" aria-pressed="false">墨韵</button>
+    <button data-theme="dark" aria-pressed="false">暗色</button>
+  </div>
+  <div class="me"><span class="ava is-admin">管</span>管理员</div>
+</header>
+
+<main class="page">
+  <button class="back-btn"><svg class="ic"><use href="#i-back"/></svg>返回管理</button>
+
+  <!-- 页头 -->
+  <div class="pg-page-head">
+    <div>
+      <div class="pg-eyebrow">谱 局 · 用 户</div>
+      <h1 class="pg-title">用户管理</h1>
+      <p class="pg-subtitle">族人名册 · 注册审核与账号启禁，此为谱局事务</p>
+    </div>
+    <div class="pg-seal" aria-hidden="true">籍</div>
+  </div>
+
+  <!-- ① 名册总览（新增） -->
+  <section class="stats" aria-label="用户统计">
+    <div class="stats-spine" aria-hidden="true"><span>名册总览</span></div>
+    <div class="stat"><b>8</b><span>在册族人</span><small>审核通过且启用</small></div>
+    <div class="stat alert"><b>2</b><span>待审核</span><small>登录前须过谱局核验</small></div>
+    <div class="stat"><b>1</b><span>已禁用</span><small>禁用后无法登录</small></div>
+    <div class="stat"><b>1</b><span>已拒绝</span><small>谢绝的注册申请</small></div>
+  </section>
+
+  <!-- ② 标签 + 搜索 -->
+  <div class="toolbar">
+    <div class="tabs" role="tablist" aria-label="用户状态筛选">
+      <button role="tab" data-tab="all" aria-selected="true">全部用户 <span class="n">8</span></button>
+      <button role="tab" data-tab="pending" aria-selected="false">待审核 <span class="n">2</span></button>
+      <button role="tab" data-tab="disabled" aria-selected="false">已禁用 <span class="n">1</span></button>
+      <button role="tab" data-tab="rejected" aria-selected="false">已拒绝 <span class="n">1</span></button>
+    </div>
+    <label class="search">
+      <svg class="ic"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="搜名字 / 用户名 / 邮箱" aria-label="搜索用户">
+    </label>
+    <button class="btn solid-red" id="btn-create"><svg class="ic"><use href="#i-user-plus"/></svg>新建用户</button>
+  </div>
+
+  <!-- ③ 名册 -->
+  <section aria-label="用户列表">
+    <div class="pg-section-head">
+      <span class="pg-section-title">名 册</span>
+      <span class="pg-section-rule"></span>
+      <span class="pg-section-count" id="count-label">共 8 位</span>
+    </div>
+    <div class="rows" id="rows">
+
+      <!-- 管理员（自己） -->
+      <article class="user-row" data-status="active" data-search="管理员 admin admin@example.com 牟氏家族 所有者">
+        <div class="ava is-admin">管</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">管理员</span>
+            <span class="seal-mini" title="系统管理员">管</span>
+            <span class="badge ok"><svg><use href="#i-check"/></svg>正常</span>
+            <span class="self-tag">(你)</span>
+          </div>
+          <p class="u-meta">@admin · admin@example.com <span class="dim">· 注册于 2 年前</span></p>
+          <div class="u-fams">
+            <span class="fam-chip"><i class="dot-owner"></i><b>牟氏家族</b> · 所有者</span>
+          </div>
+        </div>
+        <div class="u-actions"><span class="self-tag">本人账号在此管理</span></div>
+      </article>
+
+      <!-- 正常 · 编辑者 -->
+      <article class="user-row" data-status="active" data-search="牟传玺 chuanxi chuanxi@example.com 牟氏家族 编辑者">
+        <div class="ava">玺</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">牟传玺</span>
+            <span class="badge ok"><svg><use href="#i-check"/></svg>正常</span>
+          </div>
+          <p class="u-meta">@chuanxi · chuanxi@example.com <span class="dim">· 注册于 8 个月前</span></p>
+          <div class="u-fams">
+            <span class="fam-chip"><i class="dot-editor"></i><b>牟氏家族</b> · 编辑者</span>
+          </div>
+        </div>
+        <div class="u-actions">
+          <button class="btn" data-act="reset" data-name="牟传玺"><svg class="ic"><use href="#i-key"/></svg>重置密码</button>
+          <span class="act-divider"></span>
+          <button class="btn danger" data-act="disable" data-name="牟传玺"><svg class="ic"><use href="#i-ban"/></svg>禁用</button>
+          <button class="btn danger" data-act="delete" data-name="牟传玺"><svg class="ic"><use href="#i-trash"/></svg>删除</button>
+        </div>
+      </article>
+
+      <!-- 正常 · 两个家族 -->
+      <article class="user-row" data-status="active" data-search="牟晓峰 xiaofeng xiaofeng@example.com 牟氏家族 王氏家族 编辑者 查看者">
+        <div class="ava">峰</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">牟晓峰</span>
+            <span class="badge ok"><svg><use href="#i-check"/></svg>正常</span>
+          </div>
+          <p class="u-meta">@xiaofeng · xiaofeng@example.com <span class="dim">· 注册于 3 个月前</span></p>
+          <div class="u-fams">
+            <span class="fam-chip"><i class="dot-editor"></i><b>牟氏家族</b> · 编辑者</span>
+            <span class="fam-chip"><i class="dot-viewer"></i><b>王氏家族</b> · 查看者</span>
+          </div>
+        </div>
+        <div class="u-actions">
+          <button class="btn" data-act="reset" data-name="牟晓峰"><svg class="ic"><use href="#i-key"/></svg>重置密码</button>
+          <span class="act-divider"></span>
+          <button class="btn danger" data-act="disable" data-name="牟晓峰"><svg class="ic"><use href="#i-ban"/></svg>禁用</button>
+          <button class="btn danger" data-act="delete" data-name="牟晓峰"><svg class="ic"><use href="#i-trash"/></svg>删除</button>
+        </div>
+      </article>
+
+      <!-- 正常 · 查看者 -->
+      <article class="user-row" data-status="active" data-search="王淑华 shuhua shuhua@example.com 王氏家族 查看者">
+        <div class="ava">华</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">王淑华</span>
+            <span class="badge ok"><svg><use href="#i-check"/></svg>正常</span>
+          </div>
+          <p class="u-meta">@shuhua · shuhua@example.com <span class="dim">· 注册于 3 周前</span></p>
+          <div class="u-fams">
+            <span class="fam-chip"><i class="dot-viewer"></i><b>王氏家族</b> · 查看者</span>
+          </div>
+        </div>
+        <div class="u-actions">
+          <button class="btn" data-act="reset" data-name="王淑华"><svg class="ic"><use href="#i-key"/></svg>重置密码</button>
+          <span class="act-divider"></span>
+          <button class="btn danger" data-act="disable" data-name="王淑华"><svg class="ic"><use href="#i-ban"/></svg>禁用</button>
+          <button class="btn danger" data-act="delete" data-name="王淑华"><svg class="ic"><use href="#i-trash"/></svg>删除</button>
+        </div>
+      </article>
+
+      <!-- 待审核 ×2 -->
+      <article class="user-row" data-status="pending" data-search="牟重光 chongguang chongguang@example.com 牟氏家族">
+        <div class="ava">光</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">牟重光</span>
+            <span class="badge warn"><svg><use href="#i-clock"/></svg>待审核</span>
+          </div>
+          <p class="u-meta">@chongguang · chongguang@example.com <span class="dim">· 申请于 2 天前</span></p>
+          <div class="u-fams">
+            <span class="fam-chip"><i class="dot-editor"></i>申请加入 <b>牟氏家族</b></span>
+          </div>
+        </div>
+        <div class="u-actions">
+          <button class="btn solid-ok" data-act="approve" data-name="牟重光"><svg class="ic"><use href="#i-check"/></svg>通过</button>
+          <button class="btn danger" data-act="reject" data-name="牟重光"><svg class="ic"><use href="#i-x"/></svg>拒绝</button>
+        </div>
+      </article>
+
+      <article class="user-row" data-status="pending" data-search="李文氏 liwen liwen@example.com 李氏家族">
+        <div class="ava">氏</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">李文氏</span>
+            <span class="badge warn"><svg><use href="#i-clock"/></svg>待审核</span>
+          </div>
+          <p class="u-meta">@liwen · liwen@example.com <span class="dim">· 申请于 1 天前</span></p>
+          <div class="u-fams">
+            <span class="fam-chip"><i class="dot-viewer"></i>申请加入 <b>李氏家族</b></span>
+          </div>
+        </div>
+        <div class="u-actions">
+          <button class="btn solid-ok" data-act="approve" data-name="李文氏"><svg class="ic"><use href="#i-check"/></svg>通过</button>
+          <button class="btn danger" data-act="reject" data-name="李文氏"><svg class="ic"><use href="#i-x"/></svg>拒绝</button>
+        </div>
+      </article>
+
+      <!-- 已禁用 -->
+      <article class="user-row is-dim" data-status="disabled" data-search="牟三锡 sanxi sanxi@example.com 牟氏家族 查看者">
+        <div class="ava">锡</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">牟三锡</span>
+            <span class="badge off"><svg><use href="#i-ban"/></svg>已禁用</span>
+          </div>
+          <p class="u-meta">@sanxi · sanxi@example.com <span class="dim">· 注册于 6 个月前 · 2026-08-04 禁用</span></p>
+          <div class="u-fams">
+            <span class="fam-chip"><i class="dot-viewer"></i><b>牟氏家族</b> · 查看者</span>
+          </div>
+        </div>
+        <div class="u-actions">
+          <button class="btn" data-act="enable" data-name="牟三锡"><svg class="ic"><use href="#i-unlock"/></svg>启用</button>
+          <span class="act-divider"></span>
+          <button class="btn danger" data-act="delete" data-name="牟三锡"><svg class="ic"><use href="#i-trash"/></svg>删除</button>
+        </div>
+      </article>
+
+      <!-- 已拒绝 -->
+      <article class="user-row is-dim" data-status="rejected" data-search="测试账号 testuser test@example.com">
+        <div class="ava">测</div>
+        <div class="u-main">
+          <div class="u-name">
+            <span class="nm">测试账号</span>
+            <span class="badge no"><svg><use href="#i-x"/></svg>已拒绝</span>
+          </div>
+          <p class="u-meta">@testuser · test@example.com <span class="dim">· 申请于 5 周前</span></p>
+        </div>
+        <div class="u-actions">
+          <button class="btn danger" data-act="delete" data-name="测试账号"><svg class="ic"><use href="#i-trash"/></svg>删除</button>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- 空状态（随标签切换） -->
+    <div class="empty" id="empty" hidden>
+      <p class="e-title" id="empty-title">册上无待审之人。</p>
+      <p class="e-sub" id="empty-sub">新注册用户经谱局审核后方可登录</p>
+      <button class="btn" id="empty-jump" hidden>查看全部 8 位族人</button>
+    </div>
+  </section>
+
+  <!-- 改版要点 -->
+  <div class="colophon">
+    <b>本次改版</b><span class="colo-sep"></span>
+    名册总览统计<span class="colo-sep"></span>
+    默认显示全部用户<span class="colo-sep"></span>
+    新增「已禁用」标签与搜索<span class="colo-sep"></span>
+    管理员直建账号（免审核）<span class="colo-sep"></span>
+    管理员朱印标识<span class="colo-sep"></span>
+    家族归属与角色入册<span class="colo-sep"></span>
+    危险操作分组并统一弹窗确认
+  </div>
+  <p class="note-demo">以上均为示例数据，仅作设计预览 · 浅色 / 墨韵 / 暗色三种主题可切换对照</p>
+</main>
+
+<!-- ═══════════ 弹窗（危险操作统一走弹窗） ═══════════ -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="modal">
+    <h3 id="m-title"></h3>
+    <div id="m-body"></div>
+    <div class="m-foot">
+      <button class="btn" id="m-cancel">取消</button>
+      <button class="btn" id="m-ok">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ── 主题切换 ── */
+document.querySelectorAll('.theme-seg button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.documentElement.classList.remove('dark', 'ink');
+    if (b.dataset.theme) document.documentElement.classList.add(b.dataset.theme);
+    document.querySelectorAll('.theme-seg button').forEach(function (x) {
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+  });
+});
+
+/* ── 标签筛选 ── */
+var TAB_COPY = {
+  all:      { title: '未找到匹配的族人。', sub: '试试其他关键字，或切换标签查看', jump: false },
+  pending:  { title: '册上无待审之人。', sub: '新注册用户经谱局审核后方可登录', jump: true },
+  disabled: { title: '无停用名帖。', sub: '被禁用的账号会集中出现在这里', jump: false },
+  rejected: { title: '册上无谢绝之记。', sub: '被拒绝的注册申请会记录在此', jump: false }
+};
+var currentTab = 'all';
+var rows = Array.prototype.slice.call(document.querySelectorAll('.user-row'));
+var emptyBox = document.getElementById('empty');
+
+function applyFilter() {
+  var q = document.getElementById('q').value.trim().toLowerCase();
+  var visible = 0;
+  rows.forEach(function (r) {
+    var okTab = currentTab === 'all' || r.dataset.status === currentTab;
+    var okQ = !q || r.dataset.search.toLowerCase().indexOf(q) !== -1;
+    var show = okTab && okQ;
+    r.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  var copy = TAB_COPY[currentTab];
+  var isEmpty = visible === 0;
+  emptyBox.hidden = !isEmpty;
+  if (isEmpty) {
+    document.getElementById('empty-title').textContent = q ? TAB_COPY.all.title : copy.title;
+    document.getElementById('empty-sub').textContent = q ? TAB_COPY.all.sub : copy.sub;
+    document.getElementById('empty-jump').hidden = !(copy.jump && !q);
+  }
+  document.getElementById('count-label').textContent =
+    q ? '匹配 ' + visible + ' 位' : (currentTab === 'all' ? '共 8 位' : '共 ' + visible + ' 位');
+}
+
+document.querySelectorAll('.tabs button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    currentTab = b.dataset.tab;
+    document.querySelectorAll('.tabs button').forEach(function (x) {
+      x.setAttribute('aria-selected', String(x === b));
+    });
+    applyFilter();
+  });
+});
+document.getElementById('q').addEventListener('input', applyFilter);
+document.getElementById('empty-jump').addEventListener('click', function () {
+  document.querySelector('.tabs button[data-tab="all"]').click();
+});
+
+/* ── 弹窗 ── */
+var overlay = document.getElementById('overlay');
+var mTitle = document.getElementById('m-title');
+var mBody = document.getElementById('m-body');
+var mOk = document.getElementById('m-ok');
+var mCancel = document.getElementById('m-cancel');
+var pendingResolve = null;
+
+function openModal(html, okLabel, okClass, onOk) {
+  mTitle.textContent = html.title;
+  mBody.innerHTML = html.body;
+  mOk.textContent = okLabel;
+  mOk.className = 'btn ' + okClass;
+  pendingResolve = onOk;
+  overlay.classList.add('show');
+  mOk.focus();
+}
+function closeModal() { overlay.classList.remove('show'); pendingResolve = null; }
+mCancel.addEventListener('click', closeModal);
+overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+mOk.addEventListener('click', function () {
+  var fn = pendingResolve; closeModal();
+  if (fn) fn();
+});
+
+/* ── 各操作演示 ── */
+var ACTIONS = {
+  reset: {
+    modal: function (n) {
+      return {
+        title: '重置密码 — ' + n,
+        body: '<div class="m-field"><label for="npw">新密码</label>' +
+              '<input id="npw" type="text" placeholder="至少 6 位">' +
+              '<p class="m-hint">请当面或另行告知本人，提醒其登录后自行修改。</p></div>'
+      };
+    },
+    label: '确认重置', cls: '', confirm: true
+  },
+  disable: {
+    modal: function (n) {
+      return {
+        title: '禁用 — ' + n,
+        body: '<p>确定禁用 <b>' + n + '</b> 吗？禁用后该用户将<b>无法登录</b>，' +
+              '其在各族中的编辑与查看权限一并暂停；可随时重新启用。</p>'
+      };
+    },
+    label: '确认禁用', cls: 'solid-red', confirm: true
+  },
+  enable: {
+    modal: function (n) {
+      return {
+        title: '启用 — ' + n,
+        body: '<p>启用后 <b>' + n + '</b> 即可重新登录，原有家族权限恢复。</p>'
+      };
+    },
+    label: '确认启用', cls: '', confirm: true
+  },
+  delete: {
+    modal: function (n) {
+      return {
+        title: '删除用户',
+        body: '<p>确定删除 <b>' + n + '</b> 吗？其聊天、帖子、通知与家族关联将<b>一并清除，此操作不可恢复</b>。</p>'
+      };
+    },
+    label: '确认删除', cls: 'solid-red', confirm: true
+  },
+  reject: {
+    modal: function (n) {
+      return {
+        title: '拒绝注册申请',
+        body: '<p>确定拒绝 <b>' + n + '</b> 的注册申请吗？申请将记入「已拒绝」，其账号保持不可登录。</p>'
+      };
+    },
+    label: '确认拒绝', cls: 'solid-red', confirm: true
+  },
+  approve: null
+};
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+
+/* ── 新建用户（管理员直建，免审核） ── */
+document.getElementById('btn-create').addEventListener('click', function () {
+  openModal({
+    title: '新建用户',
+    body: '<div class="m-field"><label for="c-user">用户名 *</label>' +
+          '<input id="c-user" type="text" placeholder="登录用，如 chuanxi" autocomplete="off"></div>' +
+          '<div class="m-field"><label for="c-name">显示名</label>' +
+          '<input id="c-name" type="text" placeholder="如 牟传玺"></div>' +
+          '<div class="m-field"><label for="c-mail">邮箱</label>' +
+          '<input id="c-mail" type="email" placeholder="name@example.com"></div>' +
+          '<div class="m-field"><label for="c-pw">初始密码 *</label>' +
+          '<input id="c-pw" type="text" placeholder="至少 6 位" autocomplete="off">' +
+          '<p class="m-hint">管理员新建的账号直接为「已审核」状态，无需再走注册审核；请将初始密码告知本人。</p></div>'
+  }, '新建账号', 'solid-red', function () {
+    toast('示例预览：已新建账号（免审核直接入册）');
+  });
+});
+
+document.getElementById('rows').addEventListener('click', function (e) {
+  var btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  var act = btn.dataset.act;
+  var name = btn.dataset.name;
+  if (act === 'approve') { toast('示例预览：已通过「' + name + '」的注册审核'); return; }
+  var conf = ACTIONS[act];
+  openModal(conf.modal(name), conf.label, conf.cls, function () {
+    toast('示例预览：' + conf.label.replace('确认', '已') + '「' + name + '」');
+  });
+});
+</script>
+</body>
+</html>

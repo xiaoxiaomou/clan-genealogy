@@ -29,7 +29,7 @@ export function MemberTooltip({ member, mouseX, mouseY, containerRect }: MemberT
   if (!member) return null
 
   const age = member.birth_date ? calcAge(member.birth_date, member.death_date) : null
-  const tooltipW = 288
+  const tooltipW = 370
   const pad = 12
   // 视口坐标 → 容器内坐标（容器模式下需减去容器偏移）
   const relX = containerRect ? mouseX - containerRect.left : mouseX
@@ -40,7 +40,7 @@ export function MemberTooltip({ member, mouseX, mouseY, containerRect }: MemberT
   let left = relX + pad
   let top = relY + pad
   if (left + tooltipW > maxX - pad) left = relX - tooltipW - pad
-  if (top + 240 > maxY - pad) top = relY - 240 - pad
+  if (top + 300 > maxY - pad) top = relY - 300 - pad
   left = Math.max(pad, left)
   top = Math.max(pad, top)
 
@@ -67,7 +67,7 @@ export function MemberTooltip({ member, mouseX, mouseY, containerRect }: MemberT
       }}
     >
       <div
-        className="relative overflow-hidden rounded-[4px] border p-3 pt-3.5 shadow-xl"
+        className="relative overflow-hidden rounded-[5px] border p-4 pt-4.5 shadow-2xl"
         style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}
       >
         {/* 顶部世代墨青条 */}
@@ -77,35 +77,35 @@ export function MemberTooltip({ member, mouseX, mouseY, containerRect }: MemberT
           aria-hidden="true"
         />
         {/* 名讳行 */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <AvatarDisplay
             name={member.name}
             avatar={member.avatar}
             gender={member.gender}
-            size={34}
+            size={46}
             className="flex-shrink-0"
           />
           <div className="min-w-0">
             <div className="flex items-baseline gap-1.5">
-              <span className="truncate font-serif text-[16px] font-semibold tracking-wide">
+              <span className="truncate font-serif text-[21px] font-semibold tracking-wide">
                 {member.name}
-                {!member.is_alive && <span className="ml-1 text-[11px] text-muted-foreground">†</span>}
+                {!member.is_alive && <span className="ml-1 text-[14px] text-muted-foreground">†</span>}
               </span>
-              <span className="flex-shrink-0 text-[10px] text-muted-foreground">
+              <span className="flex-shrink-0 text-[13px] text-muted-foreground">
                 {GENDER_LABELS[member.gender] || '未知'}
               </span>
             </div>
             {!member.is_alive && (
-              <span className="text-[10px] text-muted-foreground">故</span>
+              <span className="text-[13px] text-muted-foreground">故</span>
             )}
           </div>
         </div>
 
         {/* 条目 */}
         {rows.length > 0 && (
-          <div className="mt-2.5 space-y-1 border-t pt-2" style={{ borderColor: 'hsl(var(--border))' }}>
+          <div className="mt-3 space-y-1.5 border-t pt-2.5" style={{ borderColor: 'hsl(var(--border))' }}>
             {rows.map(([label, value]) => (
-              <div key={label} className="flex items-baseline justify-between gap-3 text-[11px] leading-snug">
+              <div key={label} className="flex items-baseline justify-between gap-3 text-[14px] leading-snug">
                 <span className="flex-shrink-0 text-muted-foreground">
                   <span
                     className="mr-1.5 inline-block h-1 w-1 rounded-[1px] align-middle"
@@ -124,8 +124,8 @@ export function MemberTooltip({ member, mouseX, mouseY, containerRect }: MemberT
 
         {/* 传略 */}
         {member.bio && (
-          <div className="mt-2 border-t pt-2" style={{ borderColor: 'hsl(var(--border))' }}>
-            <p className="line-clamp-3 text-[11px] leading-relaxed text-muted-foreground">{member.bio}</p>
+          <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: 'hsl(var(--border))' }}>
+            <p className="line-clamp-3 text-[14px] leading-relaxed text-muted-foreground">{member.bio}</p>
           </div>
         )}
       </div>

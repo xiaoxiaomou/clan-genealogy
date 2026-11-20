@@ -70,6 +70,13 @@ class ConfigService:
          'label': '启用扇形视图', 'description': '启用扇形分布视图', 'is_public': True},
         {'category': 'family', 'key': 'family.auto_save_interval', 'value': '30', 'value_type': 'number',
          'label': '自动保存间隔', 'description': '编辑器自动保存间隔（秒）', 'min_value': 10, 'max_value': 300},
+        # ===== 族谱页顶栏功能按钮开关（系统管理员控制，关闭后普通用户不可见）=====
+        {'category': 'family', 'key': 'family.show_settings_button', 'value': 'true', 'value_type': 'boolean',
+         'label': '显示族谱设置按钮', 'description': '族谱页顶栏「族谱设置」齿轮按钮；系统管理员关闭后普通用户不可见', 'is_public': True},
+        {'category': 'family', 'key': 'family.show_export_button', 'value': 'true', 'value_type': 'boolean',
+         'label': '显示导出PDF按钮', 'description': '族谱页顶栏「导出 PDF」按钮；系统管理员关闭后普通用户不可见', 'is_public': True},
+        {'category': 'family', 'key': 'family.show_functions_button', 'value': 'true', 'value_type': 'boolean',
+         'label': '显示功能目录按钮', 'description': '族谱页顶栏「功能目录」按钮；系统管理员关闭后普通用户不可见', 'is_public': True},
 
         # ========== 家族内容 (content) ==========
         {'category': 'content', 'key': 'content.max_events', 'value': '1000', 'value_type': 'number',
