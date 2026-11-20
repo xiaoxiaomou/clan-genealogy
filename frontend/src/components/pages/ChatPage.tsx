@@ -10,7 +10,7 @@ import {
 } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useAppSelector } from '@/store'
-import { PgSectionHead } from '@/components/ui/pedigree'
+import { PgSectionHead, PG_RED } from '@/components/ui/pedigree'
 import {
   ArrowLeft,
   Plus,
@@ -137,7 +137,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-2">
         <button
           onClick={() => navigate(`/family/${familyId}`)}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -145,7 +145,10 @@ export default function ChatPage() {
           <ArrowLeft className="h-4 w-4" />
           返回
         </button>
-        <h1 className="pg-title text-base font-semibold">家族聊天</h1>
+        <div className="flex items-center gap-2.5">
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-sm" style={{ background: PG_RED }} />
+          <h1 className="pg-title text-base font-semibold tracking-[0.08em]">家族聊天</h1>
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
