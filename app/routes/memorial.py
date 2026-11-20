@@ -288,7 +288,15 @@ def get_ritual_today_summary(family_id):
         for u in lst:
             u['kinds'] = [{'kind': k, 'n': n} for k, n in u['kinds'].items()]
         visitors[mid] = lst
-    return jsonify({'summary': summary, 'visitors': visitors})
+
+    # 各类动作最近一次时间（供前端按真实时长控制香/烛/花的存留）
+    last_kinds = {}
+    for r in rows:
+        bucket = last_kinds.setdefault(r.member_id, {})
+        iso = r.created_at.isoformat()
+        if r.kind not in bucket or iso > bucket[r.kind]:
+            bucket[r.kind] = iso
+    return jsonify({'summary': summary, 'visitors': visitors, 'last_kinds': last_kinds})
 
 
 @memorial_bp.route('/<int:family_id>/memorial/rituals', methods=['POST'])

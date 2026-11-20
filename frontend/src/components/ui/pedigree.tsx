@@ -170,6 +170,13 @@ export function PgColophon({ items }: { items: Array<[ReactNode, ReactNode]> }) 
 
 const INCENSE_BURN_MS = 90_000
 
+/** 供品存留判定：最近一次供奉时间仍在生命周期内 → 返回展示值，否则 0 */
+export function offeringAlive(lastIso: string | undefined, value: number, life: number): number {
+  if (!value) return 0
+  if (!lastIso) return value // 无时间信息时保守展示（旧数据）
+  return Date.now() - new Date(lastIso).getTime() < life ? value : 0
+}
+
 /* 献花：牌座边绽放的莲花（外五内三层花瓣逐片展开，金蕊茎叶，最多并排 3 朵） */
 export function PgFlowers({ count }: { count: number }) {
   const n = Math.min(count, 3)

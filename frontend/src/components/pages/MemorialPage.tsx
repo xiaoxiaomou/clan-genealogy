@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useToast, Button, FilterDrawer, MemorialRemindersSection } from '@/components/ui'
-import { PgPageHead, PgSectionHead, PgSeal, PgFlowers, PgIncenseBurner, TabletDefs, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { PgPageHead, PgSectionHead, PgSeal, PgFlowers, PgIncenseBurner, TabletDefs, offeringAlive, cnYear, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
@@ -74,6 +74,14 @@ export function RitualVisitorTip({ visitors }: { visitors?: VisitorInfo[] }) {
   )
 }
 
+
+/* ── 供品生命周期：从最近一次供奉起算，到点自然消失 ── */
+const OFFERING_LIFE: Record<string, number> = {
+  incense: 30 * 60 * 1000,    // 一炷香约 30 分钟烧尽
+  candle: 2 * 60 * 60 * 1000, // 一对烛约 2 小时烧完
+  flower: 4 * 60 * 60 * 1000, // 花摆 4 小时后撤下
+}
+
 export default function MemorialPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -87,6 +95,14 @@ export default function MemorialPage() {
   const [familySurname, setFamilySurname] = useState('')
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
   const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
+  const [lastKinds, setLastKinds] = useState<Record<number, Record<string, string>>>({})
+  const [, setFxTick] = useState(0)
+
+  // 供品生命周期滴答：每 30 秒重算一次香/烛/花是否仍在存留期内
+  useEffect(() => {
+    const t = window.setInterval(() => setFxTick((x) => x + 1), 30_000)
+    return () => window.clearInterval(t)
+  }, [])
   const [visitors, setVisitors] = useState<Record<number, VisitorInfo[]>>({})
   const [bowingId, setBowingId] = useState<number | null>(null)
   const bowTimer = useRef<number | undefined>(undefined)
@@ -112,6 +128,7 @@ export default function MemorialPage() {
       setYearOnly(y.items || [])
       setRitualCounts(rc.summary || {})
       setVisitors(rc.visitors || {})
+      setLastKinds(rc.last_kinds || {})
     } catch (err: any) {
       showToast(err.message || '加载祭日失败', 'error')
     } finally {
@@ -162,7 +179,8 @@ export default function MemorialPage() {
         [memberId]: [{ user_name: meName, kinds: [{ kind, n: 1 }], last_at: new Date().toISOString() }, ...list].slice(0, 6),
       }
     })
-    if (kind === 'kowtow') {
+    setLastKinds((p) => ({ ...p, [memberId]: { ...(p[memberId] || {}), [kind]: new Date().toISOString() } }))
+        if (kind === 'kowtow') {
       setBowingId(memberId)
       window.clearTimeout(bowTimer.current)
       bowTimer.current = window.setTimeout(() => setBowingId(null), 980)
@@ -398,9 +416,9 @@ export default function MemorialPage() {
                     </div>
                     <div className="pg-ped1" aria-hidden="true" />
                     <div className="pg-ped2" aria-hidden="true" />
-                    <PgFlowers count={ritualCounts[m.member_id]?.flower || 0} />
+                    <PgFlowers count={offeringAlive(lastKinds[m.member_id]?.flower, ritualCounts[m.member_id]?.flower || 0, OFFERING_LIFE.flower)} />
                   </div>
-                  <PgIncenseBurner mini persist signal={ritualCounts[m.member_id]?.incense || 0} candle={(ritualCounts[m.member_id]?.candle || 0) > 0} />
+                  <PgIncenseBurner mini persist signal={offeringAlive(lastKinds[m.member_id]?.incense, ritualCounts[m.member_id]?.incense || 0, OFFERING_LIFE.incense)} candle={offeringAlive(lastKinds[m.member_id]?.candle, (ritualCounts[m.member_id]?.candle || 0) > 0 ? 1 : 0, OFFERING_LIFE.candle) > 0} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.member_name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
                       <button
