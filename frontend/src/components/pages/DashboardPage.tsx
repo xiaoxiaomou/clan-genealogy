@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Family } from '@/types'
@@ -8,26 +8,56 @@ import {
   Input,
   Label,
   useToast,
+  useConfirm,
 } from '@/components/ui'
 import { Layout } from '@/components/layout/Layout'
-import { PgPageHead, PgSeal } from '@/components/ui/pedigree'
+import { PgPageHead, PgSeal, PgSectionHead } from '@/components/ui/pedigree'
+import { solarToLunar } from '@/lib/lunar'
 import {
   Plus,
-  Users,
   Globe,
   Lock,
-  MapPin,
-  ArrowRight,
   Shield,
   Trash2,
+  ArrowRight,
+  ListTree,
+  Heart,
+  Image,
+  MessageSquare,
+  MessageCircle,
+  MapPin,
+  BookOpen,
+  Flame,
+  Sparkles,
 } from 'lucide-react'
+
+/* ── 总目（我的族谱）：卷帙函套 + 常用直入 + 祠堂动态 ── */
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: '所有者',
+  admin: '管理员',
+  editor: '编辑者',
+  viewer: '族人',
+}
+
+interface PostLite {
+  id: number
+  content: string
+  created_at?: string
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { ask, dialog } = useConfirm()
   const [families, setFamilies] = useState<Family[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [userName, setUserName] = useState('')
+  const [roles, setRoles] = useState<Record<number, string>>({})
+  const [genSpan, setGenSpan] = useState<Record<number, number | null>>({})
+  const [firstPosts, setFirstPosts] = useState<PostLite[]>([])
+  const [todayMemorial, setTodayMemorial] = useState<{ count: number; names: string[] } | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState({
     name: '',
@@ -36,9 +66,8 @@ export default function DashboardPage() {
     description: '',
     is_public: false,
   })
-  const [formErrors, setFormErrors] = useState<{
-    name?: string
-  }>({})
+  const [formErrors, setFormErrors] = useState<{ name?: string }>({})
+  const loadTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     const stored = localStorage.getItem('user')
@@ -46,6 +75,7 @@ export default function DashboardPage() {
       try {
         const user = JSON.parse(stored)
         setIsAdmin(user.is_admin || false)
+        setUserName(user.display_name || user.username || '')
       } catch {
         /* ignore */
       }
@@ -53,10 +83,45 @@ export default function DashboardPage() {
     loadFamilies()
   }, [])
 
+  useEffect(() => {
+    return () => window.clearTimeout(loadTimer.current)
+  }, [])
+
   const loadFamilies = async () => {
     try {
       const data = await api.getFamilies()
-      setFamilies(data.families)
+      const fams: Family[] = data.families || []
+      setFamilies(fams)
+
+      // 前 3 部：我的角色 + 世代跨度
+      const head = fams.slice(0, 3)
+      const roleResults = await Promise.all(head.map((f) => api.getMyRole(f.id).catch(() => null)))
+      setRoles(Object.fromEntries(head.map((f, i) => [f.id, roleResults[i]?.role || ''])))
+      const statsResults = await Promise.all(head.map((f) => api.getFamilyStats(f.id).catch(() => null)))
+      setGenSpan(
+        Object.fromEntries(
+          head.map((f, i) => {
+            const gs = statsResults[i]?.gen_stats || {}
+            const nums = Object.keys(gs)
+              .map((k) => Number(String(k).replace(/[^0-9]/g, '')))
+              .filter((n) => !Number.isNaN(n))
+            return [f.id, nums.length ? Math.max(...nums) : null]
+          }),
+        ),
+      )
+
+      // 第一部族谱：祠堂动态 + 今日忌日
+      if (fams.length > 0) {
+        const [pd, td] = await Promise.all([
+          api.listPosts(fams[0].id).catch(() => null),
+          api.getTodayMemorial(fams[0].id).catch(() => null),
+        ])
+        setFirstPosts((pd?.posts || []).slice(0, 3))
+        setTodayMemorial({
+          count: td?.count || 0,
+          names: (td?.items || []).map((x: any) => x.member_name).slice(0, 4),
+        })
+      }
     } catch (err: any) {
       showToast(err.message || '加载族谱失败', 'error')
     } finally {
@@ -66,14 +131,14 @@ export default function DashboardPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!createForm.name.trim()) {
       setFormErrors({ name: '请输入族谱名称' })
       return
     }
-    
+
     setFormErrors({})
-    
+
     try {
       const data = await api.createFamily(createForm)
       showToast('族谱创建成功', 'success')
@@ -92,9 +157,17 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDeleteFamily = async (e: React.MouseEvent, familyId: number) => {
+  const handleDeleteFamily = async (e: React.MouseEvent, familyId: number, familyName: string) => {
     e.stopPropagation()
-    if (!confirm('确定要删除该族谱吗？此操作不可恢复，所有成员和关系数据也将被删除。')) return
+    if (
+      !(await ask({
+        title: '删除族谱',
+        message: `确定要删除「${familyName}」吗？此操作不可恢复，所有成员和关系数据也将被删除。`,
+        confirmText: '确认删除',
+        danger: true,
+      }))
+    )
+      return
     try {
       await api.deleteFamily(familyId)
       showToast('族谱已删除', 'success')
@@ -104,15 +177,102 @@ export default function DashboardPage() {
     }
   }
 
+  const today = new Date()
+  const lunar = solarToLunar(today)
+  const firstFamily = families[0]
+
+  const QUICK_ITEMS = firstFamily
+    ? [
+        { icon: ListTree, title: '谱系树', desc: `${genSpan[firstFamily.id] || '?'} 代世系一览`, to: `/family/${firstFamily.id}?view=tree` },
+        { icon: Heart, title: '家庙祭拜', desc: '牌位前上香叩首', to: `/family/${firstFamily.id}/temple` },
+        { icon: Image, title: '家族相册', desc: '影像归集留存', to: `/family/${firstFamily.id}/album` },
+        { icon: MessageSquare, title: '家族动态', desc: '宗亲近事', to: `/family/${firstFamily.id}/feed` },
+        { icon: MessageCircle, title: '家族聊天', desc: '族人即时联络', to: `/family/${firstFamily.id}/chat` },
+        { icon: MapPin, title: '家族地理', desc: '迁徙生息地图', to: `/family/${firstFamily.id}/map` },
+      ]
+    : []
+
+  const renderSlip = (family: Family, index: number) => {
+    const role = roles[family.id] || 'viewer'
+    const gens = genSpan[family.id]
+    return (
+      <article
+        key={family.id}
+        className="pg-slip cursor-pointer"
+        onClick={() => navigate(`/family/${family.id}/intro`)}
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            navigate(`/family/${family.id}/intro`)
+          }
+        }}
+        aria-label={`进入 ${family.name}`}
+      >
+        <div className="pg-slip-main">
+          <div className="pg-slip-eyebrow">卷 {index + 1} · {family.surname || ''}氏</div>
+          <div className="pg-slip-title-row">
+            <PgSeal char={family.surname || '谱'} size={58} title={`${family.name} · 姓氏印`} />
+            <div className="pg-slip-tools" onClick={(e) => e.stopPropagation()}>
+              {isAdmin && (
+                <button
+                  onClick={(e) => handleDeleteFamily(e, family.id, family.name)}
+                  className="rounded p-2 text-muted-foreground transition-colors hover:bg-destructive/8 hover:text-destructive"
+                  aria-label={`删除族谱：${family.name}`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              )}
+              {family.is_public ? (
+                <Globe className="h-4 w-4 text-muted-foreground" aria-label="公开族谱" />
+              ) : (
+                <Lock className="h-4 w-4 text-muted-foreground" aria-label="私有族谱" />
+              )}
+            </div>
+            <div>
+              <h2 className="pg-slip-name">{family.name}</h2>
+              <p className="pg-slip-sub">耕读传家 · 敬宗睦族</p>
+            </div>
+          </div>
+          <div className="pg-slip-stats">
+            <span className="st"><b>{family.member_count}</b> 位族人</span>
+            {gens ? <span className="sep" /> : null}
+            {gens ? <span className="st"><b>{gens}</b> 代同堂</span> : null}
+            {family.origin ? <span className="sep" /> : null}
+            {family.origin ? <span className="st"><b>1</b> 处发祥 · {family.origin}</span> : null}
+            <span className="sep" />
+            <span className="role-chip"><i aria-hidden="true" />我的身份 · {ROLE_LABELS[role] || role}</span>
+          </div>
+          <div className="pg-slip-cta" onClick={(e) => e.stopPropagation()}>
+            <button className="pg-btn-primary" onClick={() => navigate(`/family/${family.id}/intro`)}>
+              <ArrowRight aria-hidden="true" />
+              展卷入谱
+            </button>
+            <button className="pg-btn-ghost" onClick={() => navigate(`/family/${family.id}/functions`)}>
+              <BookOpen aria-hidden="true" />
+              功能目录
+            </button>
+          </div>
+        </div>
+        <div className="pg-slip-scroll">
+          <div className="pg-slip-motto-frame">
+            <span className="pg-slip-motto-text">{family.motto || `${family.surname || '谱'}氏族谱`}</span>
+            <span className="pg-slip-motto-seal" aria-hidden="true">训</span>
+          </div>
+          <span className="pg-slip-motto-caption">{family.motto ? '祖 训 挂 轴' : '宗 族 名 号'}</span>
+        </div>
+      </article>
+    )
+  }
+
   return (
     <Layout>
-      
-
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="pg-rise mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <PgPageHead
           eyebrow="谱 牒 · 总 目"
           title="我的族谱"
-          subtitle="收录您名下的族谱卷帙，管理与浏览家族传承"
+          subtitle={`${userName || '族人'}，欢迎归谱 · 名下卷帙、祠堂动静，皆在此页`}
           actions={
             <>
               {isAdmin && (
@@ -139,16 +299,18 @@ export default function DashboardPage() {
           }
         />
 
+        {/* 卷帙 */}
+        <PgSectionHead
+          text="卷 帙"
+          right={<span className="text-xs text-muted-foreground">{isLoading ? '' : `${families.length} 部在谱`}</span>}
+        />
+
         {isLoading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-live="polite">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="pg-card animate-pulse p-5">
-                <div className="h-12 w-12 rounded-lg bg-muted" />
-                <div className="mt-4 h-5 w-2/3 rounded bg-muted" />
-                <div className="mt-2 h-4 w-1/2 rounded bg-muted" />
-                <div className="mt-6 h-4 w-full rounded bg-muted" />
-              </div>
-            ))}
+          <div className="pg-card animate-pulse p-8" aria-busy="true" aria-live="polite">
+            <div className="h-14 w-14 rounded-lg bg-muted" />
+            <div className="mt-4 h-6 w-1/3 rounded bg-muted" />
+            <div className="mt-6 h-4 w-2/3 rounded bg-muted" />
+            <div className="mt-3 h-4 w-1/2 rounded bg-muted" />
           </div>
         ) : families.length === 0 ? (
           <div className="pg-card pg-rise flex flex-col items-center justify-center py-16">
@@ -174,65 +336,111 @@ export default function DashboardPage() {
             )}
           </div>
         ) : (
-          <div className="pg-rise grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {families.map((family) => (
-              <div
-                key={family.id}
-                className="pg-card group cursor-pointer p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
-                onClick={() => navigate(`/family/${family.id}/intro`)}
+          <div className="pg-rise flex flex-col gap-3.5">
+            {families.map((family, i) => renderSlip(family, i))}
+            {!isAdmin && (
+              <button
+                className="pg-slip-join"
+                onClick={() => showToast('凭族中长辈分享的邀请码或邀请链接入谱', 'info')}
               >
-                <div className="flex items-start justify-between">
-                  <PgSeal
-                    char={family.surname || '谱'}
-                    size={48}
-                    title={`${family.name} · 姓氏印`}
-                  />
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => handleDeleteFamily(e, family.id)}
-                      className="rounded p-2 text-muted-foreground opacity-0 transition-all hover:bg-destructive/8 hover:text-destructive group-hover:opacity-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                      aria-label={`删除族谱：${family.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    {family.is_public ? (
-                      <Globe className="h-4 w-4 text-muted-foreground" aria-label="公开族谱" />
-                    ) : (
-                      <Lock className="h-4 w-4 text-muted-foreground" aria-label="私有族谱" />
-                    )}
-                  </div>
-                </div>
-                <h3 className="pg-title mt-4 text-lg font-semibold text-foreground">
-                  {family.name}
-                </h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {family.surname ? `${family.surname}氏家族` : '族谱一卷'}
-                </p>
-                {family.description && (
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground line-clamp-2">
-                    {family.description}
-                  </p>
-                )}
-                <div
-                  className="mt-4 flex items-center justify-between border-t pt-3 text-sm text-muted-foreground"
-                  style={{ borderColor: 'hsl(var(--border))' }}
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                      {family.member_count} 人
+                <Plus aria-hidden="true" />
+                邀请加入其他族谱
+                <small>族中长辈分享邀请码后，凭码入谱</small>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 常用 + 今日祭日 */}
+        {!isLoading && firstFamily && (
+          <div className="mt-2 grid gap-4 md:grid-cols-[1.7fr_1fr] items-stretch">
+            <div>
+              <PgSectionHead text="常 用" right={<span className="text-xs text-muted-foreground">六处直入</span>} />
+              <div className="pg-quick-grid">
+                {QUICK_ITEMS.map((q) => (
+                  <button key={q.title} className="pg-quick" onClick={() => navigate(q.to)}>
+                    <span className="pg-quick-ic" aria-hidden="true">
+                      <q.icon />
                     </span>
-                    {family.origin && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                        {family.origin}
-                      </span>
-                    )}
-                  </div>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                </div>
+                    <span>
+                      <span className="pg-quick-t">{q.title}</span>
+                      <br />
+                      <span className="pg-quick-d">{q.desc}</span>
+                    </span>
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+            <div>
+              <PgSectionHead text="祭 日" right={<span className="text-xs text-muted-foreground">追远</span>} />
+              <div className="pg-mem-card h-full flex flex-col justify-center">
+                <p className="pg-mem-date">{lunar?.fullStr || '农历推算中'}</p>
+                <div className="pg-mem-flame" aria-hidden="true">
+                  <Flame />
+                </div>
+                {todayMemorial && todayMemorial.count > 0 ? (
+                  <>
+                    <p className="pg-mem-state">今日 {todayMemorial.count} 位先祖忌日</p>
+                    <p className="pg-mem-names">{todayMemorial.names.join(' · ')}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="pg-mem-state">今日无先祖忌日</p>
+                    <p className="pg-mem-hint">忌日按农历自动推算，祭期前有提醒</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 祠堂动态 */}
+        {!isLoading && firstFamily && (
+          <div>
+            <PgSectionHead
+              text="祠 堂 动 态"
+              right={<span className="text-xs text-muted-foreground">{firstFamily.name} · 最近三条</span>}
+            />
+            {firstPosts.length === 0 ? (
+              <div className="pg-card py-10 text-center">
+                <p className="pg-title text-sm tracking-[0.12em] text-foreground/70">祠 堂 静 悄</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">还没有族人发过动态，去「动态」里说点什么吧</p>
+              </div>
+            ) : (
+              <div className="pg-feed">
+                {firstPosts.map((post) => (
+                  <article key={post.id} className="pg-feed-item">
+                    <span className="pg-feed-ic" aria-hidden="true">
+                      <Sparkles />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="pg-feed-text line-clamp-3">{post.content}</p>
+                      <p className="pg-feed-meta">{firstFamily.name} · 今天</p>
+                    </div>
+                    <ArrowRight
+                      className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform hover:translate-x-0.5"
+                      onClick={() => navigate(`/family/${firstFamily.id}/feed`)}
+                      aria-hidden="true"
+                    />
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 尾行 */}
+        {!isLoading && families.length > 0 && (
+          <div className="pg-colophon mt-8">
+            <b>总目</b>
+            <span className="pg-colophon-sep" />
+            {families.length} 部在谱 · 族人身份
+            <span className="pg-colophon-sep" />
+            卷帙即门径，展卷入谱
+            <span className="pg-colophon-sep" />
+            常用六处直入
+            <span className="pg-colophon-sep" />
+            祠堂动静收于总目
           </div>
         )}
       </div>
@@ -350,6 +558,7 @@ export default function DashboardPage() {
           </div>
         </form>
       </Modal>
+      {dialog}
     </Layout>
   )
 }

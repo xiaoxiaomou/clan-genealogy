@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的族谱 · 总目 改版预览</title>
+<style>
+/* ═══ 主题令牌（与 app 同源） ═══ */
+:root {
+  --pg-red: #A63A2E;
+  --pg-serif: 'Noto Serif SC', 'STSong', 'KaiTi', 'STKaiti', serif;
+  --gold: #d6ae6b;
+  --background: 220 10% 96%;
+  --foreground: 220 5% 11%;
+  --card: 0 0% 100%;
+  --muted: 220 10% 92%;
+  --muted-foreground: 220 8% 42%;
+  --border: 220 10% 84%;
+  --primary: 211 100% 45%;
+}
+html.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 240 3% 13%;
+  --muted: 240 3% 15%;
+  --muted-foreground: 220 8% 62%;
+  --border: 240 2% 20%;
+  --primary: 211 100% 50%;
+}
+html.ink {
+  --background: 36 36% 92%;
+  --foreground: 24 30% 18%;
+  --card: 36 30% 88%;
+  --muted: 36 20% 86%;
+  --muted-foreground: 24 18% 36%;
+  --border: 36 18% 76%;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px; line-height: 1.6;
+  transition: background-color .25s ease, color .25s ease;
+}
+button { font: inherit; cursor: pointer; color: inherit; background: none; border: none; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--pg-red); outline-offset: 2px; }
+
+/* ═══ 顶栏（示意） ═══ */
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 28px; border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / .7);
+}
+@media (max-width: 640px) {
+  .topbar { flex-wrap: wrap; gap: 8px 14px; padding: 10px 16px; }
+}
+.logo-seal {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: var(--pg-red); color: #fff;
+  font-family: var(--pg-serif); font-weight: 600; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-2deg); box-shadow: 0 2px 5px rgb(0 0 0 / .18);
+}
+.logo-name { font-family: var(--pg-serif); letter-spacing: .18em; font-weight: 600; }
+.nav-here {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; padding: 4px 12px; border-radius: 8px;
+  color: hsl(var(--foreground)); background: hsl(var(--muted) / .8);
+}
+.topbar-spacer { flex: 1; }
+.theme-seg { display: flex; gap: 2px; padding: 2px; border: 1px solid hsl(var(--border)); border-radius: 8px; }
+.theme-seg button { padding: 3px 10px; font-size: 12px; border-radius: 6px; color: hsl(var(--muted-foreground)); }
+.theme-seg button[aria-pressed="true"] { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.me { display: flex; align-items: center; gap: 8px; font-size: 13px; color: hsl(var(--muted-foreground)); }
+.me .ava {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: hsl(var(--muted)); font-size: 12px; font-weight: 600;
+}
+
+/* ═══ 页面 ═══ */
+.page { max-width: 1040px; margin: 0 auto; padding: 30px 20px 70px; }
+
+/* 问候页头 */
+.pg-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: .32em; color: hsl(var(--muted-foreground));
+}
+.pg-eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 2px; background: var(--pg-red); }
+.pg-title { font-family: var(--pg-serif); font-size: 28px; letter-spacing: .06em; margin-top: 6px; }
+.pg-subtitle { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+.pg-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+.pg-seal {
+  width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+  background: var(--pg-red); color: #fff;
+  font-family: var(--pg-serif); font-weight: 600; font-size: 24px;
+  border-radius: 10px; transform: rotate(-2deg);
+  box-shadow: 0 2px 6px rgb(0 0 0 / .18); user-select: none;
+}
+.pg-head-meta { text-align: right; font-size: 12.5px; color: hsl(var(--muted-foreground)); line-height: 1.9; }
+.pg-head-meta b { color: hsl(var(--foreground)); font-weight: 600; }
+
+/* 分段标题 */
+.sec-head { display: flex; align-items: center; gap: 10px; margin: 30px 0 14px; }
+.sec-head::before { content: ''; width: 6px; height: 6px; border-radius: 2px; background: var(--pg-red); flex-shrink: 0; }
+.sec-title { font-family: var(--pg-serif); font-size: 15px; font-weight: 600; letter-spacing: .22em; white-space: nowrap; }
+.sec-rule { flex: 1; height: 1px; background: hsl(var(--border)); }
+.sec-count { font-size: 12px; color: hsl(var(--muted-foreground)); }
+
+/* ═══ 卷帙：函套式家族卡 ═══ */
+.slip {
+  position: relative;
+  display: grid; grid-template-columns: 1fr 132px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px; overflow: hidden;
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.slip:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgb(0 0 0 / .3); }
+.slip-main { padding: 26px 30px 22px; min-width: 0; }
+.slip-eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10.5px; letter-spacing: .3em; color: hsl(var(--muted-foreground));
+}
+.slip-eyebrow::before { content: ''; width: 5px; height: 5px; border-radius: 2px; background: var(--pg-red); }
+.slip-title-row { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
+.slip-seal {
+  width: 58px; height: 58px; border-radius: 9px; flex-shrink: 0;
+  background: var(--pg-red); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--pg-serif); font-size: 30px; font-weight: 600;
+  box-shadow: 0 2px 6px rgb(0 0 0 / .2); transform: rotate(-2deg);
+}
+.slip-name { font-family: var(--pg-serif); font-size: 27px; font-weight: 600; letter-spacing: .06em; line-height: 1.25; }
+.slip-sub { font-size: 11px; letter-spacing: .14em; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+.slip-stats {
+  display: flex; flex-wrap: wrap; align-items: center;
+  margin-top: 18px; row-gap: 6px;
+  font-size: 12.5px; color: hsl(var(--muted-foreground));
+}
+.slip-stats .st { display: flex; align-items: baseline; gap: 5px; }
+.slip-stats .st b { font-family: var(--pg-serif); font-size: 19px; font-weight: 600; color: hsl(var(--foreground)); }
+.slip-stats .sep { margin: 0 13px; width: 1px; height: 13px; background: hsl(var(--border)); }
+.slip-stats .role-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; padding: 2px 9px; border-radius: 99px;
+  border: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground));
+}
+.slip-stats .role-chip i { width: 5px; height: 5px; border-radius: 50%; background: hsl(211 40% 55%); }
+.slip-cta { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; padding: 8px 18px; border-radius: 9px;
+  border: 1px solid hsl(var(--border));
+}
+.btn.primary {
+  position: relative; overflow: hidden;
+  background: linear-gradient(180deg, #B84536 0%, #A63A2E 45%, #8F2F25 100%);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 14px rgb(166 58 46 / .45), inset 0 1px 0 rgb(255 226 178 / .35);
+  font-weight: 600; letter-spacing: .12em;
+  padding: 10px 26px; font-size: 14.5px;
+  animation: pg-cta-glow 2.6s ease-in-out infinite;
+}
+.btn.primary:hover { transform: translateY(-1px); }
+.btn.primary::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 42%;
+  background: linear-gradient(105deg, transparent, rgb(255 255 255 / .3), transparent);
+  transform: skewX(-18deg); transition: left .45s ease;
+}
+.btn.primary:hover::after { left: 130%; }
+.btn.primary svg { transition: transform .2s ease; }
+.btn.primary:hover svg { transform: translateX(3px); }
+@keyframes pg-cta-glow {
+  0%, 100% { box-shadow: 0 4px 14px rgb(166 58 46 / .45), inset 0 1px 0 rgb(255 226 178 / .35); }
+  50% { box-shadow: 0 6px 22px rgb(166 58 46 / .62), inset 0 1px 0 rgb(255 226 178 / .35); }
+}
+.btn.ghost { color: hsl(var(--muted-foreground)); }
+.btn.ghost:hover { background: hsl(var(--muted) / .5); color: hsl(var(--foreground)); }
+.btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+/* 函套右栏：祖训挂轴 */
+.slip-scroll {
+  border-left: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / .4);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px 14px 30px; position: relative;
+}
+.slip-motto-frame {
+  border: 1px solid color-mix(in srgb, var(--pg-red) 35%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--pg-red) 10%, transparent);
+  outline-offset: 3px; border-radius: 4px;
+  padding: 16px 13px 10px; background: hsl(var(--card));
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+}
+.slip-motto-text {
+  writing-mode: vertical-rl;
+  font-family: var(--pg-serif); font-size: 16.5px; font-weight: 600;
+  letter-spacing: .32em; color: var(--pg-red); max-height: 168px;
+}
+.slip-motto-seal {
+  width: 20px; height: 20px; border-radius: 3px;
+  background: var(--pg-red); color: #fff;
+  font-family: var(--pg-serif); font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(3deg); flex-shrink: 0;
+}
+.slip-motto-caption {
+  position: absolute; bottom: 7px; left: 0; right: 0; text-align: center;
+  font-size: 10px; letter-spacing: .3em; color: hsl(var(--muted-foreground));
+}
+
+/* 加入卡（虚位以待） */
+.slip-join {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 148px;
+  border: 1.5px dashed hsl(var(--border)); border-radius: 14px;
+  color: hsl(var(--muted-foreground)); font-size: 13px;
+  transition: border-color .2s ease, color .2s ease;
+}
+.slip-join:hover { border-color: rgb(166 58 46 / .5); color: hsl(var(--foreground)); }
+.slip-join svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 1.6; fill: none; stroke-linecap: round; }
+.slip-join small { font-size: 11px; color: hsl(var(--muted-foreground) / .8); }
+
+/* ═══ 常用功能 ═══ */
+.quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.quick {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 11px;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.quick:hover { transform: translateY(-2px); border-color: rgb(166 58 46 / .45); box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+.quick .q-ic {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--pg-red) 9%, transparent);
+}
+.quick .q-ic svg { width: 17px; height: 17px; stroke: var(--pg-red); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.quick .q-t { font-size: 13.5px; font-weight: 500; }
+.quick .q-d { font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+/* ═══ 今日祭日 ═══ */
+.mem-card {
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px;
+  padding: 18px 20px; text-align: center;
+}
+.mem-card .m-date { font-family: var(--pg-serif); font-size: 13px; color: hsl(var(--muted-foreground)); letter-spacing: .1em; }
+.mem-card .m-state { margin-top: 10px; font-family: var(--pg-serif); font-size: 15px; letter-spacing: .12em; color: hsl(var(--foreground) / .8); }
+.mem-card .m-hint { margin-top: 6px; font-size: 11.5px; color: hsl(var(--muted-foreground)); }
+.mem-flame { width: 30px; height: 30px; margin: 6px auto 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--pg-red) 8%, transparent); }
+.mem-flame svg { width: 15px; height: 15px; stroke: var(--pg-red); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ═══ 祠堂动态 ═══ */
+.feed { display: flex; flex-direction: column; gap: 10px; }
+.feed-item {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px;
+  padding: 14px 18px;
+  transition: border-color .18s ease;
+}
+.feed-item:hover { border-color: rgb(166 58 46 / .4); }
+.feed-item .f-ic {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: hsl(var(--muted) / .6);
+}
+.feed-item .f-ic svg { width: 15px; height: 15px; stroke: var(--pg-red); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.feed-item .f-body { min-width: 0; flex: 1; }
+.feed-item .f-text { font-size: 13.5px; line-height: 1.75; }
+.feed-item .f-meta { margin-top: 4px; font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+/* ═══ 版刻尾行 ═══ */
+.colophon {
+  display: flex; flex-wrap: wrap; align-items: center; row-gap: 8px;
+  margin-top: 30px; padding-top: 16px; border-top: 1px solid hsl(var(--border));
+  font-size: 12.5px; color: hsl(var(--muted-foreground));
+}
+.colophon b { color: hsl(var(--foreground)); font-weight: 500; }
+.colo-sep { margin: 0 12px; width: 1px; height: 12px; background: hsl(var(--border)); }
+.note-demo { margin-top: 8px; font-size: 11.5px; color: hsl(var(--muted-foreground) / .7); }
+
+/* ═══ 布局 ═══ */
+.row-2col { display: grid; grid-template-columns: 1.7fr 1fr; gap: 16px; align-items: stretch; }
+.row-2col .col { display: flex; flex-direction: column; }
+.row-2col .col .mem-card { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(8px);
+  z-index: 60; padding: 9px 18px; border-radius: 10px;
+  background: hsl(var(--foreground)); color: hsl(var(--background));
+  font-size: 13px; opacity: 0; pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 860px) {
+  .row-2col { grid-template-columns: 1fr; }
+  .slip { grid-template-columns: 1fr; }
+  .slip-scroll { border-left: 0; border-top: 1px solid hsl(var(--border)); }
+  .quick-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page { animation: pg-rise .45s ease-out; }
+  .pg-seal { animation: pg-stamp .35s ease-out .1s both; }
+}
+@keyframes pg-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes pg-stamp { 0% { opacity: 0; transform: scale(1.5) rotate(6deg); } 100% { opacity: 1; transform: scale(1) rotate(-2deg); } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-enter" viewBox="0 0 24 24"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></symbol>
+  <symbol id="i-tree" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M12 12H6v4M12 12h6v4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.5C7 16.5 3.5 13.3 3.5 9.6 3.5 7 5.5 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.5 0 4.5 2 4.5 4.6 0 3.7-3.5 6.9-8.5 10.9z"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 17 4.5-4 3.5 3 3.5-3.5L21 16"/></symbol>
+  <symbol id="i-feed" viewBox="0 0 24 24"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/><path d="M9 11h.01M12.5 11h.01M16 11h.01"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 21c4 0 6.5-2.6 6.5-6.2 0-2.5-1.3-4.4-2.7-6-.5 1-1.2 1.8-2 2.3C13.6 8.6 13 6 11 3c-.3 3-1.8 4.6-3.2 6.4C6.6 11 5.5 12.8 5.5 14.8 5.5 18.4 8 21 12 21z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19V6a2 2 0 0 1 2-2h13v13H6a2 2 0 0 0-2 2zm0 0a2 2 0 0 0 2 2h13"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="logo-seal" aria-hidden="true">谱</div>
+  <span class="logo-name">族谱</span>
+  <span class="nav-here"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>我的族谱</span>
+  <span class="topbar-spacer"></span>
+  <div class="theme-seg" role="group" aria-label="预览主题">
+    <button data-theme="" aria-pressed="false">浅色</button>
+    <button data-theme="ink" aria-pressed="false">墨韵</button>
+    <button data-theme="dark" aria-pressed="true">暗色</button>
+  </div>
+  <div class="me"><span class="ava">牟</span>牟文安</div>
+</header>
+
+<main class="page">
+  <!-- 问候页头 -->
+  <div class="pg-head">
+    <div>
+      <div class="pg-eyebrow">谱 牒 · 总 目</div>
+      <h1 class="pg-title">我的族谱</h1>
+      <p class="pg-subtitle">牟文安，欢迎归谱 · 名下卷帙、祠堂动静，皆在此页</p>
+    </div>
+    <div class="pg-head-meta">
+      今日 <b>2026年11月20日</b><br>
+      丙午马年 · 十月十二
+    </div>
+    <div class="pg-seal" aria-hidden="true">总</div>
+  </div>
+
+  <!-- ══ 卷帙 ══ -->
+  <div class="sec-head">
+    <span class="sec-title">卷 帙</span>
+    <span class="sec-rule"></span>
+    <span class="sec-count">1 部在谱</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:14px;" aria-label="我的族谱列表">
+    <!-- 牟氏家族 函套卡 -->
+    <article class="slip">
+      <div class="slip-main">
+        <div class="slip-eyebrow">卷 一 · 牟氏</div>
+        <div class="slip-title-row">
+          <div class="slip-seal" aria-hidden="true">牟</div>
+          <div>
+            <h2 class="slip-name">牟氏家族</h2>
+            <p class="slip-sub">耕读传家 · 敬宗睦族</p>
+          </div>
+        </div>
+        <div class="slip-stats">
+          <span class="st"><b>70</b> 位族人</span>
+          <span class="sep"></span>
+          <span class="st"><b>4</b> 代同堂</span>
+          <span class="sep"></span>
+          <span class="st"><b>1</b> 处发祥 · 甘肃秦安</span>
+          <span class="sep"></span>
+          <span class="role-chip"><i aria-hidden="true"></i>我的身份 · 族人</span>
+        </div>
+        <div class="slip-cta">
+          <button class="btn primary" data-demo="展卷入谱"><svg><use href="#i-enter"/></svg>展卷入谱</button>
+          <button class="btn ghost" data-demo="功能目录"><svg><use href="#i-book"/></svg>功能目录</button>
+        </div>
+      </div>
+      <div class="slip-scroll">
+        <div class="slip-motto-frame">
+          <span class="slip-motto-text">耕读世业　勤俭家风</span>
+          <span class="slip-motto-seal" aria-hidden="true">训</span>
+        </div>
+        <span class="slip-motto-caption">祖 训 挂 轴</span>
+      </div>
+    </article>
+
+    <!-- 虚位以待 -->
+    <button class="slip-join" data-demo="凭邀请码加入族谱">
+      <svg aria-hidden="true"><use href="#i-plus"/></svg>
+      邀请加入其他族谱
+      <small>族中长辈分享邀请码后，凭码入谱</small>
+    </button>
+  </section>
+
+  <!-- ══ 常用 + 今日祭日 ══ -->
+  <div class="row-2col" style="margin-top:6px;">
+    <div class="col">
+      <div class="sec-head" style="margin-top:6px;">
+        <span class="sec-title">常 用</span>
+        <span class="sec-rule"></span>
+        <span class="sec-count">六处直入</span>
+      </div>
+      <div class="quick-grid">
+        <button class="quick" data-demo="族谱树">
+          <span class="q-ic"><svg><use href="#i-tree"/></svg></span>
+          <span><span class="q-t">谱系树</span><br><span class="q-d">四代世系一览</span></span>
+        </button>
+        <button class="quick" data-demo="家庙祭拜">
+          <span class="q-ic"><svg><use href="#i-heart"/></svg></span>
+          <span><span class="q-t">家庙祭拜</span><br><span class="q-d">牌位前上香叩首</span></span>
+        </button>
+        <button class="quick" data-demo="家族相册">
+          <span class="q-ic"><svg><use href="#i-photo"/></svg></span>
+          <span><span class="q-t">家族相册</span><br><span class="q-d">影像归集留存</span></span>
+        </button>
+        <button class="quick" data-demo="家族动态">
+          <span class="q-ic"><svg><use href="#i-feed"/></svg></span>
+          <span><span class="q-t">家族动态</span><br><span class="q-d">宗亲近事</span></span>
+        </button>
+        <button class="quick" data-demo="家族聊天">
+          <span class="q-ic"><svg><use href="#i-chat"/></svg></span>
+          <span><span class="q-t">家族聊天</span><br><span class="q-d">族人即时联络</span></span>
+        </button>
+        <button class="quick" data-demo="家族地理">
+          <span class="q-ic"><svg><use href="#i-map"/></svg></span>
+          <span><span class="q-t">家族地理</span><br><span class="q-d">迁徙生息地图</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="sec-head" style="margin-top:6px;">
+        <span class="sec-title">祭 日</span>
+        <span class="sec-rule"></span>
+        <span class="sec-count">追远</span>
+      </div>
+      <div class="mem-card">
+        <p class="m-date">丙午马年 · 十月十二</p>
+        <div class="mem-flame" aria-hidden="true"><svg><use href="#i-flame"/></svg></div>
+        <p class="m-state">今日无先祖忌日</p>
+        <p class="m-hint">忌日按农历自动推算，祭期前有提醒</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 祠堂动态 ══ -->
+  <div class="sec-head">
+    <span class="sec-title">祠 堂 动 态</span>
+    <span class="sec-rule"></span>
+    <span class="sec-count">牟氏家族 · 最近三条</span>
+  </div>
+  <div class="feed">
+    <article class="feed-item">
+      <span class="f-ic" aria-hidden="true"><svg><use href="#i-feed"/></svg></span>
+      <div class="f-body">
+        <p class="f-text">族谱数字化工程已启动，目前完成永、正、文、海四代共 70 位族人的基础世系录入，欢迎族人查缺补漏。</p>
+        <p class="f-meta">牟氏家族 · 今天</p>
+      </div>
+    </article>
+    <article class="feed-item">
+      <span class="f-ic" aria-hidden="true"><svg><use href="#i-heart"/></svg></span>
+      <div class="f-body">
+        <p class="f-text">清明祭祖顺利举行，阖族四十余人赴阳坡门祠堂上香叩首，追思先人。感谢宗亲理事会诸位费力操持。</p>
+        <p class="f-meta">牟氏家族 · 今天</p>
+      </div>
+    </article>
+    <article class="feed-item">
+      <span class="f-ic" aria-hidden="true"><svg><use href="#i-feed"/></svg></span>
+      <div class="f-body">
+        <p class="f-text">今年族内书画展收到作品三十余幅，青年一辈笔墨不俗，耕读家风后继有人。</p>
+        <p class="f-meta">牟氏家族 · 今天</p>
+      </div>
+    </article>
+  </div>
+
+  <div class="colophon">
+    <b>总目</b><span class="colo-sep"></span>
+    一部在谱 · 族人身份<span class="colo-sep"></span>
+    卷帙即门径，展卷入谱<span class="colo-sep"></span>
+    常用六处直入<span class="colo-sep"></span>
+    祠堂动静收于总目
+  </div>
+  <p class="note-demo">家族 / 成员 / 动态内容取自真实数据 · 深浅墨三主题切换对照 · 可框选元素留评论</p>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ── 主题切换 ── */
+document.querySelectorAll('.theme-seg button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.documentElement.classList.remove('dark', 'ink');
+    if (b.dataset.theme) document.documentElement.classList.add(b.dataset.theme);
+    document.querySelectorAll('.theme-seg button').forEach(function (x) {
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+  });
+});
+
+/* ── 演示交互：点击给出轻提示 ── */
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+document.querySelectorAll('[data-demo]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    toast('预览示意：' + b.dataset.demo);
+  });
+});
+</script>
+</body>
+</html>
