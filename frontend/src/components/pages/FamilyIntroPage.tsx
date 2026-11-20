@@ -5,8 +5,10 @@ import { Layout } from '@/components/layout/Layout'
 import { Button, Input, useToast } from '@/components/ui'
 import { useConfirm } from '@/components/ui'
 import {
-  ChevronDown, ChevronUp, Plus, Trash2, ArrowRight, BookOpen, PenLine,
+  ChevronDown, ChevronUp, Plus, Trash2, ArrowRight, BookOpen, PenLine, ArrowLeft,
 } from 'lucide-react'
+import { PgSectionHead } from '@/components/ui/pedigree'
+import { smartBack } from '@/lib/smartBack'
 
 /* ── 谱书卷首设计令牌：与个人设置页同源的朱砂 + 宋体 ── */
 const SEAL_RED = '#A63A2E'
@@ -189,18 +191,12 @@ export default function FamilyIntroPage() {
     ? (family.zibei_start_generation || 1)
     : 1
 
-  /* 朱点分段标题 */
-  const SectionHead = ({ text }: { text: string }) => (
-    <div className="fi-section-head">
-      <span aria-hidden="true" className="fi-dot" />
-      <span className="fi-section-title">{text}</span>
-      <span aria-hidden="true" className="fi-section-rule" />
-    </div>
-  )
+  /* 朱点分段标题（共享谱牒原语） */
+  const SectionHead = ({ text }: { text: string }) => <PgSectionHead text={text} />
 
   return (
     <Layout>
-      <div className="fi-intro mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      <div className="fi-intro pg-rise mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <style>{`
           .fi-intro { font-size: 14px; }
           .fi-intro .fi-dot { width: 6px; height: 6px; border-radius: 2px; background: ${SEAL_RED}; flex-shrink: 0; }
@@ -324,6 +320,17 @@ export default function FamilyIntroPage() {
             .fi-intro .fi-toc-body { padding-left: 20px; }
           }
         `}</style>
+
+        {/* 返回族谱 */}
+        <div className="mb-4 flex items-center gap-2">
+          <button
+            onClick={() => smartBack(navigate, `/family/${familyId}`)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            返回族谱
+          </button>
+        </div>
 
         {/* ══ 卷首：印 + 族名 + 版刻行 + 祖训挂轴 ══ */}
         <div className="fi-volhead">
