@@ -6,7 +6,7 @@ import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
 import { formatDaysOffset, solarToLunar, formatSolarDate } from '@/lib/lunar'
-import { ArrowLeft, Flame, Calendar, Flower2, Sparkles, Hand, X } from 'lucide-react'
+import { ArrowLeft, Flame, Calendar, Flower2, Sparkles, Hand, X, Pencil } from 'lucide-react'
 
 interface MemorialItem {
   member_id: number
@@ -105,10 +105,17 @@ export default function MemorialPage() {
   }, [])
   const [visitors, setVisitors] = useState<Record<number, VisitorInfo[]>>({})
   const [bowingId, setBowingId] = useState<number | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const bowTimer = useRef<number | undefined>(undefined)
   const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null; gender: string | null }> | null>(null)
 
   useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}')
+      setIsAdmin(!!u.is_admin)
+    } catch {
+      /* ignore */
+    }
     if (!familyId) return
     api.getFamily(familyId).then((r) => setFamilySurname(r?.family?.surname || '')).catch(() => {})
     loadAll()
@@ -432,6 +439,17 @@ export default function MemorialPage() {
                         <span className="pg-quick-n">{ritualCounts[m.member_id]?.[kind] || 0}</span>
                       </button>
                     ))}
+                    {isAdmin && (
+                      <button
+                        className="pg-quick-ritual pg-quick-edit"
+                        onClick={() => navigate(`/family/${familyId}/member/${m.member_id}`)}
+                        aria-label={`维护 ${m.member_name} 的牌位信息`}
+                        title="维护牌位信息（名讳/称谓/卒年）"
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="pg-quick-n">维护</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

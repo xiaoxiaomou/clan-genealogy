@@ -1032,3 +1032,7 @@
   .pg-candle-mote { display: none; }
   .pg-candle-core, .pg-spark::before, .pg-burner-lit::before { animation: none; }
 }
+
+/* 管理员维护入口（牌位直拜行末的笔形按钮） */
+.pg-quick-edit { color: hsl(var(--muted-foreground)); }
+.pg-quick-edit:hover { color: hsl(var(--foreground)); border-color: hsl(var(--border)); background: hsl(var(--muted) / .6); }
