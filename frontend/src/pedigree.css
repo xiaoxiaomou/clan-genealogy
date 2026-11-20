@@ -458,11 +458,6 @@
 .pg-smoke-1 { height: 32px; }
 .pg-smoke-2 { height: 38px; animation-delay: calc(var(--d, 0s) + 3.3s); }
 .pg-smoke-3 { height: 26px; animation-delay: calc(var(--d, 0s) + 4.4s); }
-@keyframes pg-smoke-rise {
-  0% { opacity: 0; transform: translate(-50%, 6px) skewX(0deg); }
-  18% { opacity: .5; }
-  100% { opacity: 0; transform: translate(calc(-50% + 10px), -54px) skewX(-14deg); }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .pg-stick { animation: pg-stick-in .01s forwards; height: var(--h, 58px); }
@@ -661,8 +656,8 @@
 .pg-smoke-3 { --dx: 3px; --sk: -7deg; }
 @keyframes pg-smoke-rise {
   0% { opacity: 0; transform: translate(-50%, 6px) skewX(0deg) scale(1); }
-  18% { opacity: .5; }
-  60% { opacity: .3; }
+  18% { opacity: .5; transform: translate(calc(-50% + 4px), -16px) skewX(-7deg) scale(1.15); }
+  55% { opacity: .35; transform: translate(calc(-50% - 3px), -34px) skewX(7deg) scale(1.32); }
   100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 10px)), -56px) skewX(var(--sk, -14deg)) scale(1.6); }
 }
 /* 香灰片：每隔数秒从香头跌落炉灰 */
@@ -966,4 +961,74 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .pg-btn-primary { animation: none; }
+}
+
+/* ── 香烛氛围动效：尘埃浮粒 / 焰心噼啪 / 双火星 / 炉下暖光 ── */
+/* 烛光中飘浮的微粒 */
+.pg-candle-mote {
+  position: absolute;
+  left: 50%; top: -8px;
+  width: 1.6px; height: 1.6px;
+  margin-left: -0.8px;
+  border-radius: 50%;
+  background: rgb(255 214 150 / .85);
+  box-shadow: 0 0 3px rgb(255 200 120 / .7);
+  opacity: 0;
+  animation: pg-mote 6.5s ease-in-out infinite;
+}
+.pg-mote-b { animation-delay: 3.1s; }
+@keyframes pg-mote {
+  0% { opacity: 0; transform: translate(0, 8px); }
+  25% { opacity: .85; transform: translate(2px, -2px); }
+  55% { opacity: .5; transform: translate(-2px, -10px); }
+  80% { opacity: .25; transform: translate(3px, -16px); }
+  100% { opacity: 0; transform: translate(1px, -20px); }
+}
+/* 焰心偶发噼啪（忽明忽缩） */
+.pg-candle-core { animation: pg-core-jolt 4.7s ease-in-out infinite; }
+@keyframes pg-core-jolt {
+  0%, 84%, 100% { transform: scale(1); opacity: 1; }
+  87% { transform: scale(.72) translateY(1px); opacity: .7; }
+  90% { transform: scale(1.12); opacity: 1; }
+  93% { transform: scale(.9); opacity: .85; }
+}
+/* 火星二连发（第二粒反向漂） */
+.pg-spark::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 1.6px; height: 1.6px;
+  border-radius: 50%;
+  background: #ffe2a0;
+  box-shadow: 0 0 3px rgb(255 200 120 / .7);
+  opacity: 0;
+  animation: pg-spark-b 4.3s ease-out calc(var(--d, 0s) + 3.4s) infinite;
+}
+@keyframes pg-spark-b {
+  0%, 70% { opacity: 0; transform: translate(0, 0); }
+  74% { opacity: .9; transform: translate(-3px, -6px); }
+  84% { opacity: .6; transform: translate(-7px, -13px); }
+  94%, 100% { opacity: 0; transform: translate(-10px, -20px); }
+}
+/* 燃起时炉下暖光反射（随呼吸） */
+.pg-burner-lit::before {
+  content: '';
+  position: absolute;
+  bottom: -5px; left: 50%;
+  transform: translateX(-50%);
+  width: 118px; height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(255 170 80 / .32) 0%, rgb(255 170 80 / 0) 72%);
+  filter: blur(2px);
+  pointer-events: none;
+  animation: pg-floor-glow 2.6s ease-in-out infinite;
+}
+@keyframes pg-floor-glow {
+  0%, 100% { opacity: .75; }
+  50% { opacity: .4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-candle-mote { display: none; }
+  .pg-candle-core, .pg-spark::before, .pg-burner-lit::before { animation: none; }
 }
