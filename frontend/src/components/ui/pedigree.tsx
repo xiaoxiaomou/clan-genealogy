@@ -231,17 +231,18 @@ export function PgFlowers({ count }: { count: number }) {
   )
 }
 
-export function PgIncenseBurner({ signal, mini, candle }: { signal: number; mini?: boolean; candle?: boolean }) {
+export function PgIncenseBurner({ signal, mini, candle, persist }: { signal: number; mini?: boolean; candle?: boolean; persist?: boolean }) {
   const [lit, setLit] = useState(false)
   const burnTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (signal <= 0) return
     setLit(true)
+    if (persist) return
     window.clearTimeout(burnTimer.current)
     burnTimer.current = window.setTimeout(() => setLit(false), INCENSE_BURN_MS)
     return () => window.clearTimeout(burnTimer.current)
-  }, [signal])
+  }, [signal, persist])
 
   const sticks = [
     { rot: '-9deg', d: '0s', h: 54 },

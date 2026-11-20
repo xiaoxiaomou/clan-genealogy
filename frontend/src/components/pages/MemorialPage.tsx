@@ -86,10 +86,8 @@ export default function MemorialPage() {
   const [days, setDays] = useState(60)
   const [familySurname, setFamilySurname] = useState('')
   const [ritualMember, setRitualMember] = useState<MemorialItem | null>(null)
-  const [incenseSignals, setIncenseSignals] = useState<Record<number, number>>({})
   const [ritualCounts, setRitualCounts] = useState<Record<number, Record<string, number>>>({})
   const [visitors, setVisitors] = useState<Record<number, VisitorInfo[]>>({})
-  const [candleSignals, setCandleSignals] = useState<Record<number, boolean>>({})
   const [bowingId, setBowingId] = useState<number | null>(null)
   const bowTimer = useRef<number | undefined>(undefined)
   const [yearOnly, setYearOnly] = useState<Array<{ member_id: number; member_name: string; avatar: string | null; death_year: string; generation: number | null; gender: string | null }> | null>(null)
@@ -164,8 +162,6 @@ export default function MemorialPage() {
         [memberId]: [{ user_name: meName, kinds: [{ kind, n: 1 }], last_at: new Date().toISOString() }, ...list].slice(0, 6),
       }
     })
-    if (kind === 'incense') setIncenseSignals((s) => ({ ...s, [memberId]: (s[memberId] || 0) + 1 }))
-    if (kind === 'candle') setCandleSignals((s) => ({ ...s, [memberId]: true }))
     if (kind === 'kowtow') {
       setBowingId(memberId)
       window.clearTimeout(bowTimer.current)
@@ -404,7 +400,7 @@ export default function MemorialPage() {
                     <div className="pg-ped2" aria-hidden="true" />
                     <PgFlowers count={ritualCounts[m.member_id]?.flower || 0} />
                   </div>
-                  <PgIncenseBurner mini signal={incenseSignals[m.member_id] || 0} candle={!!candleSignals[m.member_id]} />
+                  <PgIncenseBurner mini persist signal={ritualCounts[m.member_id]?.incense || 0} candle={(ritualCounts[m.member_id]?.candle || 0) > 0} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.member_name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
                       <button
