@@ -26,7 +26,6 @@ import {
   MessageSquare,
   MessageCircle,
   MapPin,
-  BookOpen,
   Flame,
   Sparkles,
 } from 'lucide-react'
@@ -249,10 +248,6 @@ export default function DashboardPage() {
               <ArrowRight aria-hidden="true" />
               展卷入谱
             </button>
-            <button className="pg-btn-ghost" onClick={() => navigate(`/family/${family.id}/functions`)}>
-              <BookOpen aria-hidden="true" />
-              功能目录
-            </button>
           </div>
         </div>
         <div className="pg-slip-scroll">
@@ -321,7 +316,7 @@ export default function DashboardPage() {
             <p className="mt-2 mb-6 max-w-md text-center text-sm leading-7 text-muted-foreground">
               {isAdmin
                 ? '族谱是记录家族传承的载体。点击下方按钮，创建属于您家族的族谱吧。'
-                : '您暂未被授权访问任何族谱，请联系管理员获取权限。'}
+                : '您暂未被授权访问任何族谱，请联系管理员授权，或凭族中长辈分享的邀请链接入谱。'}
             </p>
             {isAdmin && (
               <Button
@@ -338,16 +333,6 @@ export default function DashboardPage() {
         ) : (
           <div className="pg-rise flex flex-col gap-3.5">
             {families.map((family, i) => renderSlip(family, i))}
-            {!isAdmin && (
-              <button
-                className="pg-slip-join"
-                onClick={() => showToast('凭族中长辈分享的邀请码或邀请链接入谱', 'info')}
-              >
-                <Plus aria-hidden="true" />
-                邀请加入其他族谱
-                <small>族中长辈分享邀请码后，凭码入谱</small>
-              </button>
-            )}
           </div>
         )}
 
