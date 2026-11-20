@@ -322,13 +322,6 @@ export default function FanChart({
 
   return (
     <div className="relative overflow-auto rounded-md border bg-card shadow-sm" style={{ maxHeight: '700px' }}>
-      {!canEdit && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[2px] pointer-events-none">
-          <p className="text-sm text-muted-foreground bg-background/80 px-4 py-2 rounded-md border shadow-sm">
-            仅管理员可进行拖动与连线操作
-          </p>
-        </div>
-      )}
       <div
         className="sticky left-4 top-4 z-10 flex items-center gap-2"
         role="toolbar"

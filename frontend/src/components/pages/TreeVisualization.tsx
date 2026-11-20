@@ -417,13 +417,6 @@ export default function TreeVisualization({
 
   return (
     <div className="relative overflow-hidden rounded-md border bg-card shadow-sm">
-      {!canEdit && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[2px] pointer-events-none">
-          <p className="text-sm text-muted-foreground bg-background/80 px-4 py-2 rounded-md border shadow-sm">
-            仅管理员可进行拖动与连线操作
-          </p>
-        </div>
-      )}
 
       {/* 工具栏 */}
       <div className="absolute left-2 top-2 right-2 z-10 flex flex-wrap items-center gap-1.5 p-1.5 rounded-lg bg-card/90 backdrop-blur-sm border shadow-sm">

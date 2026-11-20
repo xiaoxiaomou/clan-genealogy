@@ -782,13 +782,6 @@ export default function FamilyTreeGraph({
         </div>
       )}
 
-      {!canEdit && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[2px] pointer-events-none">
-          <p className="text-sm text-muted-foreground bg-background/80 px-4 py-2 rounded-md border shadow-sm">
-            仅管理员可进行拖动与连线操作
-          </p>
-        </div>
-      )}
 
       <ReactFlow
         nodes={nodes}
