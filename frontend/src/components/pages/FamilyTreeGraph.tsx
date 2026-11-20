@@ -324,6 +324,8 @@ interface FamilyTreeGraphProps {
   familyId?: number
   /** 清除按钮同时清空外部选中态（父级高亮成员） */
   onClearSelection?: () => void
+  /** 工具栏“添加单节点”入口 */
+  onAddSingleNode?: () => void
 }
 
 export default function FamilyTreeGraph({
@@ -333,6 +335,7 @@ export default function FamilyTreeGraph({
   highlightedMemberId,
   onClearSelection,
   familyId,
+  onAddSingleNode,
 }: FamilyTreeGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<HoverInfo | null>(null)
   const [selectedEdge, setSelectedEdge] = useState<SelectedEdgeInfo | null>(null)
@@ -610,6 +613,7 @@ export default function FamilyTreeGraph({
   }, [treeData, highlightedMemberId, lineage.highlight])
 
   const manualEdges = useMemo(() => {
+    const nameById = new Map((treeData?.nodes ?? []).map(n => [String(n.id), n.name]))
     return historyState.present.map(edge => ({
       id: edge.id,
       source: edge.source,
@@ -618,12 +622,16 @@ export default function FamilyTreeGraph({
       data: {
         edge,
         isManual: true,
-        onSelect: () => handleManualEdgeSelect(edge, addingState.sourceName || edge.source, addingState.targetName || edge.target),
+        onSelect: () => handleManualEdgeSelect(
+          edge,
+          nameById.get(edge.source) || edge.source,
+          nameById.get(edge.target) || edge.target,
+        ),
         onDragStart: handleManualEdgeDragStart,
         onDragEnd: handleManualEdgeDragEnd,
       },
     }))
-  }, [historyState.present, handleManualEdgeSelect, addingState, handleManualEdgeDragStart, handleManualEdgeDragEnd])
+  }, [treeData, historyState.present, handleManualEdgeSelect, handleManualEdgeDragStart, handleManualEdgeDragEnd])
 
   const allEdges = useMemo(() => {
     const familyEdges = edges.map(edge => ({
@@ -693,18 +701,43 @@ export default function FamilyTreeGraph({
     }
   }, [dialogState.mode, dialogState.edge, addingState.sourceId, addingState.targetId, historyManager])
 
+  /** 管理员直接拖动节点连接点创建连线：打开关系确认对话框 */
+  const handleConnect = useCallback((connection: { source: string | null; target: string | null }) => {
+    if (!canEdit || mode !== 'default') return
+    const source = connection.source
+    const target = connection.target
+    if (!source || !target || source === target) return
+
+    const duplicate = allEdges.some((edge) => edge.source === source && edge.target === target)
+    if (duplicate) return
+
+    const sourceNode = nodes.find((node) => node.id === source)
+    const targetNode = nodes.find((node) => node.id === target)
+    const sourceName = (sourceNode?.data?.member as TreeNode | undefined)?.name || source
+    const targetName = (targetNode?.data?.member as TreeNode | undefined)?.name || target
+
+    setSelectedEdge(null)
+    setAddingState({ step: 'confirm', sourceId: source, sourceName, targetId: target, targetName })
+    setDialogState({ isOpen: true, mode: 'create' })
+  }, [canEdit, mode, allEdges, nodes])
+
+  const handleAddSingleNode = useCallback(() => {
+    if (!canEdit) return
+    if (mode === 'adding') {
+      setMode('default')
+    }
+    setAddingState({ step: 'select-source', sourceId: null, sourceName: null, targetId: null, targetName: null })
+    onAddSingleNode?.()
+  }, [canEdit, mode, onAddSingleNode])
+
   const handleDialogClose = useCallback(() => {
     setDialogState({ isOpen: false, mode: 'create' })
-    if (mode === 'adding') {
-      setAddingState({ step: 'select-source', sourceId: null, sourceName: null, targetId: null, targetName: null })
-    }
-  }, [mode])
+    setAddingState({ step: 'select-source', sourceId: null, sourceName: null, targetId: null, targetName: null })
+  }, [])
 
   const handleModeChange = useCallback((newMode: EditingMode) => {
     setMode(newMode)
-    if (newMode !== 'adding') {
-      setAddingState({ step: 'select-source', sourceId: null, sourceName: null, targetId: null, targetName: null })
-    }
+    setAddingState({ step: 'select-source', sourceId: null, sourceName: null, targetId: null, targetName: null })
   }, [])
 
   const handleFlowInit = useCallback((instance: ReturnType<typeof useReactFlow>) => {
@@ -741,6 +774,7 @@ export default function FamilyTreeGraph({
           onRedo={handleRedo}
           onDeleteSelected={handleDeleteSelected}
           hasSelectedEdge={!!selectedEdge}
+          onAddSingleNode={handleAddSingleNode}
         />
       )}
 
@@ -772,7 +806,7 @@ export default function FamilyTreeGraph({
         onClose={() => search.setOpen(false)}
       />
 
-      {mode === 'adding' && (
+      {mode === 'adding' ? (
         <div className="absolute top-16 left-4 z-20 bg-blue-500/90 text-white text-sm px-3 py-2 rounded-lg shadow-lg">
           {addingState.step === 'select-source'
             ? '请选择连线的起点节点'
@@ -780,7 +814,11 @@ export default function FamilyTreeGraph({
             ? `已选择起点: ${addingState.sourceName}，请选择终点节点`
             : '请在对话框中填写连线信息'}
         </div>
-      )}
+      ) : canEdit ? (
+        <div className="absolute top-16 left-4 z-20 hidden sm:block rounded-lg border bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur">
+          可直接拖动节点上下圆点连线；也可点「添加连线」后依次选择两个节点
+        </div>
+      ) : null}
 
 
       <ReactFlow
@@ -789,6 +827,9 @@ export default function FamilyTreeGraph({
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
         onPaneClick={handlePaneClick}
+        onConnect={handleConnect}
+        isValidConnection={(connection: { source: string | null; target: string | null }) => connection.source !== connection.target}
+        connectionLineStyle={{ stroke: PG_RED, strokeWidth: 2, strokeDasharray: '6 4' }}
         nodeTypes={nodeTypes}
         edgeTypes={{ ...edgeTypes, manual: ManualEdgeComponent }}
         fitView
@@ -797,7 +838,7 @@ export default function FamilyTreeGraph({
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         nodesDraggable={canEdit && mode !== 'adding'}
-        nodesConnectable={false}
+        nodesConnectable={canEdit && mode === 'default'}
         selectNodesOnDrag={canEdit}
       >
         <FlowInit onInit={handleFlowInit} />

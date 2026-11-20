@@ -905,6 +905,7 @@ export default function FamilyTreePage() {
                   highlightedMemberId={highlightedMemberId}
                   onClearSelection={() => setHighlightedMemberId(null)}
                   familyId={familyId}
+                  onAddSingleNode={() => openAddMemberWith({ generation: '1' }, null)}
                 />
                 </ReactFlowProvider>
               </Suspense>
