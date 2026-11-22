@@ -174,7 +174,11 @@ const INCENSE_BURN_MS = 90_000
 export function offeringAlive(lastIso: string | undefined, value: number, life: number): number {
   if (!value) return 0
   if (!lastIso) return value // 无时间信息时保守展示（旧数据）
-  return Date.now() - new Date(lastIso).getTime() < life ? value : 0
+  // 后端存 UTC（isoformat 无时区标记）→ JS 会误按本地时间解析，补 'Z' 修正 8 小时偏差
+  const iso = /Z$|[+-]\d{2}:?\d{2}$/.test(lastIso) ? lastIso : `${lastIso}Z`
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return value
+  return Date.now() - t < life ? value : 0
 }
 
 /* 献花：牌座边绽放的莲花（外五内三层花瓣逐片展开，金蕊茎叶，最多并排 3 朵） */
