@@ -151,14 +151,12 @@
 }
 
 /* ── 入场动效（尊重减少动效）── */
-@media (prefers-reduced-motion: no-preference) {
   .pg-rise {
     animation: pg-rise 0.4s ease-out;
   }
   .pg-stamp {
     animation: pg-stamp 0.35s ease-out 0.12s both;
   }
-}
 @keyframes pg-rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -200,10 +198,8 @@
   transition: opacity .3s ease;
   pointer-events: none;
 }
-@media (prefers-reduced-motion: no-preference) {
   .pg-plaque:hover .pg-plaque-glow { opacity: 1; }
   .pg-plaque:hover .pg-tstack { transform: translateY(-5px); filter: drop-shadow(0 0 22px rgb(255 196 110 / .3)); }
-}
 .pg-tstack {
   display: flex;
   flex-direction: column;
@@ -459,12 +455,6 @@
 .pg-smoke-2 { height: 38px; animation-delay: calc(var(--d, 0s) + 3.3s); }
 .pg-smoke-3 { height: 26px; animation-delay: calc(var(--d, 0s) + 4.4s); }
 
-@media (prefers-reduced-motion: reduce) {
-  .pg-stick { animation: pg-stick-in .01s forwards; height: var(--h, 58px); }
-  .pg-stick::after { animation: pg-ember-in .01s forwards; }
-  .pg-smoke { display: none; }
-}
-
 /* 牌位脚下的迷你香炉（整炉等比缩小） */
 .pg-burner-sm {
   width: 100%;
@@ -644,12 +634,6 @@
   100% { transform: translateY(0); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pg-bowing { animation: none; }
-  .pg-candle-flame, .pg-candle-glow { animation: none; }
-  .pg-flower, .pg-lotus-petal, .pg-lotus-core, .pg-lotus-base { animation: none; }
-}
-
 /* ── 香的进阶动效：烟分三向 / 香灰掉落 / 火星迸溅 ── */
 .pg-smoke-1 { --dx: 10px; --sk: -14deg; }
 .pg-smoke-2 { --dx: -12px; --sk: 13deg; }
@@ -738,12 +722,6 @@
   100% { opacity: 0; transform: translate(4px, -18px) scaleY(1.3) skewX(8deg); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pg-spark { display: none; }
-  .pg-candle-drip, .pg-candle-smoke { display: none; }
-  .pg-stick::before { display: none; }
-}
-
 /* ── 悬浮牌位：今日谁来祭拜过 ── */
 .pg-visitor-tip {
   position: absolute;
@@ -789,9 +767,7 @@
   transition: transform .25s ease, box-shadow .25s ease;
 }
 .pg-slip:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgb(0 0 0 / .3); }
-@media (prefers-reduced-motion: no-preference) {
   .pg-slip:hover { transform: translateY(-4px); }
-}
 .pg-slip-main { padding: 26px 30px 22px; min-width: 0; }
 .pg-slip-eyebrow {
   display: flex; align-items: center; gap: 8px;
@@ -959,10 +935,6 @@
   .pg-slip-scroll { border-left: 0; border-top: 1px solid hsl(var(--border)); }
   .pg-quick-grid { grid-template-columns: 1fr 1fr; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .pg-btn-primary { animation: none; }
-}
-
 /* ── 香烛氛围动效：尘埃浮粒 / 焰心噼啪 / 双火星 / 炉下暖光 ── */
 /* 烛光中飘浮的微粒 */
 .pg-candle-mote {
@@ -1028,11 +1000,6 @@
   50% { opacity: .4; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pg-candle-mote { display: none; }
-  .pg-candle-core, .pg-spark::before, .pg-burner-lit::before { animation: none; }
-}
-
 /* ── 牌位右上角悬浮维护笔（管理员，悬停显现） ── */
 .pg-plaque-tools {
   position: absolute;
@@ -1042,9 +1009,7 @@
   opacity: 0;
   transition: opacity .2s ease;
 }
-@media (prefers-reduced-motion: no-preference) {
   .pg-plaque:hover .pg-plaque-tools { opacity: 1; }
-}
 .pg-plaque-tools:focus-within { opacity: 1; }
 .pg-tool-btn {
   width: 26px; height: 26px;
