@@ -404,16 +404,13 @@
   border-radius: 2px 2px 0 0;
   box-shadow: 0 0 4px rgb(255 190 120 / .28), inset -0.5px 0 0 rgb(255 226 178 / .35);
   opacity: 0;
-  animation:
-    pg-stick-in 1.15s ease-in-out var(--d, 0s) forwards,
-    pg-stick-burn 80s linear calc(var(--d, 0s) + 1.2s) forwards;
+  animation: pg-stick-in 1.15s ease-in-out var(--d, 0s) forwards;
 }
 @keyframes pg-stick-in {
   from { opacity: 0; transform: rotate(var(--rot, 0deg)) translateY(-48px); }
   60% { opacity: 1; }
   to { opacity: 1; transform: rotate(var(--rot, 0deg)) translateY(0); }
 }
-@keyframes pg-stick-burn { to { height: 14px; } }
 
 /* 香头火星 */
 .pg-stick::after {

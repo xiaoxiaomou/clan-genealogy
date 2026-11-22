@@ -449,7 +449,7 @@ export default function MemorialPage() {
                     <div className="pg-ped2" aria-hidden="true" />
                     <PgFlowers count={offeringAlive(lastKinds[m.member_id]?.flower, ritualCounts[m.member_id]?.flower || 0, OFFERING_LIFE.flower)} />
                   </div>
-                  <PgIncenseBurner mini persist signal={offeringAlive(lastKinds[m.member_id]?.incense, ritualCounts[m.member_id]?.incense || 0, OFFERING_LIFE.incense)} candle={offeringAlive(lastKinds[m.member_id]?.candle, (ritualCounts[m.member_id]?.candle || 0) > 0 ? 1 : 0, OFFERING_LIFE.candle) > 0} />
+                  <PgIncenseBurner mini persist epoch={lastKinds[m.member_id]?.incense || ""} signal={offeringAlive(lastKinds[m.member_id]?.incense, ritualCounts[m.member_id]?.incense || 0, OFFERING_LIFE.incense)} candle={offeringAlive(lastKinds[m.member_id]?.candle, (ritualCounts[m.member_id]?.candle || 0) > 0 ? 1 : 0, OFFERING_LIFE.candle) > 0} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.member_name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
                       <button

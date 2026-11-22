@@ -388,7 +388,7 @@ export default function TemplePage() {
                     <div className="pg-ped2" aria-hidden="true" />
                     <PgFlowers count={offeringAlive(lastKinds[m.id]?.flower, ritualCounts[m.id]?.flower || 0, OFFERING_LIFE.flower)} />
                   </div>
-                  <PgIncenseBurner mini persist signal={offeringAlive(lastKinds[m.id]?.incense, ritualCounts[m.id]?.incense || 0, OFFERING_LIFE.incense)} candle={offeringAlive(lastKinds[m.id]?.candle, (ritualCounts[m.id]?.candle || 0) > 0 ? 1 : 0, OFFERING_LIFE.candle) > 0} />
+                  <PgIncenseBurner mini persist epoch={lastKinds[m.id]?.incense || ""} signal={offeringAlive(lastKinds[m.id]?.incense, ritualCounts[m.id]?.incense || 0, OFFERING_LIFE.incense)} candle={offeringAlive(lastKinds[m.id]?.candle, (ritualCounts[m.id]?.candle || 0) > 0 ? 1 : 0, OFFERING_LIFE.candle) > 0} />
                   <div className="pg-quick-rituals" role="group" aria-label={`为 ${m.name} 祭拜`}>
                     {RITUAL_BUTTONS.map(({ kind, label, icon: Icon }) => (
                       <button

@@ -242,17 +242,18 @@ export function PgFlowers({ count }: { count: number }) {
   )
 }
 
-export function PgIncenseBurner({ signal, mini, candle, persist }: { signal: number; mini?: boolean; candle?: boolean; persist?: boolean }) {
+export function PgIncenseBurner({ signal, mini, candle, persist, epoch }: { signal: number; mini?: boolean; candle?: boolean; persist?: boolean; epoch?: string }) {
   const [lit, setLit] = useState(false)
   const burnTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    if (signal <= 0) return
-    setLit(true)
-    if (persist) return
+    // 信号归零（供品过期）→ 熄灭；有信号 → 点燃。epoch 变化时重置香的插入动画
+    setLit(signal > 0)
     window.clearTimeout(burnTimer.current)
-    burnTimer.current = window.setTimeout(() => setLit(false), INCENSE_BURN_MS)
-    return () => window.clearTimeout(burnTimer.current)
+    if (!persist && signal > 0) {
+      burnTimer.current = window.setTimeout(() => setLit(false), INCENSE_BURN_MS)
+      return () => window.clearTimeout(burnTimer.current)
+    }
   }, [signal, persist])
 
   const sticks = [
@@ -284,7 +285,7 @@ export function PgIncenseBurner({ signal, mini, candle, persist }: { signal: num
             </span>
           </>
         )}
-        <div className="pg-sticks" aria-hidden="true">
+        <div className="pg-sticks" key={epoch || "idle"} aria-hidden="true">
           {lit &&
             sticks.map((s, i) => (
               <span
