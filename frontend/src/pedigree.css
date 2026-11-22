@@ -400,8 +400,9 @@
   height: var(--h, 58px);
   transform: rotate(var(--rot, 0deg));
   transform-origin: 50% 100%;
-  background: linear-gradient(180deg, #93602f 0%, #7a4a22 60%, #5d3517 100%);
+  background: linear-gradient(180deg, #e2b276 0%, #c08a4e 38%, #8a5a33 72%, #5d3517 100%);
   border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 4px rgb(255 190 120 / .28), inset -0.5px 0 0 rgb(255 226 178 / .35);
   opacity: 0;
   animation:
     pg-stick-in 1.15s ease-in-out var(--d, 0s) forwards,
