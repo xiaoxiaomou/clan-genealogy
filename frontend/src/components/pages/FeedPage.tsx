@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Button,
   useToast,
   AvatarDisplay,
   MentionInput,
+  useConfirm,
 } from '@/components/ui'
-import { useConfirm } from '@/components/ui'
-import { PgPageHead, PG_RED, PG_SERIF } from '@/components/ui/pedigree'
+import { PgPageHead, PgSectionHead, PgSeal } from '@/components/ui/pedigree'
 import { Layout } from '@/components/layout/Layout'
 import { api } from '@/lib/api'
 import { smartBack } from '@/lib/smartBack'
@@ -16,10 +15,13 @@ import {
   ArrowLeft,
   Heart,
   MessageCircle,
-  Trash2,
   Pin,
+  Trash2,
+  Image,
   Send,
 } from 'lucide-react'
+
+/* ── 祠堂记事（家族动态）：时间脉络 + 记事笺 ── */
 
 interface Post {
   id: number
@@ -43,6 +45,20 @@ interface Comment {
   author_avatar: string | null
   content: string
   created_at: string
+}
+
+/** 相对时间：今天/昨天/前天 + 时分，更早显示日期 */
+function relTime(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const now = new Date()
+  const dayStart = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const diff = Math.round((dayStart(now) - dayStart(d)) / 86400000)
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  if (diff <= 0) return `今天 ${hm}`
+  if (diff === 1) return `昨天 ${hm}`
+  if (diff === 2) return `前天 ${hm}`
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`
 }
 
 export default function FeedPage() {
@@ -81,7 +97,7 @@ export default function FeedPage() {
     try {
       await api.createPost(familyId, { content: composer })
       setComposer('')
-      showToast('发布成功', 'success')
+      showToast('记好了', 'success')
       load()
     } catch (err: any) {
       showToast(err.message || '发布失败', 'error')
@@ -102,7 +118,7 @@ export default function FeedPage() {
   }
 
   async function removePost(p: Post) {
-    if (!(await ask({ title: '删除动态', message: '确定要删除这条动态吗？此操作不可恢复。', confirmText: '确认删除', danger: true }))) return
+    if (!(await ask({ title: '删除记事', message: '确定要删除这条记事吗？此操作不可恢复。', confirmText: '确认删除', danger: true }))) return
     try {
       await api.deletePost(familyId, p.id)
       showToast('已删除', 'success')
@@ -112,8 +128,17 @@ export default function FeedPage() {
     }
   }
 
+  const pinnedPosts = posts.filter((p) => p.pinned)
+  const normalPosts = posts.filter((p) => !p.pinned)
+  const isMe = (p: Post) => p.author_id === user?.id || isAdminUser()
+
+  function isAdminUser(): boolean {
+    return !!user?.is_admin
+  }
+
   return (
     <Layout>
+      {dialog}
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 pg-rise">
         <div className="mb-5 flex items-center gap-2">
           <button
@@ -125,167 +150,190 @@ export default function FeedPage() {
           </button>
         </div>
 
-        {/* 页头 */}
         <PgPageHead
           eyebrow="谱 牒 · 动 态"
-          title="家族动态"
-          subtitle="族中新鲜事，大家共叙一门"
+          title="祠堂记事"
+          subtitle="族中近事，大家共叙一门"
+          actions={<PgSeal char="记" size={52} title="祠堂记事" />}
         />
 
-        {/* 发帖编辑器 */}
-        <div className="pg-card p-4">
-          <div className="flex gap-3">
+        {/* 记一笔 */}
+        <div className="pg-composer">
+          <div className="pg-composer-row">
             <AvatarDisplay
               avatar={user?.avatar || null}
               name={user?.display_name || user?.username || '我'}
-              size={36}
+              size={40}
             />
-            <div className="flex-1 space-y-2">
-              <textarea
-                rows={3}
-                value={composer}
-                onChange={(e) => setComposer(e.target.value)}
-                placeholder="分享家族里的新鲜事..."
-                className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-              <div className="flex justify-end">
-                <Button onClick={submitPost} disabled={posting || !composer.trim()}>
-                  <Send className="mr-1 h-4 w-4" />
-                  {posting ? '发布中...' : '发布'}
-                </Button>
-              </div>
-            </div>
+            <MentionInput
+              familyId={familyId}
+              value={composer}
+              onChange={setComposer}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submitPost()
+              }}
+              placeholder="记一笔族中近事…（支持 @提及族人，Ctrl+Enter 发布）"
+              ariaLabel="撰写动态"
+            />
+          </div>
+          <div className="pg-composer-foot">
+            <button
+              className="pg-composer-tool"
+              onClick={() => showToast('图片上传即将支持，敬请期待', 'info')}
+              disabled
+              aria-label="插入图片（即将支持）"
+            >
+              <Image aria-hidden="true" />
+              图片
+            </button>
+            <span className="pg-composer-spacer" />
+            <button className="pg-composer-btn" onClick={submitPost} disabled={posting || !composer.trim()}>
+              <Send aria-hidden="true" />
+              {posting ? '记录中…' : '记 一 笔'}
+            </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="pg-card mt-4 py-10 text-center text-sm text-muted-foreground">
-            <span style={{ fontFamily: PG_SERIF, letterSpacing: '0.2em' }}>展卷候…</span>
+          <div className="pg-card mt-6 animate-pulse p-6" aria-busy="true" aria-live="polite">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-muted" />
+              <div className="h-4 w-1/3 rounded bg-muted" />
+            </div>
+            <div className="mt-4 h-4 w-full rounded bg-muted" />
+            <div className="mt-2 h-4 w-2/3 rounded bg-muted" />
           </div>
         ) : posts.length === 0 ? (
-          <div className="pg-card mt-4 py-12 text-center">
-            <p className="pg-title text-base">谱面清静，尚无动态</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              来发布第一条吧，让族人知道家里的近况。
-            </p>
+          <div className="pg-card mt-6 flex flex-col items-center justify-center py-14">
+            <p className="pg-title text-base tracking-[0.12em] text-foreground/80">谱 面 清 静</p>
+            <p className="mt-2 text-sm text-muted-foreground">还没有记事，来发布第一条，让族人知道家里的近况。</p>
           </div>
         ) : (
-          <div className="mt-4 space-y-3">
-            {posts.map((p) => (
-              <PostCard
-                key={p.id}
-                post={p}
-                isMine={p.author_id === user?.id || !!user?.is_admin}
-                onLike={() => toggleLike(p)}
-                onDelete={() => removePost(p)}
-                onOpenComments={() => setOpenComments(p.id)}
-              />
-            ))}
-          </div>
+          <>
+            {pinnedPosts.length > 0 && (
+              <>
+                <PgSectionHead
+                  text="置 顶 公 告"
+                  right={<span className="text-xs text-muted-foreground">{pinnedPosts.length} 条</span>}
+                />
+                <div className="pg-chronicle">
+                  {pinnedPosts.map((p) => renderNote(p))}
+                </div>
+              </>
+            )}
+            <PgSectionHead
+              text="族 中 近 事"
+              right={<span className="text-xs text-muted-foreground">{normalPosts.length} 条</span>}
+            />
+            {normalPosts.length === 0 ? (
+              <div className="pg-card py-8 text-center text-sm text-muted-foreground">其余记事已归档</div>
+            ) : (
+              <div className="pg-chronicle">
+                {normalPosts.map((p) => renderNote(p))}
+              </div>
+            )}
+          </>
         )}
-      </div>
 
-      {openComments && (
-        <CommentsPanel
-          familyId={familyId}
-          postId={openComments}
-          onClose={() => setOpenComments(null)}
-        />
-      )}
-      {dialog}
+        <div className="pg-colophon mt-8">
+          <b>祠堂记事</b>
+          <span className="pg-colophon-sep" />
+          时间脉络一线贯穿
+          <span className="pg-colophon-sep" />
+          置顶公告居首
+          <span className="pg-colophon-sep" />
+          宋体行文如记族中事
+          <span className="pg-colophon-sep" />
+          赞 / 评论直书其下
+        </div>
+      </div>
     </Layout>
   )
-}
 
-function PostCard({
-  post,
-  isMine,
-  onLike,
-  onDelete,
-  onOpenComments,
-}: {
-  post: Post
-  isMine: boolean
-  onLike: () => void
-  onDelete: () => void
-  onOpenComments: () => void
-}) {
-  return (
-    <div className="pg-card p-4">
-      <div className="flex items-start gap-3">
-        <AvatarDisplay avatar={post.author_avatar} name={post.author_name} size={36} />
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="pg-title text-sm font-semibold">{post.author_name}</span>
-                {post.pinned && (
-                  <span style={{ color: PG_RED }} title="置顶">
-                    <Pin className="h-3 w-3" aria-hidden="true" />
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(post.created_at).toLocaleString('zh-CN')}
+  /* ══ 记事笺 ══ */
+  function renderNote(p: Post) {
+    const mine = isMe(p)
+    const expanded = openComments === p.id
+    return (
+      <article key={p.id} className="pg-note">
+        <div className="pg-note-card">
+          <div className="pg-note-top">
+            <AvatarDisplay avatar={p.author_avatar} name={p.author_name} size={40} />
+            <div className="min-w-0 flex-1">
+              <div className="pg-note-author">
+                <span className="pg-note-name">{p.author_name}</span>
+                <span className="pg-note-time">{relTime(p.created_at)}</span>
               </div>
             </div>
-            {isMine && (
-              <button
-                onClick={onDelete}
-                className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                aria-label="删除动态"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
+            <div className="pg-note-side">
+              {p.pinned && (
+                <span className="pg-note-pin" title="置顶">
+                  <Pin aria-hidden="true" />
+                  置顶
+                </span>
+              )}
+              {mine && (
+                <button
+                  onClick={() => removePost(p)}
+                  className="pg-note-del"
+                  aria-label="删除记事"
+                >
+                  <Trash2 aria-hidden="true" />
+                </button>
+              )}
+            </div>
           </div>
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: post.content }}
-          />
-          {post.media_urls && post.media_urls.length > 0 && (
-            <div className="grid grid-cols-3 gap-1">
-              {post.media_urls.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt=""
-                  className="pg-card-soft aspect-square w-full object-cover"
-                />
+          <div className="pg-note-text" dangerouslySetInnerHTML={{ __html: p.content }} />
+          {p.media_urls && p.media_urls.length > 0 && (
+            <div className="pg-note-media">
+              {p.media_urls.map((url, i) => (
+                <img key={i} src={url} alt="" className="aspect-square w-full object-cover" />
               ))}
             </div>
           )}
-          <div className="flex items-center gap-4 pt-1 text-xs text-muted-foreground">
+          <div className="pg-note-actions">
             <button
-              onClick={onLike}
-              className="flex items-center gap-1 transition-colors hover:text-foreground"
-              style={post.liked ? { color: PG_RED } : undefined}
+              className={`pg-note-act ${p.liked ? 'liked' : ''}`}
+              onClick={() => toggleLike(p)}
+              aria-pressed={p.liked}
+              aria-label={`赞（${p.like_count}）`}
             >
-              <Heart className={`h-4 w-4 ${post.liked ? 'fill-current' : ''}`} />
-              {post.like_count}
+              <Heart className={`h-4 w-4 ${p.liked ? 'fill-current' : ''}`} aria-hidden="true" />
+              <span className="pg-note-act-n">{p.like_count}</span>
+              赞
             </button>
             <button
-              onClick={onOpenComments}
-              className="flex items-center gap-1 transition-colors hover:text-foreground"
+              className="pg-note-act"
+              onClick={() => setOpenComments(expanded ? null : p.id)}
+              aria-expanded={expanded}
+              aria-label={`评论（${p.comment_count}）`}
             >
-              <MessageCircle className="h-4 w-4" />
-              {post.comment_count}
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              <span className="pg-note-act-n">{p.comment_count}</span>
+              评论
             </button>
           </div>
+          {expanded && (
+            <NoteComments
+              familyId={familyId}
+              postId={p.id}
+              onClose={() => setOpenComments(null)}
+            />
+          )}
         </div>
-      </div>
-    </div>
-  )
+      </article>
+    )
+  }
 }
 
-function CommentsPanel({
+/* ══ 内联评论面板（展开于记事笺之下） ══ */
+function NoteComments({
   familyId,
   postId,
-  onClose,
 }: {
   familyId: number
   postId: number
-  onClose: () => void
+  onClose?: () => void
 }) {
   const { ask, dialog } = useConfirm()
   const { showToast } = useToast()
@@ -326,80 +374,67 @@ function CommentsPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="fixed inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative z-10 flex h-[80vh] w-full max-w-lg flex-col rounded-t-2xl bg-background shadow-2xl sm:h-[600px] sm:rounded-2xl">
-        <div className="flex items-center justify-between border-b border-border p-3">
-          <h3 className="pg-title font-semibold">评论 ({comments.length})</h3>
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-muted"
-            aria-label="关闭评论"
-          >
-            ×
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          {loading ? (
-            <p className="text-center text-sm text-muted-foreground">加载中...</p>
-          ) : comments.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">暂无评论</p>
-          ) : (
-            <div className="space-y-3">
-              {comments.map((c) => (
-                <div key={c.id} className="flex gap-2 group">
-                  <AvatarDisplay
-                    avatar={c.author_avatar}
-                    name={c.author_name}
-                    size={28}
-                  />
-                  <div className="pg-card-soft flex-1 px-3 py-2">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="font-semibold">{c.author_name}</span>
-                      <span className="text-muted-foreground">
-                        {new Date(c.created_at).toLocaleString('zh-CN')}
-                      </span>
-                      {(user?.id === c.author_id || user?.is_admin) && (
-                        <button
-                          onClick={async () => {
-                            if (!(await ask({ title: '删除评论', message: '确定要删除这条评论吗？', confirmText: '确认删除', danger: true }))) return
-                            try {
-                              await api.deletePostComment(familyId, postId, c.id)
-                              load()
-                            } catch (err: any) { showToast(err.message, 'error') }
-                          }}
-                          className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                          aria-label="删除评论"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-1 text-sm" dangerouslySetInnerHTML={{ __html: c.content }} />
-                  </div>
-                </div>
-              ))}
+    <div className="pg-note-comments">
+      {loading ? (
+        <p className="py-3 text-center text-xs text-muted-foreground">加载评论中…</p>
+      ) : comments.length === 0 ? (
+        <p className="py-3 text-center text-xs text-muted-foreground">还没有评论，说点什么吧</p>
+      ) : (
+        comments.map((c) => (
+          <div key={c.id} className="pg-note-comment group">
+            <AvatarDisplay avatar={c.author_avatar} name={c.author_name} size={26} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <b>{c.author_name}</b>
+                <span className="text-[10.5px] text-muted-foreground">{relTime(c.created_at)}</span>
+                {(user?.id === c.author_id || user?.is_admin) && (
+                  <button
+                    onClick={async () => {
+                      if (
+                        !(await ask({
+                          title: '删除评论',
+                          message: '确定要删除这条评论吗？',
+                          confirmText: '确认删除',
+                          danger: true,
+                        }))
+                      )
+                        return
+                      try {
+                        await api.deletePostComment(familyId, postId, c.id)
+                        load()
+                      } catch (err: any) {
+                        showToast(err.message, 'error')
+                      }
+                    }}
+                    className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                    aria-label="删除评论"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              <div className="pg-note-comment-text" dangerouslySetInnerHTML={{ __html: c.content }} />
             </div>
-          )}
-        </div>
-        <div className="flex gap-2 border-t border-border p-3">
-          <AvatarDisplay
-            avatar={user?.avatar || null}
-            name={user?.display_name || user?.username || '我'}
-            size={32}
-          />
-          <MentionInput
-            familyId={familyId}
-            value={text}
-            onChange={setText}
-            onKeyDown={(e) => e.key === 'Enter' && send()}
-            placeholder="说点什么... 输入 @ 提及成员"
-            ariaLabel="评论输入"
-          />
-          <Button size="sm" onClick={send} disabled={sending || !text.trim()}>
-            发送
-          </Button>
-        </div>
+          </div>
+        ))
+      )}
+      <div className="pg-note-comment-input">
+        <AvatarDisplay
+          avatar={user?.avatar || null}
+          name={user?.display_name || user?.username || '我'}
+          size={26}
+        />
+        <MentionInput
+          familyId={familyId}
+          value={text}
+          onChange={setText}
+          onKeyDown={(e) => e.key === 'Enter' && send()}
+          placeholder="写下你的评论… 输入 @ 提及族人"
+          ariaLabel="评论输入"
+        />
+        <button className="pg-note-comment-send" onClick={send} disabled={sending || !text.trim()}>
+          发送
+        </button>
       </div>
       {dialog}
     </div>

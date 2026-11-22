@@ -1019,3 +1019,735 @@
 }
 .pg-tool-btn:hover { color: hsl(var(--foreground)); border-color: rgb(166 58 46 / .45); }
 .pg-tool-btn svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ============================================================
+   家书 · 聊天页
+   会话目录 = 卷宗 · 消息 = 信笺 · 发送 = 寄书
+   全部走主题令牌，朱砂仅作点睛
+   ============================================================ */
+.pg-chat-root {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: hsl(var(--background));
+}
+
+/* 顶栏：朱印 + 眉标 + 宋体题名 */
+.pg-chat-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / .6);
+  flex-shrink: 0;
+}
+.pg-chat-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  margin-left: -8px;
+  border-radius: 8px;
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  transition: color .18s ease, background .18s ease;
+}
+.pg-chat-back:hover { color: hsl(var(--foreground)); background: hsl(var(--muted) / .5); }
+.pg-chat-back svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pg-chat-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  background: var(--pg-red);
+  color: #fff;
+  font-family: var(--pg-serif);
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 4px;
+  transform: rotate(-3deg);
+  box-shadow: 0 2px 6px rgb(166 58 46 / .25);
+  user-select: none;
+  flex-shrink: 0;
+}
+.pg-chat-brand { display: flex; flex-direction: column; gap: 1px; }
+.pg-chat-brand h1 {
+  font-family: var(--pg-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  line-height: 1.2;
+  color: hsl(var(--foreground));
+}
+.pg-chat-brand span {
+  font-family: var(--pg-serif);
+  font-size: 10px;
+  letter-spacing: .3em;
+  color: hsl(var(--muted-foreground));
+}
+.pg-chat-topbar-end { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.pg-chat-member-count {
+  font-family: var(--pg-serif);
+  font-size: 12px;
+  letter-spacing: .1em;
+  color: hsl(var(--muted-foreground));
+}
+
+/* 主体两栏 */
+.pg-chat-body { display: flex; flex: 1; min-height: 0; }
+
+/* ── 卷宗目录（左栏） ── */
+.pg-chat-dir {
+  width: 264px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid hsl(var(--border));
+  background: color-mix(in srgb, hsl(var(--muted)) 32%, hsl(var(--background)));
+  min-height: 0;
+}
+.pg-chat-dir-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 16px 12px;
+  flex-shrink: 0;
+}
+.pg-chat-dir-head .pg-section-head { flex: 1; margin-bottom: 0; }
+.pg-chat-dir-add {
+  width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px dashed color-mix(in srgb, var(--pg-red) 45%, hsl(var(--border)));
+  border-radius: 6px;
+  color: var(--pg-red);
+  cursor: pointer;
+  transition: background .18s ease, border-style .18s ease;
+}
+.pg-chat-dir-add:hover { background: color-mix(in srgb, var(--pg-red) 8%, transparent); border-style: solid; }
+.pg-chat-dir-add svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; }
+.pg-chat-dir-list { flex: 1; overflow-y: auto; padding: 0 8px 12px; }
+
+.pg-chat-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 10px;
+  border-radius: 9px;
+  text-align: left;
+  color: hsl(var(--foreground));
+  transition: background .18s ease;
+}
+.pg-chat-entry:hover { background: hsl(var(--muted) / .7); }
+.pg-chat-entry.is-active { background: color-mix(in srgb, var(--pg-red) 8%, transparent); }
+.pg-chat-entry.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--pg-red);
+}
+.pg-chat-entry-mark {
+  width: 34px; height: 34px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pg-red) 30%, hsl(var(--border)));
+  border-radius: 5px;
+  background: hsl(var(--card));
+  color: var(--pg-red);
+  font-family: var(--pg-serif);
+  font-size: 15px;
+  font-weight: 600;
+}
+.pg-chat-entry.is-active .pg-chat-entry-mark { background: var(--pg-red); color: #fff; border-color: var(--pg-red); }
+.pg-chat-entry-main { min-width: 0; flex: 1; }
+.pg-chat-entry-row { display: flex; align-items: baseline; gap: 8px; }
+.pg-chat-entry-name {
+  font-family: var(--pg-serif);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.pg-chat-entry-time { font-size: 10px; color: hsl(var(--muted-foreground)); white-space: nowrap; flex-shrink: 0; }
+.pg-chat-entry-preview {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pg-chat-entry-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--pg-red);
+  flex-shrink: 0;
+}
+
+/* ── 书信区（右栏） ── */
+.pg-chat-thread { position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.pg-chat-thread-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  border-bottom: 1px solid hsl(var(--border));
+  flex-shrink: 0;
+}
+.pg-chat-thread-title {
+  font-family: var(--pg-serif);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  color: hsl(var(--foreground));
+}
+.pg-chat-thread-sub { font-size: 11px; color: hsl(var(--muted-foreground)); }
+.pg-chat-thread-spine {
+  margin-left: auto;
+  font-family: var(--pg-serif);
+  font-size: 11px;
+  letter-spacing: .34em;
+  color: color-mix(in srgb, var(--pg-red) 75%, hsl(var(--muted-foreground)));
+  writing-mode: vertical-rl;
+  line-height: 1;
+}
+
+/* 信笺流 */
+.pg-chat-stream {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px clamp(16px, 4vw, 48px) 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.pg-chat-day {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--pg-serif);
+  font-size: 11px;
+  letter-spacing: .2em;
+  color: hsl(var(--muted-foreground));
+}
+.pg-chat-day::before, .pg-chat-day::after {
+  content: '';
+  width: 24px; height: 1px;
+  background: hsl(var(--border));
+}
+
+.pg-chat-letter { display: flex; gap: 10px; max-width: min(72%, 620px); }
+.pg-chat-letter.is-mine { align-self: flex-end; flex-direction: row-reverse; }
+.pg-chat-letter-seal {
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  margin-top: 18px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pg-red) 12%, hsl(var(--card)));
+  border: 1px solid color-mix(in srgb, var(--pg-red) 28%, transparent);
+  color: var(--pg-red);
+  font-family: var(--pg-serif);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pg-chat-letter.is-mine .pg-chat-letter-seal {
+  background: var(--pg-red);
+  border-color: var(--pg-red);
+  color: #fff;
+}
+.pg-chat-letter-content { min-width: 0; }
+.pg-chat-letter-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 2px 5px;
+}
+.pg-chat-letter.is-mine .pg-chat-letter-head { flex-direction: row-reverse; }
+.pg-chat-letter-author {
+  font-family: var(--pg-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: hsl(var(--foreground) / .85);
+}
+.pg-chat-letter-time { font-size: 10px; color: hsl(var(--muted-foreground)); }
+.pg-chat-letter-paper {
+  position: relative;
+  padding: 11px 15px;
+  border: 1px solid hsl(var(--border));
+  border-left: 3px solid color-mix(in srgb, var(--pg-red) 45%, hsl(var(--border)));
+  border-radius: 3px 9px 9px 3px;
+  background: hsl(var(--card));
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: hsl(var(--foreground));
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 1px 2px hsl(var(--foreground) / .04);
+  animation: pg-letter-in .42s cubic-bezier(.16, 1, .3, 1) both;
+}
+.pg-chat-letter.is-mine .pg-chat-letter-paper {
+  border-left: 1px solid hsl(var(--border));
+  border-right: 3px solid var(--pg-red);
+  border-radius: 9px 3px 3px 9px;
+  background: color-mix(in srgb, var(--pg-red) 6%, hsl(var(--card)));
+}
+@keyframes pg-letter-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 空状态：一封待启的信 */
+.pg-chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px;
+  text-align: center;
+}
+.pg-chat-empty-env {
+  width: 84px; height: 60px;
+  border: 1.5px solid color-mix(in srgb, var(--pg-red) 40%, hsl(var(--border)));
+  border-radius: 4px;
+  background: hsl(var(--card));
+  position: relative;
+  box-shadow: 0 6px 20px hsl(var(--foreground) / .06);
+}
+.pg-chat-empty-env::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom right, transparent 49%, color-mix(in srgb, var(--pg-red) 45%, transparent) 50%, transparent 51%),
+              linear-gradient(to bottom left, transparent 49%, color-mix(in srgb, var(--pg-red) 45%, transparent) 50%, transparent 51%);
+  background-size: 100% 100%;
+  border-radius: 3px;
+}
+.pg-chat-empty-title {
+  font-family: var(--pg-serif);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  color: hsl(var(--foreground));
+}
+.pg-chat-empty-sub {
+  font-family: var(--pg-serif);
+  font-size: 12px;
+  letter-spacing: .1em;
+  color: hsl(var(--muted-foreground));
+}
+
+/* 落笔区：一张横笺 */
+.pg-chat-compose {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px clamp(12px, 3vw, 40px) 16px;
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / .5);
+  flex-shrink: 0;
+}
+.pg-chat-compose-input {
+  flex: 1;
+  min-height: 42px;
+  max-height: 120px;
+  resize: none;
+  padding: 11px 14px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 3px 9px 9px 3px;
+  border-left: 3px solid color-mix(in srgb, var(--pg-red) 40%, hsl(var(--border)));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-size: 13.5px;
+  line-height: 1.6;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .18s ease;
+}
+.pg-chat-compose-input::placeholder { color: hsl(var(--muted-foreground) / .8); }
+.pg-chat-compose-input:focus { border-color: color-mix(in srgb, var(--pg-red) 55%, hsl(var(--border))); }
+.pg-chat-send {
+  width: 46px; height: 42px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+  background: var(--pg-red);
+  color: #fff;
+  font-family: var(--pg-serif);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgb(166 58 46 / .25);
+  transition: transform .16s ease, opacity .16s ease;
+}
+.pg-chat-send:hover:not(:disabled) { transform: translateY(-1px); }
+.pg-chat-send:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+/* 新建会话弹窗：类型切换 */
+.pg-chat-type-btn {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  font-family: var(--pg-serif);
+  font-size: 13px;
+  letter-spacing: .08em;
+  color: hsl(var(--muted-foreground));
+  transition: all .18s ease;
+}
+.pg-chat-type-btn:hover { border-color: color-mix(in srgb, var(--pg-red) 40%, hsl(var(--border))); }
+.pg-chat-type-btn.is-on {
+  border-color: color-mix(in srgb, var(--pg-red) 55%, transparent);
+  background: color-mix(in srgb, var(--pg-red) 8%, transparent);
+  color: var(--pg-red);
+  font-weight: 600;
+}
+.pg-chat-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+.pg-chat-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease;
+}
+.pg-chat-person:hover { border-color: color-mix(in srgb, var(--pg-red) 45%, hsl(var(--border))); }
+.pg-chat-person.is-on { border-color: var(--pg-red); background: color-mix(in srgb, var(--pg-red) 8%, transparent); color: var(--pg-red); }
+.pg-chat-person input { accent-color: var(--pg-red); width: 13px; height: 13px; margin: 0; }
+
+/* ── 输入区工具按钮 ── */
+.pg-chat-compose-tools { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.pg-chat-tool {
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: hsl(var(--muted-foreground));
+  transition: color .16s ease, background .16s ease, border-color .16s ease;
+}
+.pg-chat-tool:hover:not(:disabled) { color: var(--pg-red); background: color-mix(in srgb, var(--pg-red) 8%, transparent); }
+.pg-chat-tool.is-on { color: var(--pg-red); border-color: color-mix(in srgb, var(--pg-red) 40%, transparent); background: color-mix(in srgb, var(--pg-red) 8%, transparent); }
+.pg-chat-tool.is-rec { color: #fff; background: var(--pg-red); border-color: var(--pg-red); animation: pg-rec-pulse 1.2s ease-in-out infinite; }
+.pg-chat-tool:disabled { opacity: .4; cursor: not-allowed; }
+.pg-chat-tool svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pg-chat-hidden-input { display: none; }
+@keyframes pg-rec-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
+.pg-chat-spin { animation: pg-spin 1s linear infinite; }
+@keyframes pg-spin { to { transform: rotate(360deg); } }
+
+/* ── 表情面板 ── */
+.pg-chat-emoji-panel {
+  position: absolute;
+  bottom: 72px; left: clamp(16px, 4vw, 48px);
+  z-index: 20;
+  width: 288px;
+  padding: 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--card));
+  box-shadow: 0 8px 30px hsl(var(--foreground) / .14);
+  animation: pg-letter-in .25s cubic-bezier(.16, 1, .3, 1) both;
+}
+.pg-chat-emoji-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid hsl(var(--border));
+  font-family: var(--pg-serif);
+  font-size: 12px; letter-spacing: .16em;
+  color: hsl(var(--muted-foreground));
+}
+.pg-chat-emoji-head button { color: hsl(var(--muted-foreground)); display: inline-flex; }
+.pg-chat-emoji-head button:hover { color: var(--pg-red); }
+.pg-chat-emoji-head svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; }
+.pg-chat-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  margin-top: 8px;
+}
+.pg-chat-emoji-grid button {
+  font-size: 19px;
+  padding: 5px 0;
+  border-radius: 6px;
+  transition: background .14s ease, transform .14s ease;
+}
+.pg-chat-emoji-grid button:hover { background: color-mix(in srgb, var(--pg-red) 10%, transparent); transform: scale(1.12); }
+
+/* ── 录音提示条 ── */
+.pg-chat-recording-bar {
+  position: absolute;
+  bottom: 72px; left: 50%; transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--pg-red) 35%, hsl(var(--border)));
+  border-radius: 999px;
+  background: hsl(var(--card));
+  box-shadow: 0 6px 24px hsl(var(--foreground) / .12);
+  font-family: var(--pg-serif);
+  font-size: 12px; letter-spacing: .06em;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+.pg-chat-rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pg-red); animation: pg-rec-pulse 1s ease-in-out infinite; }
+.pg-chat-rec-stop {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--pg-red); color: #fff;
+  font-size: 11px;
+}
+.pg-chat-rec-stop svg { width: 10px; height: 10px; fill: currentColor; stroke: currentColor; }
+
+/* ── 图片消息 ── */
+.pg-chat-media-paper { padding: 5px; border-radius: 5px; cursor: zoom-in; overflow: hidden; }
+.pg-chat-image {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  width: auto;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+/* ── 语音消息 ── */
+.pg-chat-voice-paper {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 168px;
+  padding: 8px 12px;
+}
+.pg-chat-voice-btn {
+  width: 30px; height: 30px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pg-red) 12%, transparent);
+  color: var(--pg-red);
+  transition: background .16s ease;
+}
+.pg-chat-voice-btn:hover { background: color-mix(in srgb, var(--pg-red) 22%, transparent); }
+.pg-chat-voice-btn svg { width: 14px; height: 14px; fill: currentColor; stroke: currentColor; stroke-width: 1.5; }
+.pg-chat-voice-track { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.pg-chat-voice-label { font-family: var(--pg-serif); font-size: 11px; letter-spacing: .08em; color: hsl(var(--foreground) / .85); }
+.pg-chat-voice-dur { font-size: 10px; color: hsl(var(--muted-foreground)); }
+.pg-chat-voice-wave { display: flex; align-items: center; gap: 2px; height: 18px; margin-top: 2px; }
+.pg-chat-voice-wave i { width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--pg-red) 55%, hsl(var(--muted-foreground))); opacity: .7; }
+
+/* ── 图片预览遮罩 ── */
+.pg-chat-preview-backdrop {
+  position: fixed; inset: 0;
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: hsl(var(--foreground) / .62);
+  backdrop-filter: blur(4px);
+  animation: pg-fade-in .2s ease both;
+}
+@keyframes pg-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.pg-chat-preview-box {
+  max-width: min(92vw, 560px);
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--card));
+  overflow: hidden;
+  box-shadow: 0 20px 60px hsl(var(--foreground) / .3);
+}
+.pg-chat-preview-box > img { display: block; max-width: 100%; max-height: 65vh; object-fit: contain; background: hsl(var(--muted) / .3); }
+.pg-chat-preview-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid hsl(var(--border));
+  font-family: var(--pg-serif);
+  font-size: 12px; letter-spacing: .06em;
+  color: hsl(var(--muted-foreground));
+}
+.pg-chat-preview-actions { display: flex; gap: 8px; }
+.pg-chat-preview-actions button {
+  padding: 6px 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  font-family: var(--pg-serif);
+  font-size: 12px;
+  color: hsl(var(--foreground));
+  transition: all .16s ease;
+}
+.pg-chat-preview-actions button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--pg-red) 45%, hsl(var(--border))); }
+.pg-chat-preview-actions button.is-primary { background: var(--pg-red); border-color: var(--pg-red); color: #fff; }
+.pg-chat-preview-actions button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* 目录空态 */
+.pg-chat-dir-empty {
+  padding: 24px 16px;
+  font-family: var(--pg-serif);
+  font-size: 12px;
+  line-height: 1.9;
+  letter-spacing: .06em;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+}
+
+/* 移动端切换按钮 */
+.pg-chat-mobile-only { display: none; }
+
+@media (max-width: 720px) {
+  .pg-chat-topbar { padding: 8px 14px; }
+  .pg-chat-dir { width: 100%; border-right: 0; }
+  .pg-chat-root[data-pane='list'] .pg-chat-thread { display: none; }
+  .pg-chat-root[data-pane='thread'] .pg-chat-dir { display: none; }
+  .pg-chat-mobile-only { display: inline-flex; }
+  .pg-chat-letter { max-width: 88%; }
+  .pg-chat-thread-head { padding: 10px 14px; }
+  .pg-chat-stream { padding: 18px 14px 10px; }
+  .pg-chat-compose { gap: 4px; padding: 10px 10px 12px; }
+  .pg-chat-tool { width: 30px; height: 30px; }
+  .pg-chat-tool svg { width: 17px; height: 17px; }
+  .pg-chat-send { width: 40px; height: 40px; }
+  .pg-chat-emoji-panel { left: 10px; width: min(288px, calc(100vw - 20px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-chat-letter-paper, .pg-chat-emoji-panel, .pg-chat-preview-backdrop { animation: none; }
+  .pg-chat-send:hover:not(:disabled), .pg-chat-emoji-grid button:hover { transform: none; }
+  .pg-chat-rec-dot, .pg-chat-tool.is-rec { animation: none; }
+}
+
+/* ═══ 祠堂记事（家族动态）：时间脉络 + 记事笺 ═══ */
+.pg-composer {
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px;
+  padding: 14px 16px;
+}
+.pg-composer-row { display: flex; gap: 12px; }
+.pg-composer-row > .pg-composer-textarea { flex: 1; }
+.pg-composer-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-left: 52px; }
+.pg-composer-tool {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; padding: 5px 10px; border-radius: 8px;
+  color: hsl(var(--muted-foreground));
+  transition: background .15s ease, color .15s ease;
+}
+.pg-composer-tool:hover { background: hsl(var(--muted) / .6); color: hsl(var(--foreground)); }
+.pg-composer-tool svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pg-composer-spacer { flex: 1; }
+.pg-composer-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13.5px; font-weight: 600; letter-spacing: .1em;
+  padding: 8px 22px; border-radius: 9px; border: none; color: #fff; cursor: pointer;
+  background: linear-gradient(180deg, #B84536 0%, #A63A2E 45%, #8F2F25 100%);
+  box-shadow: 0 4px 14px rgb(166 58 46 / .4), inset 0 1px 0 rgb(255 226 178 / .35);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.pg-composer-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgb(166 58 46 / .55); }
+.pg-composer-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+.pg-composer-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 时间脉络 */
+.pg-chronicle { position: relative; padding-left: 26px; }
+.pg-chronicle::before {
+  content: '';
+  position: absolute; left: 8px; top: 6px; bottom: 6px;
+  width: 1px;
+  background: linear-gradient(180deg, rgb(166 58 46 / .5), rgb(166 58 46 / .08));
+}
+.pg-note { position: relative; margin-bottom: 18px; }
+.pg-note::before {
+  content: '';
+  position: absolute; left: -22px; top: 22px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: hsl(var(--card)); border: 1.5px solid var(--pg-red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pg-red) 12%, transparent);
+}
+.pg-note-card {
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px;
+  padding: 16px 18px;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pg-note:hover .pg-note-card { transform: translateY(-2px); border-color: rgb(166 58 46 / .4); box-shadow: 0 8px 24px rgb(0 0 0 / .2); }
+}
+.pg-note-top { display: flex; align-items: flex-start; gap: 12px; }
+.pg-note-author { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pg-note-name { font-family: var(--pg-serif); font-size: 14.5px; font-weight: 600; }
+.pg-note-time { font-size: 11.5px; color: hsl(var(--muted-foreground)); }
+.pg-note-side { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.pg-note-pin {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; letter-spacing: .1em; padding: 2px 9px; border-radius: 99px;
+  background: color-mix(in srgb, var(--pg-red) 12%, transparent);
+  color: var(--pg-red); border: 1px solid rgb(166 58 46 / .35);
+}
+.pg-note-pin svg { width: 10px; height: 10px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; }
+.pg-note-del {
+  border-radius: 6px; padding: 4px; color: hsl(var(--muted-foreground));
+  transition: color .15s ease, background .15s ease;
+}
+.pg-note-del:hover { color: hsl(var(--destructive)); background: hsl(var(--destructive) / .1); }
+.pg-note-del svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pg-note-text {
+  margin-top: 10px;
+  font-family: var(--pg-serif); font-size: 14.5px; line-height: 1.95;
+  color: hsl(var(--foreground) / .92);
+  word-break: break-word;
+}
+.pg-note-media { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pg-note-media img { border-radius: 8px; }
+.pg-note-actions {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px dashed hsl(var(--border));
+}
+.pg-note-act {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; padding: 4px 12px; border-radius: 8px;
+  color: hsl(var(--muted-foreground));
+  transition: background .15s ease, color .15s ease;
+}
+.pg-note-act:hover { background: hsl(var(--muted) / .5); color: hsl(var(--foreground)); }
+.pg-note-act.liked { color: var(--pg-red); }
+.pg-note-act.liked svg { fill: currentColor; }
+.pg-note-act svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pg-note-act-n { font-variant-numeric: tabular-nums; }
+
+/* 内联评论 */
+.pg-note-comments { margin-top: 10px; border-top: 1px solid hsl(var(--border)); padding-top: 10px; }
+.pg-note-comment { display: flex; gap: 8px; padding: 6px 0; font-size: 12.5px; }
+.pg-note-comment b { font-weight: 600; color: hsl(var(--foreground) / .85); flex-shrink: 0; line-height: 1.9; }
+.pg-note-comment-text { color: hsl(var(--muted-foreground)); line-height: 1.7; word-break: break-word; }
+.pg-note-comment-input { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+.pg-note-comment-input > div:first-child { flex-shrink: 0; }
+.pg-note-comment-input input {
+  flex: 1; font: inherit; font-size: 12.5px;
+  border: 1px solid hsl(var(--border)); border-radius: 8px;
+  background: hsl(var(--background)); color: hsl(var(--foreground));
+  padding: 6px 10px; outline: none;
+}
+.pg-note-comment-input input:focus { border-color: rgb(166 58 46 / .55); }
+.pg-note-comment-send {
+  font-size: 12px; padding: 5px 14px; border-radius: 8px;
+  background: var(--pg-red); color: #fff; flex-shrink: 0;
+}
+.pg-note-comment-send:disabled { opacity: .45; cursor: not-allowed; }
