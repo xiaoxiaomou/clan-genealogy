@@ -410,11 +410,21 @@ export default function MemorialPage() {
                     className={`pg-tstack ${bowingId === m.member_id ? 'pg-bowing' : ''}`}
                     role="button"
                     tabIndex={0}
-                    aria-label={`祭拜 ${m.member_name}`}
-                    onClick={() => openRitual(m)}
+                    aria-label={isAdmin ? `维护 ${m.member_name} 的牌位信息` : `祭拜 ${m.member_name}`}
+                    onClick={() => {
+                      if (isAdmin) {
+                        navigate(`/family/${familyId}/member/${m.member_id}`)
+                        return
+                      }
+                      openRitual(m)
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
+                        if (isAdmin) {
+                          navigate(`/family/${familyId}/member/${m.member_id}`)
+                          return
+                        }
                         openRitual(m)
                       }
                     }}

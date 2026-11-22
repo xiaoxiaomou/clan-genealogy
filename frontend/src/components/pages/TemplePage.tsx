@@ -329,8 +329,12 @@ export default function TemplePage() {
                     className={`pg-tstack ${bowingId === m.id ? 'pg-bowing' : ''}`}
                     role="button"
                     tabIndex={0}
-                    aria-label={`祭拜 ${m.name}`}
-                    onClick={() =>
+                    aria-label={isAdmin ? `维护 ${m.name} 的牌位信息` : `祭拜 ${m.name}`}
+                    onClick={() => {
+                      if (isAdmin) {
+                        navigate(`/family/${familyId}/member/${m.id}`)
+                        return
+                      }
                       setRitualMember({
                         member_id: m.id,
                         member_name: m.name,
@@ -342,10 +346,14 @@ export default function TemplePage() {
                         lunar_month: 0,
                         lunar_day: 0,
                       })
-                    }
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
+                        if (isAdmin) {
+                          navigate(`/family/${familyId}/member/${m.id}`)
+                          return
+                        }
                         setRitualMember({
                           member_id: m.id,
                           member_name: m.name,
