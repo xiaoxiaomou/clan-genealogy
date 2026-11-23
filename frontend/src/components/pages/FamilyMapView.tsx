@@ -1,40 +1,95 @@
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap, Polyline } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Input, Label, useToast, Button } from '@/components/ui'
 import { MapPin, X } from 'lucide-react'
 
-// 修复 Leaflet 默认图标（Vite 环境）
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
-import iconUrl from 'leaflet/dist/images/marker-icon.png'
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
+/**
+ * 地图组件 — 腾讯地图 GL JS（国内合规地图服务）
+ *
+ * 使用前请在腾讯位置服务开放平台申请 Key：
+ *   https://lbs.qq.com/dev/console/application/mine
+ * 并将下方 TMAP_KEY 占位符替换为自己的 Key。
+ * 前端明文 Key 有被嗅探风险，请为该 Key 配置 Referer 域名白名单；
+ * 商用场景应由后端代理签名。
+ */
+const TMAP_KEY = 'OAMBZ-TDRC7-AXSXI-PVP35-3Q5G6-KKBAE'
+const KEY_CONFIGURED = !TMAP_KEY.includes('请到')
+const SDK_URL = `https://map.qq.com/api/gljs?v=1.exp&key=${encodeURIComponent(TMAP_KEY)}`
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl,
-  iconUrl,
-  shadowUrl,
-})
+type TMapNS = any
 
-// 自定义男女标记
-const maleIcon = L.divIcon({
-  html: `<div style="background:#3b82f6;width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">♂</div>`,
-  className: '',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-})
-const femaleIcon = L.divIcon({
-  html: `<div style="background:#ec4899;width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">♀</div>`,
-  className: '',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-})
-const familyIcon = L.divIcon({
-  html: `<div style="background:#f59e0b;width:32px;height:32px;border-radius:6px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;">🏛</div>`,
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-})
+let sdkPromise: Promise<TMapNS> | null = null
+function loadTMap(): Promise<TMapNS> {
+  if ((window as any).TMap) return Promise.resolve((window as any).TMap)
+  if (sdkPromise) return sdkPromise
+  sdkPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = SDK_URL
+    script.async = true
+    script.onload = () => {
+      const TMap = (window as any).TMap
+      if (TMap) resolve(TMap)
+      else reject(new Error('腾讯地图 SDK 未正确加载，请检查 Key 是否有效'))
+    }
+    script.onerror = () => reject(new Error('腾讯地图 SDK 加载失败，请检查网络连接'))
+    document.head.appendChild(script)
+  })
+  return sdkPromise
+}
+
+/* ── 坐标转换：原 OSM 选点存 WGS-84，腾讯地图使用 GCJ-02 ── */
+const A = 6378245.0
+const EE = 0.00669342162296594323
+
+function outOfChina(lat: number, lng: number): boolean {
+  return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271
+}
+function transformLat(x: number, y: number): number {
+  let ret = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x))
+  ret += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3
+  ret += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3
+  ret += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3
+  return ret
+}
+function transformLng(x: number, y: number): number {
+  let ret = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x))
+  ret += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3
+  ret += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3
+  ret += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3
+  return ret
+}
+function wgs84ToGcj02(lat: number, lng: number): [number, number] {
+  if (outOfChina(lat, lng)) return [lat, lng]
+  let dLat = transformLat(lng - 105.0, lat - 35.0)
+  let dLng = transformLng(lng - 105.0, lat - 35.0)
+  const radLat = lat / 180.0 * Math.PI
+  let magic = Math.sin(radLat)
+  magic = 1 - EE * magic * magic
+  const sqrtMagic = Math.sqrt(magic)
+  dLat = (dLat * 180.0) / ((A * (1 - EE)) / (magic * sqrtMagic) * Math.PI)
+  dLng = (dLng * 180.0) / (A / sqrtMagic * Math.cos(radLat) * Math.PI)
+  return [lat + dLat, lng + dLng]
+}
+function gcj02ToWgs84(lat: number, lng: number): [number, number] {
+  let wLat = lat
+  let wLng = lng
+  for (let i = 0; i < 5; i++) {
+    const [gLat, gLng] = wgs84ToGcj02(wLat, wLng)
+    wLat -= gLat - lat
+    wLng -= gLng - lng
+  }
+  return [wLat, wLng]
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string
+  )
+}
+
+function markerIcon(color: string, symbol: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="${color}" stroke="white" stroke-width="2"/><text x="15" y="20" text-anchor="middle" font-size="14" fill="white" font-family="sans-serif">${symbol}</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
 
 export interface PlaceMark {
   name: string
@@ -62,76 +117,198 @@ export default function FamilyMapView({
   onSelect,
   showLines = true,
 }: FamilyMapViewProps) {
+  const elRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<TMapNS>(null)
+  const markerRef = useRef<TMapNS>(null)
+  const lineRef = useRef<TMapNS>(null)
+  const infoRef = useRef<TMapNS>(null)
+  const [ready, setReady] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const [center, setCenter] = useState<[number, number]>(defaultCenter)
-  const [zoom, setZoom] = useState(defaultZoom)
+  // 统一转为腾讯地图使用的 GCJ-02 坐标
+  const geoPlaces = useMemo(
+    () =>
+      places
+        .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+        .map((p) => {
+          const [lat, lng] = wgs84ToGcj02(p.lat, p.lng)
+          return { ...p, lat, lng }
+        }),
+    [places]
+  )
 
   useEffect(() => {
-    if (places.length > 0) {
-      // 自动居中到第一个有效位置
-      const valid = places.filter((p) => p.lat && p.lng)
-      if (valid.length > 0) {
-        const avgLat = valid.reduce((s, p) => s + p.lat, 0) / valid.length
-        const avgLng = valid.reduce((s, p) => s + p.lng, 0) / valid.length
-        setCenter([avgLat, avgLng])
-        setZoom(valid.length === 1 ? 8 : 4)
+    if (!KEY_CONFIGURED) return
+    let disposed = false
+    let map: TMapNS
+    loadTMap()
+      .then((TMap) => {
+        if (disposed || !elRef.current) return
+        const [cLat, cLng] = wgs84ToGcj02(defaultCenter[0], defaultCenter[1])
+        map = new TMap.Map(elRef.current, {
+          center: new TMap.LatLng(cLat, cLng),
+          zoom: defaultZoom,
+        })
+        mapRef.current = map
+        infoRef.current = new TMap.InfoWindow({
+          map,
+          position: new TMap.LatLng(cLat, cLng),
+          offset: { x: 0, y: -28 },
+        })
+        infoRef.current.close()
+        if (onSelect) {
+          map.on('click', (e: any) => {
+            const [lat, lng] = gcj02ToWgs84(e.latLng.getLat(), e.latLng.getLng())
+            onSelect({ lat, lng })
+          })
+        }
+        setReady(true)
+      })
+      .catch((e: Error) => setError(e.message))
+    return () => {
+      disposed = true
+      map?.destroy?.()
+      mapRef.current = null
+      markerRef.current = null
+      lineRef.current = null
+      infoRef.current = null
+      setReady(false)
+    }
+    // 地图只初始化一次；后续数据变化由下方 effect 增量更新
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 标记 + 连线
+  useEffect(() => {
+    if (!ready) return
+    const TMap = (window as any).TMap
+    const map = mapRef.current
+    if (!TMap || !map) return
+
+    markerRef.current?.setMap(null)
+    lineRef.current?.setMap(null)
+    infoRef.current?.close()
+
+    if (geoPlaces.length > 0) {
+      const markerLayer = new TMap.MultiMarker({
+        map,
+        styles: {
+          family: new TMap.MarkerStyle({
+            width: 32, height: 32, anchor: { x: 16, y: 16 }, src: markerIcon('#d97706', '🏛'),
+          }),
+          male: new TMap.MarkerStyle({
+            width: 26, height: 26, anchor: { x: 13, y: 13 }, src: markerIcon('#3b82f6', '♂'),
+          }),
+          female: new TMap.MarkerStyle({
+            width: 26, height: 26, anchor: { x: 13, y: 13 }, src: markerIcon('#ec4899', '♀'),
+          }),
+        },
+        geometries: geoPlaces.map((p, i) => ({
+          id: String(i),
+          styleId:
+            p.type === 'family'
+              ? 'family'
+              : p.gender === 'male'
+                ? 'male'
+                : p.gender === 'female'
+                  ? 'female'
+                  : 'family',
+          position: new TMap.LatLng(p.lat, p.lng),
+        })),
+      })
+      markerRef.current = markerLayer
+
+      markerLayer.on('click', (e: any) => {
+        const p = geoPlaces[Number(e.geometry.id)]
+        const info = infoRef.current
+        if (!p || !info) return
+        const typeText = p.type === 'family' ? '家族发源地' : p.type === 'birth' ? '出生地' : '逝世地'
+        const genderText = p.gender ? ` · ${p.gender === 'male' ? '男' : '女'}` : ''
+        info.setContent(
+          `<div style="min-width:150px;padding:8px 10px;font-size:13px;line-height:1.7;color:#e7e5e4;">` +
+          `<div style="font-weight:600;margin-bottom:2px;">${escapeHtml(p.name)}</div>` +
+          `<div style="color:#a8a29e;">${typeText}${genderText}</div>` +
+          (p.extra ? `<div style="color:#a8a29e;">${escapeHtml(p.extra)}</div>` : '') +
+          `<div style="color:#78716c;font-size:11px;margin-top:4px;">${p.lng.toFixed(4)}, ${p.lat.toFixed(4)}</div>` +
+          `</div>`
+        )
+        info.setPosition(e.geometry.position)
+        info.open()
+      })
+    }
+
+    if (showLines) {
+      const byName: Record<string, { birth?: PlaceMark; death?: PlaceMark }> = {}
+      for (const p of geoPlaces) {
+        if (p.type === 'birth' || p.type === 'death') {
+          if (!byName[p.name]) byName[p.name] = {}
+          byName[p.name][p.type] = p
+        }
+      }
+      const lines = Object.values(byName)
+        .filter((v): v is { birth: PlaceMark; death: PlaceMark } => !!v.birth && !!v.death)
+        .filter((v) => v.birth.lat !== v.death.lat || v.birth.lng !== v.death.lng)
+        .map((v) => [
+          new TMap.LatLng(v.birth.lat, v.birth.lng),
+          new TMap.LatLng(v.death.lat, v.death.lng),
+        ])
+      if (lines.length > 0) {
+        lineRef.current = new TMap.MultiPolyline({
+          map,
+          styles: {
+            dash: new TMap.PolylineStyle({
+              color: '#8b5cf6', width: 3, borderWidth: 0, lineCap: 'round',
+              showArrow: true, arrowOptions: { space: 80 },
+            }),
+          },
+          geometries: lines.map((path, i) => ({ id: String(i), styleId: 'dash', paths: path })),
+        })
       }
     }
-  }, [places])
+  }, [ready, geoPlaces, showLines])
 
-  const handleClick = (lat: number, lng: number) => {
-    onSelect?.({ lat, lng })
-  }
+  // 自动居中
+  useEffect(() => {
+    if (!ready || geoPlaces.length === 0) return
+    const map = mapRef.current
+    if (!map || !(window as any).TMap) return
+    const TMap = (window as any).TMap
+    const avgLat = geoPlaces.reduce((s, p) => s + p.lat, 0) / geoPlaces.length
+    const avgLng = geoPlaces.reduce((s, p) => s + p.lng, 0) / geoPlaces.length
+    map.easeTo(
+      { center: new TMap.LatLng(avgLat, avgLng), zoom: geoPlaces.length === 1 ? 8 : 4 },
+      { duration: 600 }
+    )
+  }, [ready, geoPlaces])
 
   return (
     <div style={{ height }} className="relative overflow-hidden rounded-lg border border-border">
-      <MapContainer
-        center={center}
-        zoom={zoom}
-        style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-
-        {onSelect && <ClickHandler onClick={handleClick} />}
-
-        {places.map((p, idx) => {
-          const icon =
-            p.type === 'family' ? familyIcon : p.gender === 'male' ? maleIcon : p.gender === 'female' ? femaleIcon : familyIcon
-          return (
-            <Marker key={`${p.type}-${idx}`} position={[p.lat, p.lng]} icon={icon}>
-              <Popup>
-                <div className="text-sm">
-                  <div className="mb-1 font-semibold">{p.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {p.type === 'family' ? '家族发源地' : p.type === 'birth' ? '出生地' : '逝世地'}
-                    {p.gender && ` · ${p.gender === 'male' ? '男' : '女'}`}
-                  </div>
-                  {p.extra && <div className="mt-1 text-xs text-gray-600">{p.extra}</div>}
-                  <div className="mt-1 text-[10px] text-gray-400">
-                    {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          )
-        })}
-
-        {/* 出生→死亡连线 */}
-        {showLines && <MemberLines places={places} />}
-
-        <RecenterMap center={center} zoom={zoom} />
-      </MapContainer>
-
-      <div className="pointer-events-none absolute right-3 top-3 z-[400] flex flex-col gap-1">
+      <div ref={elRef} style={{ width: '100%', height: '100%' }} />
+      {!KEY_CONFIGURED && (
+        <div className="absolute inset-0 z-[401] flex flex-col items-center justify-center gap-3 bg-background/95 px-6 text-center">
+          <MapPin className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm text-foreground">请配置腾讯地图 Key</p>
+          <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
+            在 <code className="rounded bg-muted px-1 py-0.5">FamilyMapView.tsx</code> 中把
+            <code className="mx-1 rounded bg-muted px-1 py-0.5">TMAP_KEY</code> 占位符替换为你的 Key，
+            到腾讯位置服务开放平台申请后即可显示地图。
+          </p>
+          <p className="text-[11px] text-muted-foreground">申请地址：lbs.qq.com/dev/console/application/mine</p>
+        </div>
+      )}
+      {KEY_CONFIGURED && error && (
+        <div className="absolute inset-0 z-[400] flex flex-col items-center justify-center gap-2 bg-background/90 px-6 text-center">
+          <MapPin className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm text-foreground">地图加载失败</p>
+          <p className="max-w-md text-xs text-muted-foreground">{error}</p>
+        </div>
+      )}
+      <div className="pointer-events-none absolute left-3 top-3 z-[400] flex flex-col gap-1">
         <div className="rounded-lg border border-border bg-white/90 px-3 py-2 text-xs shadow backdrop-blur dark:bg-black/80">
           <div className="flex items-center gap-2">
             <span className="font-medium">图例：</span>
             <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded-full bg-amber-500" /> 家族
+              <span className="inline-block h-3 w-3 rounded-full bg-amber-600" /> 家族
             </span>
             <span className="flex items-center gap-1">
               <span className="inline-block h-3 w-3 rounded-full bg-blue-500" /> 男
@@ -143,59 +320,6 @@ export default function FamilyMapView({
         </div>
       </div>
     </div>
-  )
-}
-
-function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click(e) {
-      onClick(e.latlng.lat, e.latlng.lng)
-    },
-  })
-  return null
-}
-
-function RecenterMap({ center, zoom }: { center: [number, number]; zoom: number }) {
-  const map = useMap()
-  useEffect(() => {
-    map.flyTo(center, zoom, { duration: 0.8 })
-  }, [center, zoom, map])
-  return null
-}
-
-function MemberLines({ places }: { places: PlaceMark[] }) {
-  const lines: Array<[[number, number], [number, number]]> = []
-  // 简化：根据 (name, type) 匹配出生-死亡
-  const byName: Record<string, { birth?: PlaceMark; death?: PlaceMark }> = {}
-  for (const p of places) {
-    if (p.type === 'birth') {
-      if (!byName[p.name]) byName[p.name] = {}
-      byName[p.name].birth = p
-    } else if (p.type === 'death') {
-      if (!byName[p.name]) byName[p.name] = {}
-      byName[p.name].death = p
-    }
-  }
-  for (const k of Object.keys(byName)) {
-    const { birth, death } = byName[k]
-    if (birth && death && birth.lat !== death.lat && birth.lng !== death.lng) {
-      lines.push([
-        [birth.lat, birth.lng],
-        [death.lat, death.lng],
-      ])
-    }
-  }
-  if (lines.length === 0) return null
-  return (
-    <>
-      {lines.map((line, idx) => (
-        <Polyline
-          key={idx}
-          positions={line}
-          pathOptions={{ color: '#8b5cf6', weight: 2, opacity: 0.5, dashArray: '4,8' }}
-        />
-      ))}
-    </>
   )
 }
 

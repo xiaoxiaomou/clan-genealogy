@@ -356,9 +356,9 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-            <div>
+            <div className="flex flex-col">
               <PgSectionHead text="祭 日" right={<span className="text-xs text-muted-foreground">追远</span>} />
-              <div className="pg-mem-card h-full flex flex-col justify-center">
+              <div className="pg-mem-card flex-1 flex flex-col justify-center">
                 <p className="pg-mem-date">{lunar?.fullStr || '农历推算中'}</p>
                 <div className="pg-mem-flame" aria-hidden="true">
                   <Flame />

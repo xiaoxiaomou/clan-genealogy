@@ -888,8 +888,25 @@ export const api = {
     request<any>(`/family/${familyId}/chat/groups`, { method: 'POST', body: data }),
   listChatMessages: (familyId: number, groupId: number, since?: number) =>
     request<any>(`/family/${familyId}/chat/groups/${groupId}/messages${since ? `?since=${since}` : ''}`),
-  sendChatMessage: (familyId: number, groupId: number, content: string) =>
-    request<any>(`/family/${familyId}/chat/groups/${groupId}/messages`, { method: 'POST', body: { content } }),
+  sendChatMessage: (
+    familyId: number,
+    groupId: number,
+    content: string,
+    extra?: { msg_type?: 'text' | 'image' | 'voice'; media_url?: string; duration?: number },
+  ) =>
+    request<any>(`/family/${familyId}/chat/groups/${groupId}/messages`, {
+      method: 'POST',
+      body: { content, ...(extra || {}) },
+    }),
+  uploadChatMedia: (familyId: number, file: File, kind: 'image' | 'voice') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('kind', kind);
+    return request<{ url: string; kind: string; size: number }>(
+      `/family/${familyId}/chat/upload`,
+      { method: 'POST', formData },
+    );
+  },
   createDMChannel: (familyId: number, peerUserId: number) =>
     request<any>(`/family/${familyId}/chat/dm`, { method: 'POST', body: { peer_user_id: peerUserId } }),
 

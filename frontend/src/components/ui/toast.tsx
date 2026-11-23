@@ -1,4 +1,3 @@
-import * as React from "react"
 import { cn } from "@/lib/utils"
 import { X } from 'lucide-react'
 
@@ -15,10 +14,9 @@ const TYPE_STYLES = {
 }
 
 export function Toast({ message, type = 'info', onClose }: ToastProps) {
-  React.useEffect(() => {
-    const timer = setTimeout(onClose, 3500)
-    return () => clearTimeout(timer)
-  }, [onClose])
+  // 自动消失由 ToastProvider 统一调度（见 toast-provider.tsx 的 showToast）
+  // 这里不再设置定时器：onClose 是每次渲染新建的引用，effect 依赖它会在
+  // 父组件重渲染时反复重置倒计时，导致 toast 永不消失。
 
   return (
     <div

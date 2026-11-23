@@ -9,6 +9,7 @@ import {
   EdgeLabelRenderer,
   getSmoothStepPath,
   useReactFlow,
+  applyNodeChanges,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
@@ -488,7 +489,11 @@ export default function FamilyTreeGraph({
     })
   }, [historyState.present, reactFlowInstance, historyManager])
 
-  const { nodes, edges } = useMemo(() => {
+  // 用户手动拖动过的节点位置（id -> position）。自动布局重算时优先保留这些位置，
+  // 否则任何高亮/hover 触发的 useMemo 重算都会把拖动结果弹回 Dagre 布局。
+  const draggedPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
+
+  const { nodes: layoutNodes, edges } = useMemo(() => {
     if (!treeData || treeData.nodes.length === 0) {
       return { nodes: [], edges: [] }
     }
@@ -600,6 +605,12 @@ export default function FamilyTreeGraph({
     dagre.layout(dagreGraph)
 
     nodes.forEach((node: { id: string; position: { x: number; y: number } }) => {
+      const dragged = draggedPositionsRef.current.get(node.id)
+      if (dragged) {
+        // 保留用户手动摆放的位置
+        node.position = { ...dragged }
+        return
+      }
       const nodeWithPosition = dagreGraph.node(node.id) as { x: number; y: number } | undefined
       if (nodeWithPosition) {
         node.position = {
@@ -611,6 +622,19 @@ export default function FamilyTreeGraph({
 
     return { nodes, edges }
   }, [treeData, highlightedMemberId, lineage.highlight])
+
+  // 受控节点：React Flow 的拖拽结果写回 state，并记入 ref 以便布局重算时保留
+  const [nodes, setNodes] = useState<any[]>(layoutNodes)
+  useEffect(() => { setNodes(layoutNodes) }, [layoutNodes])
+
+  const onNodesChange = useCallback((changes: any[]) => {
+    setNodes((nds: any[]) => applyNodeChanges(changes, nds))
+    for (const c of changes) {
+      if (c.type === 'position' && c.position) {
+        draggedPositionsRef.current.set(c.id, { ...c.position })
+      }
+    }
+  }, [])
 
   const manualEdges = useMemo(() => {
     const nameById = new Map((treeData?.nodes ?? []).map(n => [String(n.id), n.name]))
@@ -824,6 +848,7 @@ export default function FamilyTreeGraph({
       <ReactFlow
         nodes={nodes}
         edges={allEdges}
+        onNodesChange={onNodesChange}
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
         onPaneClick={handlePaneClick}

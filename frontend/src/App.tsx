@@ -17,6 +17,7 @@ const KinshipCalculatorPage = lazy(() => import('@/components/pages/KinshipCalcu
 const WufuChartPage = lazy(() => import('@/components/pages/WufuChartPage'))
 const FamilySettingsPage = lazy(() => import('@/components/pages/FamilySettingsPage'))
 const MemberDetailPage = lazy(() => import('@/components/pages/MemberDetailPage'))
+const MemberBiographyPage = lazy(() => import('@/components/pages/MemberBiographyPage'))
 const MemorialPage = lazy(() => import('@/components/pages/MemorialPage'))
 const GedcomImportPage = lazy(() => import('@/components/pages/GedcomImportPage'))
 const RelationshipPathPage = lazy(() => import('@/components/pages/RelationshipPathPage'))
@@ -239,6 +240,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <FamilySettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/family/:id/member/:memberId/biography"
+                element={
+                  <ProtectedRoute>
+                    <MemberBiographyPage />
                   </ProtectedRoute>
                 }
               />

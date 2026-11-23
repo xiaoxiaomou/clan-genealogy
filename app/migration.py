@@ -31,6 +31,11 @@ def run_migrations(db: SQLAlchemy):
         'honors': [
             ('awarder', "VARCHAR(200)"),
         ],
+        'chat_messages': [
+            ('msg_type', "VARCHAR(20) DEFAULT 'text'"),
+            ('media_url', "VARCHAR(500)"),
+            ('duration', "INTEGER"),
+        ],
         'users': [
             ('linked_member_id', "INTEGER"),
             ('reset_token', "VARCHAR(128)"),

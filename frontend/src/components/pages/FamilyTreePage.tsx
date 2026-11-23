@@ -767,7 +767,7 @@ export default function FamilyTreePage() {
                 <PgSeal char={family.surname} size={56} title={`姓印 · ${family.surname}`} />
               )}
               <h1 className="pg-title text-3xl font-semibold text-foreground sm:text-4xl">
-                {family.surname ? `${family.surname}氏` : ''}·{family.name}
+                {family.name}
               </h1>
             </div>
             {family.motto && (

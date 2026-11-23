@@ -16,14 +16,17 @@ const ToastContext = React.createContext<ToastContextValue | null>(null)
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<ToastItem[]>([])
 
-  const showToast = React.useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = Date.now() + Math.random()
-    setToasts(prev => [...prev, { id, message, type }])
-  }, [])
-
   const removeToast = React.useCallback((id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
+
+  const showToast = React.useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now() + Math.random()
+    setToasts(prev => [...prev, { id, message, type }])
+    // 在 provider 层统一自动移除：避免 Toast 内部 effect 依赖不稳定的 onClose 引用
+    // 导致父组件重渲染时反复重置定时器、toast 永不消失的问题
+    setTimeout(() => removeToast(id), 3500)
+  }, [removeToast])
 
   return (
     <ToastContext.Provider value={{ showToast }}>

@@ -5,6 +5,7 @@ import {
   Background,
   useReactFlow,
   useViewport,
+  applyNodeChanges,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { TreeNode, FamilyTree } from '@/types'
@@ -110,7 +111,7 @@ export function FamilyTreeEngine({
   }, [])
 
   // 构建 React Flow 节点和边
-  const { nodes, edges } = useMemo<{ nodes: FlowNode[]; edges: FlowEdge[] }>(() => {
+  const { nodes: layoutNodes, edges } = useMemo<{ nodes: FlowNode[]; edges: FlowEdge[] }>(() => {
     if (!treeData || treeData.nodes.length === 0) return { nodes: [], edges: [] }
 
     const hiddenDescendants = new Set<number>()
@@ -225,6 +226,14 @@ export function FamilyTreeEngine({
     return { nodes: flowNodes, edges: flowEdges }
   }, [treeData, dagrePositions, dagreNodeWidthMap, coupleInfo, collapsedIds, selectedNodeIds, toggleCollapse, parentEdges, dragPos])
 
+  // 受控节点：React Flow 拖拽需要 onNodesChange 才能实时移动节点。
+  // layoutNodes 的 position 已优先取 dragPos，故重算时不会丢失拖动结果。
+  const [nodes, setNodes] = useState<FlowNode[]>(layoutNodes)
+  useEffect(() => { setNodes(layoutNodes) }, [layoutNodes])
+  const onNodesChange = useCallback((changes: any[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds) as FlowNode[])
+  }, [])
+
   // 屏幕坐标（世代表尺用）
   const nodeScreenPositions = useMemo(() => {
     const map = new Map<number, { x: number; y: number; width: number; height: number }>()
@@ -308,6 +317,7 @@ export function FamilyTreeEngine({
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodesChange={onNodesChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView

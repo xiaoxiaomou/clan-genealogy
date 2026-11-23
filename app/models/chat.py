@@ -37,6 +37,11 @@ class ChatMessage(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('chat_groups.id'), nullable=False, index=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    # text: 纯文本 / image: 图片 / voice: 语音
+    msg_type = db.Column(db.String(20), nullable=False, default='text')
+    media_url = db.Column(db.String(500), nullable=True)
+    # 语音时长（秒），图片消息为 None
+    duration = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     sender = db.relationship('User', lazy='joined')
@@ -49,5 +54,8 @@ class ChatMessage(db.Model):
             'sender_name': self.sender.display_name or self.sender.username if self.sender else None,
             'sender_avatar': self.sender.avatar if self.sender else None,
             'content': self.content,
+            'msg_type': self.msg_type or 'text',
+            'media_url': self.media_url,
+            'duration': self.duration,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
