@@ -273,6 +273,64 @@ body::before{
 .honor-strip span:not(.honor-strip-label){font-size:10.5px;color:var(--paper-dim);white-space:nowrap}
 .honor-strip span:not(.honor-strip-label)::before{content:'✦';color:var(--cinnabar);margin-right:4px;font-size:9px}
 
+/* ══ 右栏特效：耆寿榜 & 家族纪事 ══ */
+@keyframes lonEnter{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes rankGlow{0%,100%{text-shadow:0 0 4px rgba(198,160,104,.3)}50%{text-shadow:0 0 12px rgba(198,160,104,.85)}}
+@keyframes ageGlow{0%,100%{text-shadow:0 0 3px rgba(214,85,74,.25)}50%{text-shadow:0 0 12px rgba(214,85,74,.7)}}
+@keyframes tlRipple{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}
+@keyframes tlEnter{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes honorIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* 耆寿榜 */
+.lon-item{
+  position:relative;overflow:hidden;cursor:default;
+  opacity:0;animation:lonEnter .6s cubic-bezier(.16,1,.3,1) forwards;
+  transition:background .35s ease,transform .35s cubic-bezier(.16,1,.3,1),border-color .35s ease;
+}
+.lon-item:nth-child(1){animation-delay:.15s}.lon-item:nth-child(2){animation-delay:.24s}
+.lon-item:nth-child(3){animation-delay:.33s}.lon-item:nth-child(4){animation-delay:.42s}
+.lon-item::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:0;
+  background:linear-gradient(90deg,rgba(178,58,46,.28),transparent);
+  transition:width .4s cubic-bezier(.16,1,.3,1);pointer-events:none;
+}
+.lon-item:hover{background:rgba(214,85,74,.09);transform:translateX(4px);border-left-color:var(--cinnabar-lt)}
+.lon-item:hover::after{width:100%}
+.lon-item:hover .lon-name{color:var(--gold);text-shadow:0 0 10px rgba(198,160,104,.45)}
+.lon-item:hover .lon-age{transform:scale(1.12);color:#ff8a7a}
+.lon-rank{position:relative;z-index:1;transition:transform .35s ease}
+.lon-item:first-child .lon-rank{animation:rankGlow 2.8s ease-in-out infinite}
+.lon-item:hover .lon-rank{transform:scale(1.18)}
+.lon-name,.lon-age{position:relative;z-index:1;transition:color .3s ease,transform .35s cubic-bezier(.16,1,.3,1),text-shadow .3s ease}
+.lon-age{animation:ageGlow 3.4s ease-in-out infinite;display:inline-block}
+
+/* 家族纪事 */
+.timeline li{opacity:0;animation:tlEnter .6s cubic-bezier(.16,1,.3,1) forwards;transition:transform .3s ease}
+.timeline li:nth-child(1){animation-delay:.18s}.timeline li:nth-child(2){animation-delay:.3s}.timeline li:nth-child(3){animation-delay:.42s}
+.timeline li::after{
+  content:'';position:absolute;left:-19px;top:1px;width:15px;height:15px;border-radius:50%;
+  border:1px solid var(--cinnabar);opacity:0;pointer-events:none;animation:tlRipple 2.6s ease-out infinite;
+}
+.timeline li:nth-child(2)::after{animation-delay:.85s}.timeline li:nth-child(3)::after{animation-delay:1.7s}
+.timeline li:hover{transform:translateX(3px)}
+.timeline li:hover::before{transform:scale(1.45);background:var(--cinnabar-lt)}
+.timeline li:hover .tl-date{color:var(--cinnabar-lt)}
+.timeline li:hover .tl-text{color:#fff;text-shadow:0 0 10px rgba(240,230,210,.3)}
+.tl-date,.tl-text{transition:color .3s ease,text-shadow .3s ease}
+.timeline li::before{transition:transform .3s cubic-bezier(.16,1,.3,1),background .3s ease}
+.honor-strip span:not(.honor-strip-label){
+  opacity:0;animation:honorIn .5s ease forwards;transition:color .25s ease,transform .25s ease;display:inline-block;
+}
+.honor-strip span:nth-child(2){animation-delay:.5s}.honor-strip span:nth-child(3){animation-delay:.58s}
+.honor-strip span:nth-child(4){animation-delay:.66s}.honor-strip span:nth-child(5){animation-delay:.74s}.honor-strip span:nth-child(6){animation-delay:.82s}
+.honor-strip span:not(.honor-strip-label):hover{color:var(--gold);transform:translateY(-2px)}
+
+@media (prefers-reduced-motion:reduce){
+  .lon-item,.timeline li,.honor-strip span:not(.honor-strip-label){animation:none!important;opacity:1}
+  .lon-age,.lon-item:first-child .lon-rank,.timeline li::after{animation:none!important}
+  .timeline li::after{display:none}
+}
+
 /* ── 荣誉 ── */
 .honor-list{display:flex;flex-direction:column;gap:7px}
 .honor-item{display:flex;align-items:center;gap:10px;font-size:12px}
