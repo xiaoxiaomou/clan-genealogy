@@ -34,3 +34,17 @@ def frontend_assets(filename):
     if os.path.exists(FRONTEND_DIST):
         return send_from_directory(os.path.join(FRONTEND_DIST, 'assets'), filename)
     return '', 404
+
+
+@page_bp.route('/preview-bigscreen.html')
+def bigscreen():
+    """数据可视化大屏（古风版）——生产环境直接提供静态 HTML"""
+    # 优先构建产物，其次源码 public 目录（便于未构建时访问）
+    candidates = [
+        FRONTEND_DIST,
+        os.path.join(os.path.dirname(FRONTEND_DIST), 'public'),
+    ]
+    for base in candidates:
+        if os.path.exists(os.path.join(base, 'preview-bigscreen.html')):
+            return send_from_directory(base, 'preview-bigscreen.html')
+    return '', 404

@@ -22,7 +22,7 @@ import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { FamilySwitcher } from '@/components/layout/FamilySwitcher'
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts'
 import { ShortcutHelp } from '@/hooks/ShortcutHelp'
-import { TreePine, LogOut, Home, Bell, Sun, Moon, Menu, X, Search, Keyboard, ArrowLeft, Shield } from 'lucide-react'
+import { TreePine, LogOut, Home, Bell, Sun, Moon, Menu, X, Search, Keyboard, ArrowLeft, Shield, MonitorPlay } from 'lucide-react'
 import type { ThemeMode } from '@/store/slices/appSlice'
 
 interface LayoutProps {
@@ -41,6 +41,10 @@ export function Layout({ children }: LayoutProps) {
   )
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  // 大屏入口：管理员始终可见；普通用户由后台开关 family.show_bigscreen_entry 决定
+  const [bigscreenEnabled, setBigscreenEnabled] = useState(false)
+  const isSystemAdmin = user?.is_admin === true
+  const showBigscreenEntry = isSystemAdmin || bigscreenEnabled
 
   useGlobalShortcuts({
     onOpenPalette: () => setPaletteOpen((v) => !v),
@@ -76,6 +80,17 @@ export function Layout({ children }: LayoutProps) {
   useEffect(() => {
     loadUnreadCount()
   }, [])
+
+  useEffect(() => {
+    // 读取公开配置中的大屏开关（普通用户是否需要显示入口）
+    if (!user) return
+    api.getPublicConfigs()
+      .then((data) => {
+        const cfg = (data?.configs ?? {}) as Record<string, unknown>
+        setBigscreenEnabled(cfg['family.show_bigscreen_entry'] === true)
+      })
+      .catch(() => setBigscreenEnabled(false))
+  }, [user])
 
   const loadUnreadCount = async () => {
     try {
@@ -192,6 +207,17 @@ export function Layout({ children }: LayoutProps) {
                 <Home className="h-3.5 w-3.5" aria-hidden="true" />
                 我的族谱
               </button>
+              {showBigscreenEntry && (
+                <button
+                  onClick={() => window.open('/preview-bigscreen.html', '_blank', 'noopener,noreferrer')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground transition-all hover:text-foreground hover:underline hover:underline-offset-4"
+                  aria-label="数据大屏"
+                  title="数据可视化大屏"
+                >
+                  <MonitorPlay className="h-3.5 w-3.5" aria-hidden="true" />
+                  数据大屏
+                </button>
+              )}
             </nav>
           </div>
 
@@ -391,6 +417,18 @@ export function Layout({ children }: LayoutProps) {
                 <Home className="h-5 w-5" aria-hidden="true" />
                 我的族谱
               </button>
+              {showBigscreenEntry && (
+                <button
+                  onClick={() => {
+                    window.open('/preview-bigscreen.html', '_blank', 'noopener,noreferrer')
+                    dispatch(setShowMobileMenu(false))
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 dark:text-gray-200 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  <MonitorPlay className="h-5 w-5" aria-hidden="true" />
+                  数据大屏
+                </button>
+              )}
               {user?.is_admin && (
                 <button
                   onClick={() => {

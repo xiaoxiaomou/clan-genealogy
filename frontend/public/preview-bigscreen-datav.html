@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>牟氏宗亲 · 数据可视化大屏（DataV 风格预览）</title>
+<style>
+/* ═══════════ DataV 开源风格 · 科技蓝大屏 ═══════════
+   复刻 DataV-Team/DataV 的视觉语言：切角边框 / 胶囊排行榜 / 数字翻牌 / 扫描线
+   配色取自 DataV 默认：#6586ec #2cf7fe #37a2da #67e0e3 #9fe6b8
+*/
+:root{
+  --bg:#02040f;
+  --panel:rgba(8,20,45,.55);
+  --c1:#2cf7fe;      /* DataV 主青 */
+  --c2:#6586ec;      /* DataV 蓝 */
+  --c3:#37a2da;
+  --c4:#67e0e3;
+  --c5:#9fe6b8;
+  --warn:#ffdb5c;
+  --red:#fb7293;
+  --txt:#e6f7ff;
+  --txt-dim:#7ba7c7;
+  --line:rgba(44,247,254,.22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:'Microsoft YaHei','PingFang SC',system-ui,sans-serif;
+  overflow:hidden;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 50% 0%,rgba(41,98,180,.22),transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 100%,rgba(44,247,254,.08),transparent 70%),
+    linear-gradient(rgba(44,247,254,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(44,247,254,.025) 1px,transparent 1px);
+  background-size:100% 100%,100% 100%,42px 42px,42px 42px;
+}
+.screen{height:100vh;min-height:620px;display:flex;flex-direction:column;padding:12px 20px 14px}
+
+/* ── 顶栏 ── */
+.head{height:70px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center}
+.head-title{font-size:30px;font-weight:700;letter-spacing:.32em;text-indent:.32em;
+  background:linear-gradient(180deg,#fff,var(--c1));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:0 0 24px rgba(44,247,254,.35)}
+.head-sub{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.5em;color:var(--txt-dim);font-family:monospace}
+.head-line{position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--c1) 20%,var(--c2) 50%,var(--c1) 80%,transparent);
+  box-shadow:0 0 12px var(--c1)}
+.head-line::after{content:'';position:absolute;top:-3px;left:0;width:120px;height:8px;
+  background:linear-gradient(90deg,transparent,#fff,transparent);animation:headSweep 5s linear infinite;filter:blur(1px)}
+@keyframes headSweep{0%{transform:translateX(-120px)}100%{transform:translateX(1900px)}}
+.head-side{position:absolute;left:0;right:0;bottom:6px;display:flex;justify-content:space-between;font-size:11px;color:var(--txt-dim);font-family:monospace}
+.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4dff88;box-shadow:0 0 8px #4dff88;margin-right:6px;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+
+/* ── 主体网格 ── */
+.main{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1.7fr 1fr;grid-template-rows:1fr;gap:14px;padding:14px 0}
+.col{display:flex;flex-direction:column;gap:14px;min-height:0}
+
+/* ── DataV 切角边框面板（borderBox13 复刻） ── */
+.panel{position:relative;min-height:0;padding:12px 14px;
+  background:linear-gradient(160deg,rgba(13,30,60,.75),rgba(5,14,34,.7));
+}
+.panel::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(var(--c1),var(--c1)) left top/2px 26px no-repeat,
+    linear-gradient(var(--c1),var(--c1)) left top/36px 2px no-repeat,
+    linear-gradient(var(--c1),var(--c1)) right bottom/2px 26px no-repeat,
+    linear-gradient(var(--c1),var(--c1)) right bottom/36px 2px no-repeat,
+    linear-gradient(var(--line),var(--line)) left top/100% 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom/100% 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left top/1px 100% no-repeat,
+    linear-gradient(var(--line),var(--line)) right top/1px 100% no-repeat;
+  filter:drop-shadow(0 0 4px rgba(44,247,254,.3))}
+.corner-t{position:absolute;top:-1px;left:14px;width:56px;height:9px;
+  border-top:2px solid var(--c2);border-left:2px solid var(--c2);transform:skewX(-35deg)}
+.corner-b{position:absolute;bottom:-1px;right:14px;width:56px;height:9px;
+  border-bottom:2px solid var(--c2);border-right:2px solid var(--c2);transform:skewX(-35deg)}
+.p-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;height:20px}
+.p-head::before{content:'';width:4px;height:14px;background:var(--c1);box-shadow:0 0 8px var(--c1)}
+.p-head h3{font-size:14px;font-weight:600;letter-spacing:.16em;color:#fff;text-shadow:0 0 8px rgba(44,247,254,.5)}
+.p-head .en{margin-left:auto;font-size:9px;letter-spacing:.14em;color:var(--txt-dim);font-family:monospace}
+
+/* ── 数字翻牌（digitalFlop 复刻） ── */
+.flop-panel{text-align:center;display:flex;flex-direction:column;justify-content:center}
+.flop{font-family:'Arial Narrow',Impact,sans-serif;font-weight:700;font-size:clamp(58px,6vw,96px);line-height:1;
+  color:var(--c1);text-shadow:0 0 10px var(--c1),0 0 30px rgba(44,247,254,.5);font-variant-numeric:tabular-nums}
+.flop-label{font-size:13px;letter-spacing:.3em;color:var(--txt);margin-top:4px}
+.flop-sub{display:flex;justify-content:center;gap:26px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.flop-sub div{text-align:center}
+.flop-sub b{font-family:monospace;font-size:24px;color:var(--warn);text-shadow:0 0 10px rgba(255,219,92,.5)}
+.flop-sub span{display:block;font-size:10px;color:var(--txt-dim);margin-top:3px;letter-spacing:.12em}
+
+/* ── 胶囊排行榜（capsuleChart 复刻） ── */
+.capsules{display:flex;flex-direction:column;gap:12px;padding-top:4px}
+.cap-row{display:flex;align-items:center;gap:10px}
+.cap-label{width:64px;text-align:right;font-size:12px;color:var(--txt);white-space:nowrap}
+.cap-track{flex:1;height:12px;background:rgba(44,247,254,.08);border:1px solid rgba(44,247,254,.15);border-radius:6px;overflow:hidden;position:relative}
+.cap-fill{height:100%;border-radius:6px;position:relative;transition:width 1.2s cubic-bezier(.16,1,.3,1);
+  box-shadow:0 0 12px currentColor;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
+.cap-fill span{font-family:monospace;font-size:11px;color:#04121f;font-weight:700}
+.cap-val{width:38px;font-family:monospace;font-size:12px;color:var(--txt);text-align:right}
+
+/* ── 环形进度（activeRingChart 风格） ── */
+.rings{display:flex;align-items:center;justify-content:space-around;gap:10px}
+.ring-box{text-align:center}
+.ring{position:relative;width:86px;height:86px}
+.ring svg{transform:rotate(-90deg);filter:drop-shadow(0 0 6px currentColor)}
+.ring-val{position:absolute;inset:0;display:grid;place-items:center;font-family:monospace;font-size:18px;font-weight:700;color:#fff}
+.ring-label{font-size:11px;color:var(--txt-dim);margin-top:6px}
+
+/* ── 中央地图/网络区 ── */
+.center-panel{display:flex;flex-direction:column;overflow:hidden}
+.center-canvas{flex:1;position:relative;min-height:0;display:grid;place-items:center;overflow:hidden}
+.radar{width:min(100%,50vh);aspect-ratio:1;position:relative}
+.radar svg{width:100%;height:100%;overflow:visible}
+.radar-ring{fill:none;stroke:rgba(44,247,254,.25);stroke-width:1}
+.radar-sweep{transform-origin:210px 210px;animation:spin 6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.radar-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.radar-core .big{font-family:monospace;font-size:44px;font-weight:700;color:var(--c1);text-shadow:0 0 20px var(--c1)}
+.radar-core .sm{font-size:11px;color:var(--c4);letter-spacing:.2em;margin-top:2px}
+.node{animation:pulseNode 2.6s ease-in-out infinite}
+@keyframes pulseNode{0%,100%{opacity:.5;r:3}50%{opacity:1;r:5}}
+.center-stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.chip{font-family:monospace;font-size:11px;color:var(--c4);border:1px solid var(--line);padding:4px 10px;background:rgba(44,247,254,.05)}
+.chip b{color:#fff;font-size:13px;margin-left:4px}
+
+/* ── 柱状（年代分布） ── */
+.bars{display:flex;align-items:flex-end;justify-content:space-between;gap:4px;height:100%;min-height:70px;padding-top:6px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.bar{width:70%;background:linear-gradient(180deg,var(--c1),var(--c3));border-radius:2px 2px 0 0;
+  box-shadow:0 0 10px rgba(44,247,254,.5);transform-origin:bottom;animation:growUp .9s cubic-bezier(.16,1,.3,1) both}
+.bar.hot{background:linear-gradient(180deg,var(--warn),#ff9f7f);box-shadow:0 0 12px rgba(255,219,92,.6)}
+@keyframes growUp{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.bar-yr{font-family:monospace;font-size:9px;color:var(--txt-dim)}
+
+/* ── 轮播表（scrollBoard 复刻） ── */
+.scroll-list{list-style:none;overflow:hidden;flex:1}
+.scroll-list li{display:flex;align-items:center;gap:10px;padding:5px 6px;border-bottom:1px dashed var(--line);font-size:11px}
+.scroll-list li:hover{background:rgba(44,247,254,.08)}
+.rank{width:20px;height:20px;flex-shrink:0;display:grid;place-items:center;font-family:monospace;font-size:11px;
+  background:linear-gradient(135deg,var(--c2),var(--c3));color:#fff;clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%)}
+.rank.top{background:linear-gradient(135deg,var(--warn),#ff9f7f)}
+.evt-name{flex:1;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evt-yr{font-family:monospace;font-size:11px;color:var(--c1)}
+
+/* ── 国家/人口结构条 ── */
+.stack{display:flex;height:24px;border-radius:2px;overflow:hidden;box-shadow:0 0 12px rgba(44,247,254,.2);margin:8px 0}
+.stack i{display:block;height:100%;font-style:normal;font-family:monospace;font-size:11px;color:#04121f;font-weight:700;
+  display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.stack-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--txt-dim)}
+.stack-legend i{display:inline-block;width:9px;height:9px;margin-right:5px;border-radius:2px}
+
+/* ── 底部 ── */
+.footer{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;height:130px}
+.kv{display:flex;flex-direction:column;justify-content:center;gap:4px}
+.kv-row{display:flex;justify-content:space-between;font-size:12px;color:var(--txt-dim);padding:3px 0;border-bottom:1px dashed var(--line)}
+.kv-row b{font-family:monospace;color:var(--c4);font-size:13px}
+.ticker{font-family:monospace;font-size:10px;color:var(--c4);white-space:nowrap;overflow:hidden;position:relative;height:16px;line-height:16px;margin-top:8px;flex-shrink:0}
+.ticker span{position:absolute;white-space:nowrap;animation:ticker 26s linear infinite}
+@keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+
+@media (max-width:1100px){
+  body{overflow:auto}
+  .screen{height:auto;min-height:100vh}
+  .main{grid-template-columns:1fr}
+  .footer{grid-template-columns:1fr;height:auto}
+}
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- ══ 顶栏 ══ -->
+  <header class="head">
+    <div class="head-title">牟氏宗亲 · 数据可视化大屏</div>
+    <div class="head-sub">MOU CLAN · BIG DATA VISUALIZATION CENTER</div>
+    <div class="head-line"></div>
+    <div class="head-side">
+      <span><i class="live"></i>数据实时在线</span>
+      <span id="clock">2026-11-24 00:00:00</span>
+    </div>
+  </header>
+
+  <!-- ══ 主体 ══ -->
+  <div class="main">
+
+    <!-- 左栏 -->
+    <div class="col">
+      <section class="panel flop-panel animate" style="flex:0 0 30%">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head" style="justify-content:center"><h3>在 谱 族 人 总 数</h3></div>
+        <div class="flop" id="flopTotal">0</div>
+        <div class="flop-label">位 族 人</div>
+        <div class="flop-sub">
+          <div><b id="flopGen">0</b><span>世代</span></div>
+          <div><b id="flopRel">0</b><span>关系</span></div>
+          <div><b id="flopBranch">0</b><span>房支</span></div>
+        </div>
+      </section>
+
+      <section class="panel animate" style="flex:1">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head"><h3>房 支 人 口 排 行</h3><span class="en">BRANCH RANKING</span></div>
+        <div class="capsules">
+          <div class="cap-row"><span class="cap-label">长房</span><div class="cap-track"><div class="cap-fill" style="width:0;color:#2cf7fe;background:linear-gradient(90deg,#1a7a8f,#2cf7fe)" data-w="100"><span>30</span></div></div><span class="cap-val">30</span></div>
+          <div class="cap-row"><span class="cap-label">二房</span><div class="cap-track"><div class="cap-fill" style="width:0;color:#2cf7fe;background:linear-gradient(90deg,#1a6fa0,#37a2da)" data-w="100"><span>30</span></div></div><span class="cap-val">30</span></div>
+          <div class="cap-row"><span class="cap-label">前院房</span><div class="cap-track"><div class="cap-fill" style="width:0;color:#9fe6b8;background:linear-gradient(90deg,#2e7d6b,#9fe6b8)" data-w="33.3"><span>10</span></div></div><span class="cap-val">10</span></div>
+        </div>
+        <div style="margin-top:auto;padding-top:10px">
+          <div class="p-head" style="margin-bottom:6px"><h3 style="font-size:12px">性 别 构 成</h3></div>
+          <div class="stack">
+            <i style="width:55.7%;background:linear-gradient(90deg,#1a6fa0,#37a2da)">男 39</i>
+            <i style="width:44.3%;background:linear-gradient(90deg,#c2566e,#fb7293)">女 31</i>
+          </div>
+          <div class="stack-legend"><span><i style="background:#37a2da"></i>男 55.7%</span><span><i style="background:#fb7293"></i>女 44.3%</span></div>
+        </div>
+      </section>
+
+      <section class="panel animate" style="flex:1">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head"><h3>族 人 状 态</h3><span class="en">STATUS</span></div>
+        <div class="rings">
+          <div class="ring-box">
+            <div class="ring" style="color:#9fe6b8">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(159,230,184,.15)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#9fe6b8" stroke-width="8" stroke-dasharray="201 251" stroke-linecap="round" class="ring-arc"/>
+              </svg>
+              <div class="ring-val">71%</div>
+            </div>
+            <div class="ring-label">在世 50</div>
+          </div>
+          <div class="ring-box">
+            <div class="ring" style="color:#fb7293">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(251,114,147,.15)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#fb7293" stroke-width="8" stroke-dasharray="80 251" stroke-linecap="round" class="ring-arc"/>
+              </svg>
+              <div class="ring-val">29%</div>
+            </div>
+            <div class="ring-label">已故 20</div>
+          </div>
+        </div>
+        <div class="ticker"><span>◆ 耆寿榜：牟永德 / 牟永凤 / 牟永禄 / 牟永香 均为 92 岁　◆ 平均寿龄 81.5 岁　◆ 女性平均 91.7 岁　◆ 男性平均 77.1 岁</span></div>
+      </section>
+    </div>
+
+    <!-- 中栏 -->
+    <div class="col">
+      <section class="panel center-panel animate" style="flex:1">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head"><h3>世 系 网 络 态 势</h3><span class="en">GENEALOGY NETWORK</span></div>
+        <div class="center-canvas">
+          <div class="radar">
+            <svg viewBox="0 0 420 420">
+              <defs>
+                <linearGradient id="sweepG" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#2cf7fe" stop-opacity="0"/>
+                  <stop offset="100%" stop-color="#2cf7fe" stop-opacity=".35"/>
+                </linearGradient>
+                <radialGradient id="glowG"><stop offset="0%" stop-color="#2cf7fe" stop-opacity=".18"/><stop offset="100%" stop-color="#2cf7fe" stop-opacity="0"/></radialGradient>
+              </defs>
+              <circle cx="210" cy="210" r="180" fill="url(#glowG)"/>
+              <circle class="radar-ring" cx="210" cy="210" r="52"/>
+              <circle class="radar-ring" cx="210" cy="210" r="104"/>
+              <circle class="radar-ring" cx="210" cy="210" r="156"/>
+              <circle class="radar-ring" cx="210" cy="210" r="196" stroke-dasharray="2 8"/>
+              <g class="radar-sweep">
+                <path d="M210 210 L210 14 A196 196 0 0 1 290 36 Z" fill="url(#sweepG)"/>
+                <line x1="210" y1="210" x2="210" y2="14" stroke="#2cf7fe" stroke-width="1" opacity=".7"/>
+              </g>
+              <g id="netNodes"></g>
+            </svg>
+            <div class="radar-core">
+              <div class="big" id="coreNum">70</div>
+              <div class="sm">在 谱 族 人</div>
+            </div>
+          </div>
+        </div>
+        <div class="center-stats">
+          <div class="chip">第一代<b>14</b></div>
+          <div class="chip">第二代<b>27</b></div>
+          <div class="chip">第三代<b>28</b></div>
+          <div class="chip">第四代<b>1</b></div>
+        </div>
+      </section>
+
+      <section class="panel animate" style="flex:0 0 30%">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head"><h3>出 生 年 代 分 布</h3><span class="en">BIRTH DECADES</span></div>
+        <div class="bars" id="bars" style="height:calc(100% - 24px)"></div>
+      </section>
+    </div>
+
+    <!-- 右栏 -->
+    <div class="col">
+      <section class="panel animate" style="flex:1.1">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head"><h3>家 族 纪 事</h3><span class="en">EVENTS</span></div>
+        <ul class="scroll-list">
+          <li><span class="rank top">01</span><span class="evt-name">重修祠堂，阖族庆典立碑</span><span class="evt-yr">2026.04</span></li>
+          <li><span class="rank">02</span><span class="evt-name">奖励考入大学的子弟</span><span class="evt-yr">2026.08</span></li>
+          <li><span class="rank">03</span><span class="evt-name">展出子弟书画三十余幅</span><span class="evt-yr">2026.10</span></li>
+          <li><span class="rank">04</span><span class="evt-name">获青年才俊奖</span><span class="evt-yr">2025</span></li>
+          <li><span class="rank">05</span><span class="evt-name">获青年书画佳作奖</span><span class="evt-yr">2024</span></li>
+          <li><span class="rank">06</span><span class="evt-name">孝亲睦邻标兵</span><span class="evt-yr">2021</span></li>
+          <li><span class="rank">07</span><span class="evt-name">修谱功勋奖</span><span class="evt-yr">2020</span></li>
+          <li><span class="rank">08</span><span class="evt-name">优秀教师</span><span class="evt-yr">2019</span></li>
+        </ul>
+      </section>
+
+      <section class="panel animate" style="flex:1">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head"><h3>年 龄 结 构</h3><span class="en">AGE GROUP</span></div>
+        <div class="capsules" id="ageCaps"></div>
+      </section>
+
+      <section class="panel animate" style="flex:.85">
+        <div class="corner-t"></div><div class="corner-b"></div>
+        <div class="p-head"><h3>族 谱 档 案</h3><span class="en">ARCHIVE</span></div>
+        <div class="kv">
+          <div class="kv-row"><span>发祥地</span><b>甘肃天水秦安</b></div>
+          <div class="kv-row"><span>家训</span><b>耕读世业 勤俭家风</b></div>
+          <div class="kv-row"><span>父子关系</span><b>54 条</b></div>
+          <div class="kv-row"><span>夫妻关系</span><b>62 条</b></div>
+          <div class="kv-row"><span>兄弟关系</span><b>14 条</b></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ══ 底部 ══ -->
+  <div class="footer">
+    <section class="panel animate" style="height:100%"><div class="corner-t"></div><div class="corner-b"></div>
+      <div class="p-head"><h3 style="font-size:12px">世 代 人 口</h3></div>
+      <div class="bars" id="genBars" style="height:calc(100% - 22px)"></div>
+    </section>
+    <section class="panel animate" style="height:100%"><div class="corner-t"></div><div class="corner-b"></div>
+      <div class="p-head"><h3 style="font-size:12px">关 系 网 络</h3></div>
+      <div class="stack" style="height:26px">
+        <i style="width:49.7%;background:linear-gradient(90deg,#1a6fa0,#37a2da)">父子 54</i>
+        <i style="width:57%;background:linear-gradient(90deg,#2e7d6b,#9fe6b8)">夫妻 62</i>
+        <i style="width:12.9%;background:linear-gradient(90deg,#a8762e,#ffdb5c)">兄弟 14</i>
+      </div>
+      <div class="stack-legend"><span><i style="background:#37a2da"></i>父子</span><span><i style="background:#9fe6b8"></i>夫妻</span><span><i style="background:#ffdb5c"></i>兄弟</span></div>
+    </section>
+    <section class="panel animate" style="height:100%"><div class="corner-t"></div><div class="corner-b"></div>
+      <div class="p-head"><h3 style="font-size:12px">寿 龄 统 计</h3></div>
+      <div class="kv-row"><span>平均寿龄</span><b>81.5 岁</b></div>
+      <div class="kv-row"><span>最高寿</span><b>92 岁</b></div>
+      <div class="kv-row"><span>女性平均</span><b>91.7 岁</b></div>
+      <div class="kv-row"><span>男性平均</span><b>77.1 岁</b></div>
+    </section>
+  </div>
+</div>
+
+<script>
+// 时钟
+function tick(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+tick();setInterval(tick,1000);
+
+// 数字翻牌（DataV digitalFlop: easeOutCubic 逐帧）
+function flop(id,target,dur=1800){
+  const el=document.getElementById(id),t0=performance.now();
+  function f(now){const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);el.textContent=Math.round(target*e);if(p<1)requestAnimationFrame(f)}
+  requestAnimationFrame(f);
+}
+window.addEventListener('load',()=>{
+  setTimeout(()=>{flop('flopTotal',70);flop('flopGen',4);flop('flopRel',183);flop('flopBranch',3);flop('coreNum',70)},300);
+  setTimeout(()=>document.querySelectorAll('.cap-fill').forEach(el=>el.style.width=el.dataset.w+'%'),500);
+});
+
+// 网络节点
+const NS='http://www.w3.org/2000/svg';
+const gens=[[52,14,'#fb7293'],[104,27,'#6586ec'],[156,28,'#2cf7fe'],[196,1,'#ffdb5c']];
+const g=document.getElementById('netNodes');
+gens.forEach(([r,n,c],gi)=>{
+  const shown=Math.min(n,6+gi*3);
+  for(let i=0;i<shown;i++){
+    const a=(i/shown)*Math.PI*2-Math.PI/2+gi*.3;
+    const dot=document.createElementNS(NS,'circle');
+    dot.setAttribute('cx',(210+Math.cos(a)*r).toFixed(1));
+    dot.setAttribute('cy',(210+Math.sin(a)*r).toFixed(1));
+    dot.setAttribute('r',3);dot.setAttribute('fill',c);
+    dot.setAttribute('class','node');
+    dot.style.animationDelay=(i*.15+gi*.4)+'s';
+    g.appendChild(dot);
+  }
+});
+
+// 年代柱
+const decades=[['1930',12],['1940',2],['1950',14],['1960',10],['1970',9],['1980',12],['1990',7],['2000',3],['2020',1]];
+const maxD=14;
+const bars=document.getElementById('bars');
+decades.forEach(([yr,v],i)=>{
+  const col=document.createElement('div');col.className='bar-col';
+  const bar=document.createElement('div');bar.className='bar'+(v===maxD?' hot':'');
+  bar.style.height=(v/maxD*100)+'%';bar.style.animationDelay=(i*.06)+'s';
+  bar.title=`${yr}s · ${v}人`;
+  const lab=document.createElement('span');lab.className='bar-yr';lab.textContent=yr;
+  col.appendChild(bar);col.appendChild(lab);bars.appendChild(col);
+});
+
+// 世代柱
+const genData=[['一代',14],['二代',27],['三代',28],['四代',1]];
+const genBars=document.getElementById('genBars');
+genData.forEach(([lab,v],i)=>{
+  const col=document.createElement('div');col.className='bar-col';
+  const bar=document.createElement('div');bar.className='bar';
+  bar.style.height=(v/28*100)+'%';bar.style.animationDelay=(i*.08)+'s';
+  const l=document.createElement('span');l.className='bar-yr';l.textContent=lab;
+  col.appendChild(bar);col.appendChild(l);genBars.appendChild(col);
+});
+
+// 年龄胶囊
+const age=[['60+',35],['36-60',27],['18-35',7],['0-17',1]];
+const ageCaps=document.getElementById('ageCaps');
+const colors=['#2cf7fe','#37a2da','#67e0e3','#9fe6b8'];
+age.forEach(([lab,v],i)=>{
+  const row=document.createElement('div');row.className='cap-row';
+  row.innerHTML=`<span class="cap-label">${lab}岁</span><div class="cap-track"><div class="cap-fill" style="width:0;color:#04121f;background:linear-gradient(90deg,${colors[i]}88,${colors[i]})" data-w="${v/35*100}"><span>${v}</span></div></div><span class="cap-val">${v}</span>`;
+  ageCaps.appendChild(row);
+});
+setTimeout(()=>ageCaps.querySelectorAll('.cap-fill').forEach(el=>el.style.width=el.dataset.w+'%'),700);
+</script>
+</body>
+</html>

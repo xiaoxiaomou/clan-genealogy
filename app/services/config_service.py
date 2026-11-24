@@ -77,6 +77,9 @@ class ConfigService:
          'label': '显示导出PDF按钮', 'description': '族谱页顶栏「导出 PDF」按钮；系统管理员关闭后普通用户不可见', 'is_public': True},
         {'category': 'family', 'key': 'family.show_functions_button', 'value': 'true', 'value_type': 'boolean',
          'label': '显示功能目录按钮', 'description': '族谱页顶栏「功能目录」按钮；系统管理员关闭后普通用户不可见', 'is_public': True},
+        # ===== 大屏展示入口（系统管理员始终可见；开启后普通用户也可见）=====
+        {'category': 'family', 'key': 'family.show_bigscreen_entry', 'value': 'false', 'value_type': 'boolean',
+         'label': '显示数据大屏入口', 'description': '数据可视化大屏入口；系统管理员始终可见，开启后普通用户也可见', 'is_public': True},
 
         # ========== 家族内容 (content) ==========
         {'category': 'content', 'key': 'content.max_events', 'value': '1000', 'value_type': 'number',
