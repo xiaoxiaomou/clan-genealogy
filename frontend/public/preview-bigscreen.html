@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
 <title>牟氏宗亲 · 世代传承大屏（预览版）</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -198,7 +199,7 @@ body::before{
 .dv-scan::after{content:'';position:absolute;right:0;top:-2px;width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold)}
 
 /* ── 中心：世系罗盘 ── */
-.compass-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.compass-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;overflow-x:hidden;overflow-y:auto}
 .compass-panel .p-head{align-self:stretch}
 .compass-wrap{flex:1;display:grid;place-items:center;width:100%;min-height:0}
 .compass{width:min(100%,46vh);aspect-ratio:1;position:relative}
@@ -238,6 +239,70 @@ body::before{
 .compass-legend{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:8px}
 .compass-legend span{font-size:11px;color:var(--paper-dim);display:flex;align-items:center;gap:6px}
 .compass-legend i{width:7px;height:7px;border-radius:50%;display:inline-block}
+[hidden]{display:none!important}
+
+/* ── 世系 / 二十四山切换 ── */
+.compass-mode-switch{margin-left:auto;display:flex;border:1px solid var(--line-strong);border-radius:2px;overflow:hidden;flex-shrink:0}
+.compass-mode-switch button{border:0;background:transparent;color:var(--paper-dim);font:inherit;font-size:10px;letter-spacing:.08em;padding:5px 9px;cursor:pointer}
+.compass-mode-switch button+button{border-left:1px solid var(--line-strong)}
+.compass-mode-switch button.active{background:var(--cinnabar);color:var(--paper)}
+.compass-mode-switch button:focus-visible{outline:1px solid var(--gold);outline-offset:2px}
+.luopan-ring{fill:none;stroke:rgba(102,61,14,.48);stroke-width:.75}
+.luopan-ring.inner{stroke:rgba(102,61,14,.24);stroke-width:.5}
+.luopan-ring.major{stroke:rgba(91,52,10,.72);stroke-width:1.05}
+.luopan-plate{fill:url(#luopanPlate);stroke:#f6d67a;stroke-width:2}
+.luopan-plate-edge{fill:none;stroke:#815018;stroke-width:.9}
+.luopan-rim{fill:none;stroke:url(#luopanRim);stroke-width:5}
+.luopan-tick{stroke:#744612;stroke-width:.7;opacity:.68}
+.luopan-tick.fine{stroke-width:.4;opacity:.3}
+.luopan-tick.medium{stroke:#6b4112;stroke-width:.65;opacity:.58}
+.luopan-tick.major{stroke:#5c350c;stroke-width:1.15;opacity:.95}
+.luopan-mountain{fill:rgba(255,247,207,.2);stroke:rgba(94,54,11,.52);stroke-width:.65;cursor:pointer;transition:fill .18s ease,stroke .18s ease}
+.luopan-mountain.alt{fill:rgba(116,67,12,.09)}
+.luopan-mountain:hover{fill:rgba(178,58,46,.24)}
+.luopan-mountain.selected{fill:var(--cinnabar);stroke:#7d241b}
+.luopan-mountain:focus-visible{outline:none;stroke:#7d241b;stroke-width:1.6}
+.luopan-mountain-label{fill:#4b2b0b;font-family:var(--serif);font-size:11px;font-weight:800;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.luopan-mountain-label.selected{fill:var(--paper)}
+.luopan-mountain-degree{fill:#815018;font-family:system-ui,sans-serif;font-size:4.4px;text-anchor:middle;dominant-baseline:central;pointer-events:none;font-variant-numeric:tabular-nums}
+.luopan-cycle-label{fill:#6a3f10;font-family:var(--serif);font-size:4.4px;font-weight:600;text-anchor:middle;pointer-events:none}
+.luopan-hexagram{fill:#744612;font-family:'Segoe UI Symbol','Noto Serif SC',serif;font-size:5.6px;text-anchor:middle;pointer-events:none}
+.luopan-mansion{fill:#6a3f10;font-family:var(--serif);font-size:5.2px;font-weight:600;text-anchor:middle;pointer-events:none}
+.luopan-branch-label{fill:#6a3f10;font-family:var(--serif);font-size:6.4px;font-weight:700;text-anchor:middle;pointer-events:none}
+.luopan-ring-label{fill:#7a4c16;font-family:var(--serif);font-size:4px;font-weight:600;text-anchor:middle;pointer-events:none}
+.luopan-degree-label{fill:#5c380e;font-family:var(--mono,monospace);font-size:3.2px;text-anchor:middle;pointer-events:none}
+.luopan-palace-sector{fill:rgba(255,248,214,.16);stroke:rgba(94,54,11,.34);stroke-width:.6;transition:fill .18s ease}
+.luopan-palace-sector.selected{fill:rgba(178,58,46,.24);stroke:#7d241b}
+.luopan-palace-symbol{fill:#5a3410;font-family:var(--serif);font-size:18px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.luopan-palace-name{fill:#6a3f10;font-family:var(--serif);font-size:8px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.luopan-cardinal{fill:#4b2b0b;font-family:system-ui,sans-serif;font-size:10px;font-weight:900;text-anchor:middle}
+.luopan-reference-line{stroke:#19a7b8;stroke-width:1.1;opacity:.9;pointer-events:none}
+.luopan-needle-north{fill:url(#luopanNeedleRed)}
+.luopan-needle-south{fill:url(#luopanNeedleDark)}
+.luopan-taiji-light{fill:#f5dfa0}
+.luopan-taiji-dark{fill:#6b3d0c}
+.luopan-taiji-stroke{stroke:#815018;stroke-width:1.3;fill:none}
+.luopan-degree-plate{fill:rgba(255,242,192,.92);stroke:#815018;stroke-width:.7}
+.luopan-degree{fill:#4b2b0b;font-family:system-ui,sans-serif;font-size:13px;font-weight:900;text-anchor:middle;font-variant-numeric:tabular-nums;pointer-events:none}
+.luopan-degree-label{fill:#815018;font-family:system-ui,sans-serif;font-size:4.5px;letter-spacing:.16em;text-anchor:middle;pointer-events:none}
+.luopan-controls{width:100%;max-width:470px;display:flex;flex-direction:column;gap:6px;padding:0 10px 8px}
+.luopan-control-head{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.luopan-control-head>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0;flex:1 1 118px}
+.luopan-control-head button{margin-left:auto}
+.luopan-control-head b{font-size:11px;color:var(--paper);letter-spacing:.06em;white-space:nowrap}
+.luopan-control-head span{font-size:9px;color:var(--gold);font-family:system-ui,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.luopan-controls button{border:1px solid var(--line-strong);background:transparent;color:var(--paper-dim);font:inherit;font-size:9px;letter-spacing:.04em;padding:4px 6px;cursor:pointer;white-space:nowrap}
+.luopan-controls button:hover,.luopan-controls button.active{background:var(--ink-2);color:var(--paper)}
+.luopan-controls button.primary{background:var(--cinnabar);border-color:var(--cinnabar);color:var(--paper)}
+.luopan-controls button.primary:hover,.luopan-controls button.primary.active{background:#7d241b;border-color:#7d241b}
+.luopan-controls input[type=range]{width:100%;accent-color:var(--cinnabar-lt);cursor:pointer}
+.luopan-button-row{display:flex;gap:6px}
+.luopan-button-row button{flex:1}
+.luopan-sensor-status{font-size:9px;line-height:1.45;color:var(--paper-dim);min-height:13px}
+.luopan-license{font-size:8px;line-height:1.4;color:var(--paper-dim)}
+.luopan-license summary{cursor:pointer;color:var(--gold-dim)}
+.luopan-license p{margin:4px 0 0}
+.luopan-license pre{white-space:pre-wrap;font:inherit;max-height:92px;overflow:auto;margin:4px 0 0;padding:6px;border:1px solid var(--line);background:rgba(0,0,0,.16)}
 
 /* ── 年代长河 ── */
 .decade-panel{flex-shrink:0}
@@ -370,6 +435,13 @@ body::before{
 .d4{animation-delay:.26s}.d5{animation-delay:.33s}.d6{animation-delay:.4s}
 
 /* 响应式：小屏可滚动查看 */
+@media (min-width:1101px){
+  .compass-panel.luopan-active{display:grid;grid-template-columns:minmax(0,1fr) clamp(164px,12vw,196px);column-gap:10px;grid-template-rows:auto minmax(0,1fr);align-items:center}
+  .compass-panel.luopan-active .p-head{grid-column:1/-1}
+  .compass-panel.luopan-active .compass-wrap{grid-column:1;grid-row:2;height:100%;min-width:0;overflow:hidden}
+  .compass-panel.luopan-active .compass{width:auto;height:100%;aspect-ratio:1;max-width:100%}
+  .compass-panel.luopan-active .luopan-controls{grid-column:2;grid-row:2;width:100%;margin:0;padding:0 0 8px;gap:5px}
+}
 @media (max-width:1100px){
   body{overflow:auto}
   .screen{height:auto;min-height:100vh;padding:14px}
@@ -444,20 +516,22 @@ body::before{
     <!-- 中栏 -->
     <div class="col">
       <section class="panel compass-panel animate d3" style="flex:1">
-        <div class="p-head"><span class="bar"></span><h3>世 系 罗 盘</h3><span class="en">GENERATIONS</span></div>
+        <div class="p-head">
+          <span class="bar"></span><h3 id="compassPanelTitle">世 系 罗 盘</h3>
+          <div class="compass-mode-switch" role="group" aria-label="罗盘视图">
+            <button type="button" class="active" data-compass-mode="lineage" aria-pressed="true">世系</button>
+            <button type="button" data-compass-mode="luopan" aria-pressed="false">二十四山</button>
+          </div>
+        </div>
         <div class="compass-wrap">
-          <div class="compass">
+          <div class="compass" id="lineageView">
             <svg viewBox="0 0 400 400" id="compassSvg">
-              <!-- 四代同心环（收进内圈，世系居八卦之中） -->
               <circle class="gen-ring" cx="200" cy="200" r="38"/>
               <circle class="gen-ring alt" cx="200" cy="200" r="66"/>
               <circle class="gen-ring" cx="200" cy="200" r="94"/>
               <circle class="gen-ring alt" cx="200" cy="200" r="122"/>
-              <!-- 八卦方位环 -->
               <circle class="bagua-ring" cx="200" cy="200" r="148"/>
-              <!-- 缓慢旋转的外圈刻度 -->
               <g id="ticks" style="transform-origin:200px 200px;animation:spin 60s linear infinite"></g>
-              <!-- 雷达式扫描光束（仅扫世系内圈） -->
               <g id="sweep" style="transform-origin:200px 200px;animation:sweep 7s linear infinite">
                 <defs>
                   <linearGradient id="sweepGrad" x1="0" y1="0" x2="1" y2="0">
@@ -468,16 +542,13 @@ body::before{
                 <path d="M200 200 L200 78 A122 122 0 0 1 259 95 Z" fill="url(#sweepGrad)"/>
                 <line x1="200" y1="200" x2="200" y2="78" stroke="var(--cinnabar-lt)" stroke-width="1" opacity=".5"/>
               </g>
-              <!-- 八卦符号（后天方位，JS 生成） -->
               <g id="bagua"></g>
-              <!-- 沿轨道运行的光珠 -->
               <g style="transform-origin:200px 200px;animation:orbit 14s linear infinite">
                 <circle cx="200" cy="134" r="3" fill="var(--cinnabar-lt)" opacity=".9" filter="drop-shadow(0 0 4px var(--cinnabar-lt))"/>
               </g>
               <g style="transform-origin:200px 200px;animation:orbit 22s linear infinite reverse">
                 <circle cx="200" cy="106" r="2.6" fill="var(--gold)" opacity=".9" filter="drop-shadow(0 0 4px var(--gold))"/>
               </g>
-              <!-- 代际节点由 JS 生成 -->
               <g id="genNodes"></g>
             </svg>
             <div class="compass-core">
@@ -485,14 +556,50 @@ body::before{
               <div class="txt">四 代 同 堂</div>
             </div>
           </div>
+          <div class="compass luopan-view" id="luopanView" hidden>
+            <svg viewBox="0 0 400 400" id="luopanSvg" role="img" aria-label="传统多层二十四山罗盘，可点击山向或调整角度"></svg>
+          </div>
         </div>
-        <div class="compass-legend">
+        <div class="compass-legend" id="lineageLegend">
           <span><i style="background:var(--cinnabar)"></i>第一代 · 14</span>
           <span><i style="background:var(--gold)"></i>第二代 · 27</span>
           <span><i style="background:var(--jade)"></i>第三代 · 28</span>
           <span><i style="background:var(--paper-dim)"></i>第四代 · 1</span>
         </div>
-        <div class="bagua-caption">后天八卦奠方位 · 四代世系承乾坤</div>
+        <div class="bagua-caption" id="lineageCaption">后天八卦奠方位 · 四代世系承乾坤</div>
+        <div class="luopan-controls" id="luopanControls" hidden>
+          <div class="luopan-control-head">
+            <div><b id="luopanMountainName">子山 · 正北</b><span id="luopanHeadingValue">000° / 正北</span></div>
+            <button id="luopanResetButton" type="button">复位正北</button>
+          </div>
+          <input id="luopanHeadingSlider" type="range" min="0" max="359" step="1" value="0" aria-label="调整罗盘方位角">
+          <div class="luopan-button-row">
+            <button id="luopanAutoButton" type="button">自动巡游</button>
+            <button id="luopanSensorButton" class="primary" type="button">开启实时方向</button>
+          </div>
+          <div class="luopan-sensor-status" id="luopanSensorStatus">静态模式 · 不读取设备传感器。</div>
+          <details class="luopan-license"><summary>原创 SVG 盘面 · 二十四山数据参考 qishui · MIT</summary><p>视觉层次参考 MartingKing/xuanxueapp 的罗盘截图；未复制其图片或代码。</p><pre>MIT License
+
+Copyright (c) 2025 Lim Chee Kin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre></details>
+        </div>
       </section>
 
       <section class="panel decade-panel animate d5">
@@ -639,6 +746,231 @@ for(let i=0;i<60;i++){
   l.setAttribute('stroke-width',i%5===0?'1.5':'0.7');
   ticks.appendChild(l);
 }
+
+const luopanMountains=[
+  {name:'子',degree:0,palace:'坎'},{name:'癸',degree:15,palace:'坎'},
+  {name:'丑',degree:30,palace:'艮'},{name:'艮',degree:45,palace:'艮'},
+  {name:'寅',degree:60,palace:'艮'},{name:'甲',degree:75,palace:'震'},
+  {name:'卯',degree:90,palace:'震'},{name:'乙',degree:105,palace:'震'},
+  {name:'辰',degree:120,palace:'巽'},{name:'巽',degree:135,palace:'巽'},
+  {name:'巳',degree:150,palace:'巽'},{name:'丙',degree:165,palace:'离'},
+  {name:'午',degree:180,palace:'离'},{name:'丁',degree:195,palace:'离'},
+  {name:'未',degree:210,palace:'坤'},{name:'坤',degree:225,palace:'坤'},
+  {name:'申',degree:240,palace:'坤'},{name:'庚',degree:255,palace:'兑'},
+  {name:'酉',degree:270,palace:'兑'},{name:'辛',degree:285,palace:'兑'},
+  {name:'戌',degree:300,palace:'乾'},{name:'乾',degree:315,palace:'乾'},
+  {name:'亥',degree:330,palace:'乾'},{name:'壬',degree:345,palace:'坎'}
+];
+const luopanPalaceInfo={
+  坎:{symbol:'☵',direction:'正北'},艮:{symbol:'☶',direction:'东北'},
+  震:{symbol:'☳',direction:'正东'},巽:{symbol:'☴',direction:'东南'},
+  离:{symbol:'☲',direction:'正南'},坤:{symbol:'☷',direction:'西南'},
+  兑:{symbol:'☱',direction:'正西'},乾:{symbol:'☰',direction:'西北'}
+};
+const luopanStems=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const luopanBranches=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const luopanCycle=Array.from({length:60},(_,index)=>`${luopanStems[index%10]}${luopanBranches[index%12]}`);
+const luopanMansions='角亢氐房心尾箕斗牛女虚危室壁奎娄胃昴毕觜参井鬼柳星张翼轸'.split('');
+const luopanHexagrams=Array.from({length:64},(_,index)=>String.fromCodePoint(0x4dc0+index));
+let luopanHeading=0;
+let luopanSelectedIndex=0;
+let luopanAutoTimer=null;
+let luopanSensorActive=false;
+let luopanSensorMode='';
+let luopanSensorReceived=false;
+let luopanSensorTimer=null;
+const luopanSvg=document.getElementById('luopanSvg');
+
+function luopanPoint(radius,degree){
+  const angle=(degree-90)*Math.PI/180;
+  return {x:200+radius*Math.cos(angle),y:200+radius*Math.sin(angle)};
+}
+function luopanSector(outer,inner,start,end){
+  const a=luopanPoint(outer,start),b=luopanPoint(outer,end);
+  const c=luopanPoint(inner,end),d=luopanPoint(inner,start);
+  return `M ${a.x} ${a.y} A ${outer} ${outer} 0 0 1 ${b.x} ${b.y} L ${c.x} ${c.y} A ${inner} ${inner} 0 0 0 ${d.x} ${d.y} Z`;
+}
+function luopanRadialText(text,radius,degree,className){
+  return `<text class="${className}" x="200" y="${200-radius}" transform="rotate(${degree} 200 200)">${text}</text>`;
+}
+function renderLuopanSvg(){
+  const tickMarkup=[];
+  for(let degree=0;degree<360;degree+=3){
+    const major=degree%30===0,medium=degree%15===0;
+    const inner=major?181:medium?185:187;
+    const a=luopanPoint(inner,degree),b=luopanPoint(191,degree);
+    const tickClass=major?' major':medium?' medium':' fine';
+    tickMarkup.push(`<line class="luopan-tick${tickClass}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`);
+  }
+  const ringMarkup=[190,186,183,179,175,172,169,160,154,149,146,142,138,135,131,127,124,120,116,112,108,104,100,96,92,86,83,80,77,74,71,68,65,62,59,56,53,50]
+    .map((radius,index)=>`<circle class="luopan-ring${[190,175,169,149,146,124,86,50].includes(radius)?' major':' inner'}" cx="200" cy="200" r="${radius}"/>`).join('');
+  const hexagramMarkup=luopanHexagrams.map((symbol,index)=>luopanRadialText(symbol,181,index*360/64,'luopan-hexagram')).join('');
+  const cycleMarkup=luopanCycle.map((label,index)=>luopanRadialText(label,143,index*360/60,'luopan-cycle-label')).join('');
+  const mansionMarkup=luopanMansions.map((label,index)=>luopanRadialText(label,132,index*360/28,'luopan-mansion')).join('');
+  const branchMarkup=luopanBranches.map((label,index)=>luopanRadialText(label,75,index*30,'luopan-branch-label')).join('');
+  // ── 加密文字层：天干 / 九星 / 二十四山天元 / 十二长生 / 分金度数 ──
+  const stemRing=luopanStems.map((label,index)=>luopanRadialText(label,120,index*36,'luopan-ring-label')).join('');
+  const nineStars='贪巨禄文廉武破辅弼'.split('').map((label,index)=>luopanRadialText(label,112,index*40,'luopan-ring-label')).join('');
+  const lifeCycle='长生沐浴冠带临官帝旺衰病死墓绝胎养'.split('').map((label,index)=>luopanRadialText(label,66,index*30,'luopan-ring-label')).join('');
+  const mountainInner=luopanMountains.map((m,index)=>luopanRadialText(m.name,58,index*15,'luopan-ring-label')).join('');
+  const degreeRing=Array.from({length:72},(_,index)=>{
+    const degree=index*5;
+    return luopanRadialText(String(degree).padStart(3,'0'),174,degree,'luopan-degree-label');
+  }).join('');
+  const mountainMarkup=luopanMountains.map((mountain,index)=>{
+    const selected=index===luopanSelectedIndex?' selected':'';
+    const label=luopanPoint(160,mountain.degree),degreeLabel=luopanPoint(153,mountain.degree);
+    return `<path class="luopan-mountain${index%2?' alt':''}${selected}" data-luopan-index="${index}" d="${luopanSector(169,150,mountain.degree-7.5,mountain.degree+7.5)}" tabindex="0" role="button" aria-pressed="${index===luopanSelectedIndex}" aria-label="${mountain.name}山，${mountain.degree}度"/><text class="luopan-mountain-label${selected}" data-luopan-index="${index}" x="${label.x}" y="${label.y}">${mountain.name}</text><text class="luopan-mountain-degree" x="${degreeLabel.x}" y="${degreeLabel.y}">${String(mountain.degree).padStart(3,'0')}</text>`;
+  }).join('');
+  const palaceMarkup=Object.entries(luopanPalaceInfo).map(([name,info],index)=>{
+    const degree=index*45,symbol=luopanPoint(108,degree),label=luopanPoint(95,degree);
+    return `<path class="luopan-palace-sector${name===luopanMountains[luopanSelectedIndex].palace?' selected':''}" data-palace="${name}" d="${luopanSector(124,86,degree-22.5,degree+22.5)}"/><text class="luopan-palace-symbol" x="${symbol.x}" y="${symbol.y}">${info.symbol}</text><text class="luopan-palace-name" x="${label.x}" y="${label.y}">${name}</text>`;
+  }).join('');
+  luopanSvg.innerHTML=`<defs>
+    <radialGradient id="luopanPlate" cx="50%" cy="42%" r="66%"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#f1cd68"/><stop offset=".78" stop-color="#cf9435"/><stop offset="1" stop-color="#9b611c"/></radialGradient>
+    <linearGradient id="luopanRim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset=".35" stop-color="#b7791f"/><stop offset=".68" stop-color="#f4d06f"/><stop offset="1" stop-color="#8b5517"/></linearGradient>
+    <linearGradient id="luopanNeedleRed" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e15b4f"/><stop offset="1" stop-color="#8f241d"/></linearGradient>
+    <linearGradient id="luopanNeedleDark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a551f"/><stop offset="1" stop-color="#3b240d"/></linearGradient>
+    <filter id="luopanShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000" flood-opacity=".5"/></filter>
+  </defs>
+  <circle class="luopan-plate" cx="200" cy="200" r="194" filter="url(#luopanShadow)"/>
+  <circle class="luopan-rim" cx="200" cy="200" r="190"/><circle class="luopan-plate-edge" cx="200" cy="200" r="187"/>
+  ${ringMarkup}${tickMarkup.join('')}${hexagramMarkup}${degreeRing}${mountainMarkup}${cycleMarkup}${mansionMarkup}${stemRing}${nineStars}${palaceMarkup}${lifeCycle}${branchMarkup}${mountainInner}
+  <text class="luopan-cardinal" x="200" y="12" text-anchor="middle">N</text><text class="luopan-cardinal" x="200" y="23" text-anchor="middle">北</text>
+  <text class="luopan-cardinal" x="388" y="203" text-anchor="middle">E</text><text class="luopan-cardinal" x="377" y="203" text-anchor="middle">东</text>
+  <text class="luopan-cardinal" x="200" y="391" text-anchor="middle">S</text><text class="luopan-cardinal" x="200" y="380" text-anchor="middle">南</text>
+  <text class="luopan-cardinal" x="12" y="203" text-anchor="middle">W</text><text class="luopan-cardinal" x="23" y="203" text-anchor="middle">西</text>
+  <line class="luopan-reference-line" x1="200" y1="10" x2="200" y2="390"/>
+  <circle class="luopan-reference-line" cx="200" cy="10" r="2" fill="none"/><circle class="luopan-reference-line" cx="200" cy="390" r="2" fill="none"/>
+  <circle class="luopan-taiji-light" cx="200" cy="200" r="48"/>
+  <path class="luopan-taiji-dark" d="M200 152 A48 48 0 0 1 200 248 A24 24 0 0 1 200 200 A24 24 0 0 0 200 152 Z"/>
+  <circle class="luopan-taiji-dark" cx="200" cy="176" r="6"/><circle class="luopan-taiji-light" cx="200" cy="224" r="6"/>
+  <circle class="luopan-taiji-stroke" cx="200" cy="200" r="48"/>
+  <rect class="luopan-degree-plate" x="178" y="256" width="44" height="23" rx="2"/>
+  <text class="luopan-degree" id="luopanDegree" x="200" y="270">000°</text><text class="luopan-degree-label" x="200" y="277">HEADING</text>
+  <g id="luopanNeedle" transform="rotate(${luopanHeading} 200 200)"><path class="luopan-needle-north" d="M200 50 L204 200 L200 188 L196 200 Z"/><path class="luopan-needle-south" d="M200 350 L204 200 L200 212 L196 200 Z"/></g>
+  <circle cx="200" cy="200" r="4" fill="#815018" stroke="#f7e4a4" stroke-width="1"/>`;
+}
+function luopanDirectionName(heading){
+  return ['正北','东北','正东','东南','正南','西南','正西','西北'][Math.round(heading/45)%8];
+}
+function updateLuopanReadout(){
+  luopanHeading=((Number(luopanHeading)%360)+360)%360;
+  luopanSelectedIndex=Math.round(luopanHeading/15)%24;
+  const mountain=luopanMountains[luopanSelectedIndex],info=luopanPalaceInfo[mountain.palace];
+  luopanSvg.querySelectorAll('.luopan-mountain,.luopan-mountain-label').forEach(element=>{
+    const selected=Number(element.dataset.luopanIndex)===luopanSelectedIndex;
+    element.classList.toggle('selected',selected);
+    if(element.classList.contains('luopan-mountain')) element.setAttribute('aria-pressed',String(selected));
+  });
+  luopanSvg.querySelectorAll('.luopan-palace-sector').forEach(element=>element.classList.toggle('selected',element.dataset.palace===mountain.palace));
+  document.getElementById('luopanNeedle').setAttribute('transform',`rotate(${luopanHeading} 200 200)`);
+  document.getElementById('luopanDegree').textContent=`${String(Math.round(luopanHeading)).padStart(3,'0')}°`;
+  document.getElementById('luopanHeadingSlider').value=String(Math.round(luopanHeading));
+  document.getElementById('luopanHeadingValue').textContent=`${String(Math.round(luopanHeading)).padStart(3,'0')}° / ${luopanDirectionName(luopanHeading)}`;
+  document.getElementById('luopanMountainName').textContent=`${mountain.name}山 · ${info.direction}`;
+}
+function setLuopanHeading(value,manual=false){
+  if(manual){
+    stopLuopanAuto();
+    if(luopanSensorActive) stopLuopanSensor();
+  }
+  luopanHeading=((Number(value)%360)+360)%360;
+  updateLuopanReadout();
+}
+function stopLuopanAuto(){
+  if(!luopanAutoTimer) return;
+  clearInterval(luopanAutoTimer);luopanAutoTimer=null;
+  const button=document.getElementById('luopanAutoButton');
+  if(button){button.textContent='自动巡游';button.classList.remove('active');}
+}
+function toggleLuopanAuto(){
+  if(luopanAutoTimer){stopLuopanAuto();return;}
+  if(luopanSensorActive) stopLuopanSensor();
+  luopanAutoTimer=setInterval(()=>setLuopanHeading(luopanHeading+1),80);
+  const button=document.getElementById('luopanAutoButton');
+  if(button){button.textContent='停止巡游';button.classList.add('active');}
+}
+function handleLuopanOrientation(event){
+  let heading=null;
+  if(typeof event.webkitCompassHeading==='number'){
+    heading=event.webkitCompassHeading;luopanSensorMode='绝对方位';
+  }else if(typeof event.alpha==='number'){
+    heading=(360-event.alpha)%360;luopanSensorMode=event.absolute?'绝对方位':'相对方位';
+  }
+  if(heading===null) return;
+  luopanSensorReceived=true;
+  if(luopanSensorTimer){clearTimeout(luopanSensorTimer);luopanSensorTimer=null;}
+  setLuopanHeading(heading);
+  document.getElementById('luopanSensorStatus').textContent=`${luopanSensorMode} · 实时读取中；请远离金属与磁体。`;
+}
+function stopLuopanSensor(){
+  if(luopanSensorTimer){clearTimeout(luopanSensorTimer);luopanSensorTimer=null;}
+  luopanSensorReceived=false;
+  if(!luopanSensorActive) return;
+  luopanSensorActive=false;
+  window.removeEventListener('deviceorientationabsolute',handleLuopanOrientation,true);
+  window.removeEventListener('deviceorientation',handleLuopanOrientation,true);
+  const button=document.getElementById('luopanSensorButton');
+  if(button){button.textContent='开启实时方向';button.classList.remove('active');}
+  document.getElementById('luopanSensorStatus').textContent='静态模式 · 不读取设备传感器。';
+}
+async function toggleLuopanSensor(){
+  if(luopanSensorActive){stopLuopanSensor();return;}
+  const status=document.getElementById('luopanSensorStatus');
+  if(!window.DeviceOrientationEvent){status.textContent='当前浏览器不支持方向传感器，可使用角度滑杆。';return;}
+  try{
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      const permission=await DeviceOrientationEvent.requestPermission();
+      if(permission!=='granted'){status.textContent='未获得方向传感器权限。';return;}
+    }
+    stopLuopanAuto();luopanSensorActive=true;luopanSensorReceived=false;
+    window.addEventListener('deviceorientationabsolute',handleLuopanOrientation,true);
+    window.addEventListener('deviceorientation',handleLuopanOrientation,true);
+    luopanSensorTimer=setTimeout(()=>{
+      if(luopanSensorActive&&!luopanSensorReceived){
+        stopLuopanSensor();status.textContent='未检测到方向数据 · 已回到静态模式，可使用角度滑杆。';
+      }
+    },4000);
+    const button=document.getElementById('luopanSensorButton');
+    button.textContent='停止实时方向';button.classList.add('active');status.textContent='正在读取方向传感器…';
+  }catch(error){
+    luopanSensorActive=false;status.textContent='无法启用方向传感器，请检查浏览器权限。';
+  }
+}
+function setLuopanMode(mode){
+  const active=mode==='luopan';
+  document.querySelector('.compass-panel').classList.toggle('luopan-active',active);
+  if(!active){stopLuopanAuto();stopLuopanSensor();}
+  document.getElementById('lineageView').hidden=active;
+  document.getElementById('luopanView').hidden=!active;
+  document.getElementById('lineageLegend').hidden=active;
+  document.getElementById('lineageCaption').hidden=active;
+  document.getElementById('luopanControls').hidden=!active;
+  document.getElementById('compassPanelTitle').textContent=active?'二 十 四 山 罗 盘':'世 系 罗 盘';
+  document.querySelectorAll('[data-compass-mode]').forEach(button=>{
+    const selected=button.dataset.compassMode===mode;
+    button.classList.toggle('active',selected);button.setAttribute('aria-pressed',String(selected));
+  });
+  if(active) updateLuopanReadout();
+}
+renderLuopanSvg();
+updateLuopanReadout();
+luopanSvg.addEventListener('click',event=>{
+  const target=event.target.closest('[data-luopan-index]');
+  if(target) setLuopanHeading(luopanMountains[Number(target.dataset.luopanIndex)].degree,true);
+});
+luopanSvg.addEventListener('keydown',event=>{
+  const target=event.target.closest('[data-luopan-index]');
+  if(target&&(event.key==='Enter'||event.key===' ')){
+    event.preventDefault();setLuopanHeading(luopanMountains[Number(target.dataset.luopanIndex)].degree,true);
+  }
+});
+document.getElementById('luopanHeadingSlider').addEventListener('input',event=>setLuopanHeading(event.target.value,true));
+document.getElementById('luopanResetButton').addEventListener('click',()=>setLuopanHeading(0,true));
+document.getElementById('luopanAutoButton').addEventListener('click',toggleLuopanAuto);
+document.getElementById('luopanSensorButton').addEventListener('click',toggleLuopanSensor);
+document.querySelectorAll('[data-compass-mode]').forEach(button=>button.addEventListener('click',()=>setLuopanMode(button.dataset.compassMode)));
 
 // ── 年代长河 ──
 const decades=[['1930s',12],['1940s',2],['1950s',14],['1960s',10],['1970s',9],['1980s',12],['1990s',7],['2000s',3],['2020s',1]];
